@@ -1,0 +1,12 @@
+{
+  "name": "musica-aprender",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @musica-aprender/web",
+    "build": "npm run build --workspace @musica-aprender/web",
+    "typecheck": "npm run typecheck --workspace @musica-aprender/web"
+  }
+}

@@ -1,0 +1,45 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Node
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.vite/
+coverage/
+
+# IDE
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+secrets/
+*.pfx
+*.p12
+*.key
+
+# Containers and local data
+.data/
+volumes/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and test artifacts
+*.log
+TestResults/
+playwright-report/
+test-results/

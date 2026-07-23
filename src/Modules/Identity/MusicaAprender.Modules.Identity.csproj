@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>MusicaAprender.Modules.Identity</AssemblyName>
+    <RootNamespace>MusicaAprender.Modules.Identity</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\Domain\MusicaAprender.BuildingBlocks.Domain.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\Application\MusicaAprender.BuildingBlocks.Application.csproj" />
+    <ProjectReference Include="..\..\BuildingBlocks\Contracts\MusicaAprender.BuildingBlocks.Contracts.csproj" />
+  </ItemGroup>
+</Project>

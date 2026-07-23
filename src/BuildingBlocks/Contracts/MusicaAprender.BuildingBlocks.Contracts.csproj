@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>MusicaAprender.BuildingBlocks.Contracts</AssemblyName>
+    <RootNamespace>MusicaAprender.BuildingBlocks.Contracts</RootNamespace>
+  </PropertyGroup>
+</Project>

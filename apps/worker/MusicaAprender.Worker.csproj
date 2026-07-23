@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>MusicaAprender.Worker</AssemblyName>
+    <RootNamespace>MusicaAprender.Worker</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Infrastructure\MusicaAprender.BuildingBlocks.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>MusicaAprender.IntegrationTests</AssemblyName>
+    <RootNamespace>MusicaAprender.IntegrationTests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\apps\api\MusicaAprender.Api.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>MusicaAprender.UnitTests</AssemblyName>
+    <RootNamespace>MusicaAprender.UnitTests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BuildingBlocks\Domain\MusicaAprender.BuildingBlocks.Domain.csproj" />
+  </ItemGroup>
+</Project>
