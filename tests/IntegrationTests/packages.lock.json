@@ -1,0 +1,106 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net9.0": {
+      "musicaaprender.api": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )",
+          "MusicaAprender.Modules.Catalog": "[1.0.0, )",
+          "MusicaAprender.Modules.Configuration": "[1.0.0, )",
+          "MusicaAprender.Modules.Content": "[1.0.0, )",
+          "MusicaAprender.Modules.Editorial": "[1.0.0, )",
+          "MusicaAprender.Modules.Identity": "[1.0.0, )",
+          "MusicaAprender.Modules.Learning": "[1.0.0, )",
+          "MusicaAprender.Modules.Progress": "[1.0.0, )",
+          "MusicaAprender.Modules.Security": "[1.0.0, )"
+        }
+      },
+      "musicaaprender.buildingblocks.application": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )"
+        }
+      },
+      "musicaaprender.buildingblocks.contracts": {
+        "type": "Project"
+      },
+      "musicaaprender.buildingblocks.domain": {
+        "type": "Project"
+      },
+      "musicaaprender.buildingblocks.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )"
+        }
+      },
+      "musicaaprender.modules.catalog": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )"
+        }
+      },
+      "musicaaprender.modules.configuration": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )"
+        }
+      },
+      "musicaaprender.modules.content": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )"
+        }
+      },
+      "musicaaprender.modules.editorial": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )"
+        }
+      },
+      "musicaaprender.modules.identity": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )"
+        }
+      },
+      "musicaaprender.modules.learning": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )"
+        }
+      },
+      "musicaaprender.modules.progress": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )"
+        }
+      },
+      "musicaaprender.modules.security": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}

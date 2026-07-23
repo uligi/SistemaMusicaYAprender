@@ -1,56 +1,58 @@
-# Música y Aprender
+# Música y Aprender — Base técnica del MVP
 
-Plataforma web para aprender japonés mediante canciones.
+Monorrepositorio del MVP de aprendizaje de japonés mediante canciones.
 
-Este incremento implementa **BL-MVP-001 — Crear la solución monorrepositorio y convenciones de carpetas** del backlog del MVP 1.0.
+## Estado del backlog
 
-## Estado del incremento
+- BL-MVP-001: estructura inicial del monorrepositorio — completado.
+- BL-MVP-002: SDK, runtime, gestores y lockfiles — preparado para validación local.
 
-La estructura separa explícitamente:
+## Requisitos fijados
 
-- aplicación web React;
-- API ASP.NET Core;
-- worker .NET;
-- bloques compartidos;
-- módulos P0 del monolito modular;
-- pruebas;
-- infraestructura;
-- documentación y decisiones arquitectónicas.
+- Visual Studio 2022 compatible con .NET 9.
+- SDK .NET 9, banda 9.0.3xx.
+- Node.js 24.18.0 LTS.
+- npm 11.16.0.
+- PostgreSQL 18 se incorporará en los siguientes habilitadores de F0.
 
-No se crean proyectos ni tablas para M10-M14, M16 o M17 porque están diferidos fuera del MVP 1.0.
+> .NET 9 finaliza soporte el 10 de noviembre de 2026. Debe planificarse la actualización a .NET 10 LTS antes de esa fecha.
 
-## Mapa de módulos P0
+## Primera restauración en Windows
 
-| Proyecto | Módulo propietario | Esquema PostgreSQL previsto |
-|---|---|---|
-| Identity | M01 — Usuarios y preferencias | `identity` |
-| Catalog | M02 — Catálogo musical | `catalog` |
-| Content | M03-M05 — Letra, traducción y análisis | `content` |
-| Learning | M06-M08 — Aprendizaje, sesiones y ejercicios | `learning` |
-| Progress | M09 — Progreso dentro de la canción | `progress` |
-| Editorial | M15 — Gestión editorial | `editorial` |
-| Security | M18 — Seguridad, roles y auditoría | `security` |
-| Configuration | M19 — Administración y catálogos | `configuration` |
+Desde PowerShell en la raíz:
 
-## Regla principal de dependencias
-
-Los módulos no se referencian entre sí mediante `ProjectReference`. Cada módulo depende únicamente de los bloques compartidos. La API y el worker actúan como composición externa. La comunicación futura entre módulos se realizará mediante contratos de aplicación o eventos internos versionados.
-
-## Comandos previstos
-
-```bash
-# Backend, cuando .NET 10 esté instalado
-dotnet restore MusicaAprender.sln
-dotnet build MusicaAprender.sln
-
-# Cliente, después de fijar versiones y lockfile en BL-MVP-002
-npm install
-npm run dev --workspace @musica-aprender/web
-
-# Comprobación de fronteras
-bash scripts/check-module-boundaries.sh
+```powershell
+npm install -g npm@11.16.0
+.\scripts\restore-and-build.ps1
 ```
 
-## Próximo elemento
+La primera ejecución genera `package-lock.json`. Después de comprobar que la compilación finaliza, ese archivo debe confirmarse en Git. Las ejecuciones posteriores usan `npm ci` y restauración NuGet bloqueada en CI.
 
-**BL-MVP-002 — Fijar SDK, runtime, gestores y lockfiles.**
+## Comandos individuales
+
+```powershell
+# Validar versiones instaladas
+.\scripts\check-toolchain.ps1
+
+# Herramientas y backend
+dotnet tool restore
+dotnet restore MusicaAprender.sln
+dotnet build MusicaAprender.sln --no-restore
+
+# Frontend
+npm install --package-lock-only
+npm ci
+npm run typecheck
+npm run build
+```
+
+## Archivos de control
+
+- `global.json`: banda aprobada del SDK .NET.
+- `Directory.Packages.props`: versiones NuGet centralizadas.
+- `NuGet.Config`: única fuente NuGet autorizada.
+- `.config/dotnet-tools.json`: herramienta local `dotnet-ef`.
+- `.nvmrc` y `.node-version`: Node.js aprobado.
+- `.npmrc` y `package.json`: npm, engines y versiones exactas.
+- `packages.lock.json`: lockfile NuGet por proyecto.
+- `package-lock.json`: se genera en la primera restauración local y luego se conserva.

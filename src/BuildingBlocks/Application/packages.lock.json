@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net9.0": {
+      "musicaaprender.buildingblocks.contracts": {
+        "type": "Project"
+      },
+      "musicaaprender.buildingblocks.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}

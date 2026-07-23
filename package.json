@@ -1,12 +1,20 @@
 {
   "name": "musica-aprender",
+  "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@11.16.0",
+  "engines": {
+    "node": "24.18.0",
+    "npm": "11.16.0"
+  },
   "workspaces": [
     "apps/web"
   ],
   "scripts": {
     "dev": "npm run dev --workspace @musica-aprender/web",
     "build": "npm run build --workspace @musica-aprender/web",
-    "typecheck": "npm run typecheck --workspace @musica-aprender/web"
+    "typecheck": "npm run typecheck --workspace @musica-aprender/web",
+    "restore:locked": "npm ci",
+    "versions": "node --version && npm --version"
   }
 }
