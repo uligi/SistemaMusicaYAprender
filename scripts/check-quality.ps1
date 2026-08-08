@@ -17,5 +17,6 @@ dotnet run --project tests/ArchitectureTests/MusicaAprender.ArchitectureTests.cs
 Assert-LastExitCode "Pruebas de arquitectura"
 
 & "$PSScriptRoot/check-module-boundaries.ps1"
+& "$PSScriptRoot/governance/check-templates.ps1"
 
-Write-Host "OK: puerta local BL-MVP-004 aprobada."
+Write-Host "OK: puerta local BL-MVP-005 aprobada."

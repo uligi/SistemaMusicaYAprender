@@ -10,5 +10,6 @@ cd "$ROOT"
 dotnet test tests/UnitTests/MusicaAprender.UnitTests.csproj --no-build --no-restore
 dotnet run --project tests/ArchitectureTests/MusicaAprender.ArchitectureTests.csproj --no-build --no-restore
 "$SCRIPT_DIR/check-module-boundaries.sh"
+"$SCRIPT_DIR/governance/check-templates.sh"
 
-echo "OK: puerta local BL-MVP-004 aprobada."
+echo "OK: puerta local BL-MVP-005 aprobada."

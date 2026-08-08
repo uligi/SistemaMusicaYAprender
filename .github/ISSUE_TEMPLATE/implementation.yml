@@ -1,0 +1,185 @@
+name: Implementación BL-MVP
+description: Registrar una historia o habilitador trazado a la línea base del MVP.
+title: '[BL-MVP-###] '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Este formulario es el registro de ejecución. Los documentos técnicos siguen siendo la fuente normativa.
+        No cierre el issue hasta cumplir la Definition of Done aplicable.
+
+  - type: input
+    id: backlog_id
+    attributes:
+      label: Identificador del backlog
+      description: Use el identificador único BL-MVP-001 a BL-MVP-100.
+      placeholder: BL-MVP-005
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Fase
+      options:
+        - F0 - Cimientos
+        - F1 - Identidad, acceso y configuración
+        - F2 - Catálogo y cadena editorial
+        - F3 - Contenido educativo
+        - F4 - Práctica y evidencia
+        - F5 - Preferencias, progreso y reanudación
+        - F6 - Operación y liberación
+    validations:
+      required: true
+
+  - type: dropdown
+    id: epic
+    attributes:
+      label: Épica
+      options:
+        - EP-00 - Ingeniería y repositorio
+        - EP-01 - Datos, persistencia e integración
+        - EP-02 - Sistema de diseño y cliente base
+        - EP-03 - Identidad, seguridad y autorización
+        - EP-04 - Preferencias y configuración
+        - EP-05 - Catálogo musical y búsqueda
+        - EP-06 - Derechos, revisión y publicación
+        - EP-07 - Letra, reproducción y sincronización
+        - EP-08 - Traducción multilingüe
+        - EP-09 - Análisis lingüístico
+        - EP-10 - Sesiones, ejercicios y evidencia
+        - EP-11 - Progreso y continuidad
+        - EP-12 - Calidad y operación
+        - EP-13 - Empaquetado y liberación
+    validations:
+      required: true
+
+  - type: dropdown
+    id: work_type
+    attributes:
+      label: Tipo
+      options:
+        - Historia
+        - Habilitador
+    validations:
+      required: true
+
+  - type: textarea
+    id: traceability
+    attributes:
+      label: Trazabilidad obligatoria
+      description: |
+        Para historias indique CU/CA/UI/CE y RF/RN aplicables.
+        Para habilitadores indique RNF/ARC/DDC/DI aplicables.
+      placeholder: |
+        CU/CA/UI/CE: ...
+        RF/RN: ...
+        RNF/ARC/DDC/DI: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objetivo y resultado observable
+      description: Qué resultado debe existir y por qué.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      description: Use Dado/Cuando/Entonces o condiciones binarias reproducibles.
+      placeholder: |
+        - Dado ... cuando ... entonces ...
+        - Se considera aprobado cuando ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: data_permissions
+    attributes:
+      label: Datos, permisos, privacidad y concurrencia
+      description: Entidades/esquemas, alcance de acceso, retención, privacidad, concurrencia e idempotencia aplicables.
+      placeholder: Indique "No aplica" con una justificación cuando corresponda.
+    validations:
+      required: true
+
+  - type: textarea
+    id: states_errors
+    attributes:
+      label: Estados, errores y degradación
+      description: Carga, vacío, error, degradación, conflicto, guardando/confirmado y éxito aplicables.
+      placeholder: Indique "No aplica" con una justificación cuando corresponda.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tests
+    attributes:
+      label: Plan de pruebas
+      description: Unitarias, integración, contrato, E2E, accesibilidad, seguridad y rendimiento aplicables.
+      placeholder: |
+        Unitarias: ...
+        Integración: ...
+        E2E/Accesibilidad/Seguridad/Rendimiento: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencias
+      description: Use "Blocked by #..." y "Blocks #..." cuando existan.
+      placeholder: 'Blocked by: Ninguna'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data_risk
+    attributes:
+      label: Riesgo de datos
+      options:
+        - No aplica
+        - Bajo
+        - Medio
+        - Alto
+    validations:
+      required: true
+
+  - type: dropdown
+    id: security_risk
+    attributes:
+      label: Riesgo de seguridad o privacidad
+      options:
+        - No aplica
+        - Bajo
+        - Medio
+        - Alto
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidencia esperada
+      description: PR, ejecución, captura/reporte, ambiente, fecha y responsable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of Done aplicable
+      description: |
+        Liste los puntos de DoD que deberán quedar demostrados antes de cerrar el issue.
+        No marque como terminado solo porque el código fue escrito.
+      placeholder: |
+        - [ ] Compilación limpia y revisión de código
+        - [ ] Pruebas aplicables aprobadas
+        - [ ] Trazabilidad actualizada
+        - [ ] Evidencia reproducible adjunta
+        - [ ] Documentación actualizada
+    validations:
+      required: true

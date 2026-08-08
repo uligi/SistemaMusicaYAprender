@@ -1,19 +1,13 @@
-# BL-MVP-004B — Corrección CA1707 en la primera prueba unitaria
+# BL-MVP-005A — Corrección de lectura UTF-8
 
-El analizador de .NET está configurado como error de compilación y no permite guiones bajos
-en nombres de miembros públicos (`CA1707`).
+El contenido de `pull_request_template.md` sí contiene `## Revisión requerida`.
 
-Se cambia:
+El fallo se produce porque Windows PowerShell 5.1 puede interpretar un archivo UTF-8 sin BOM
+usando la página de códigos local cuando se llama a `Get-Content`. En ese caso `Revisión`
+se convierte internamente en texto mojibake y la comparación literal falla.
 
-```csharp
-Constructor_PreservesIdentifier()
-```
-
-por:
-
-```csharp
-ConstructorPreservesIdentifier()
-```
+Este parche cambia el verificador para leer los archivos explícitamente como UTF-8 mediante
+`System.IO.File.ReadAllText`.
 
 ## Uso
 
@@ -22,6 +16,11 @@ Copie la carpeta `scripts` sobre la carpeta `scripts` del repositorio y ejecute:
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 Unblock-File .\scripts\*.ps1
-.\scripts\apply-bl-mvp-004b-fixes.ps1
-.\scripts\check-quality.ps1
+.\scripts\apply-bl-mvp-005a-fixes.ps1
+```
+
+Si muestra que las plantillas fueron verificadas, continúe con:
+
+```powershell
+.\scripts\apply-bl-mvp-005.ps1
 ```

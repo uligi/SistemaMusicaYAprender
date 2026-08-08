@@ -119,6 +119,10 @@ jobs:
         shell: bash
         run: bash scripts/check-module-boundaries.sh
 
+      - name: Verify repository governance templates
+        shell: bash
+        run: bash scripts/governance/check-templates.sh
+
       - name: Verify PostgreSQL 18 empty-database migration gate
         shell: bash
         env:
