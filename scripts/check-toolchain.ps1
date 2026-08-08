@@ -15,7 +15,8 @@ if ($nodeVersion -ne 'v24.18.0') {
     Fail "Se requiere Node.js v24.18.0. Encontrado: $nodeVersion"
 }
 
-$npmVersion = (& npm --version).Trim()
+# npm.cmd evita que una política de PowerShell bloquee npm.ps1.
+$npmVersion = (& npm.cmd --version).Trim()
 if ($npmVersion -ne '11.16.0') {
     Fail "Se requiere npm 11.16.0. Encontrado: $npmVersion"
 }

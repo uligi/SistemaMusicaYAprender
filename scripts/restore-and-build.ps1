@@ -9,12 +9,15 @@ dotnet restore MusicaAprender.sln
 
 if (-not (Test-Path "$Root/package-lock.json")) {
     Write-Host "Generando package-lock.json por primera vez..."
-    npm install --package-lock-only
+    npm.cmd install --package-lock-only
 }
 
-npm ci
-npm run typecheck
-npm run build
+npm.cmd ci
+npm.cmd run typecheck
+npm.cmd run format:check
+npm.cmd run build
+
+dotnet format MusicaAprender.sln --verify-no-changes --no-restore
 dotnet build MusicaAprender.sln --no-restore
 
-Write-Host "Restauración y compilación reproducibles completadas."
+Write-Host "Restauración, análisis, formato y compilación completados."

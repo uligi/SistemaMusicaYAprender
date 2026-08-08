@@ -14,7 +14,10 @@ fi
 
 npm ci
 npm run typecheck
+npm run format:check
 npm run build
+
+dotnet format MusicaAprender.sln --verify-no-changes --no-restore
 dotnet build MusicaAprender.sln --no-restore
 
-echo "Restauración y compilación reproducibles completadas."
+echo "Restauración, análisis, formato y compilación completados."

@@ -5,6 +5,7 @@
 - **Backlog:** BL-MVP-002.
 
 ## Contexto
+
 La arquitectura de referencia utilizaba .NET 10, EF Core 10 y Npgsql 10. La versión de Visual Studio disponible no admite `net10.0`, mientras que la solución ya fue compilada y ejecutada correctamente con `net9.0`.
 
 ## Decisión

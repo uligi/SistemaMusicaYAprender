@@ -1,0 +1,15 @@
+**/bin/**
+**/obj/**
+**/node_modules/**
+**/dist/**
+**/coverage/**
+**/.vs/**
+**/.idea/**
+**/TestResults/**
+package-lock.json
+*.sln
+*.cs
+*.csproj
+*.props
+*.targets
+*.lock.json

@@ -1,58 +1,33 @@
-# Música y Aprender — Base técnica del MVP
+# Música y Aprender
 
-Monorrepositorio del MVP de aprendizaje de japonés mediante canciones.
+Plataforma de aprendizaje de japonés mediante canciones.
 
-## Estado del backlog
+## Estado de construcción
 
-- BL-MVP-001: estructura inicial del monorrepositorio — completado.
-- BL-MVP-002: SDK, runtime, gestores y lockfiles — preparado para validación local.
+- BL-MVP-001: estructura inicial del monorrepositorio.
+- BL-MVP-002: toolchain y dependencias reproducibles sobre .NET 9 por compatibilidad temporal con Visual Studio.
+- BL-MVP-003: análisis estático, formato reproducible y categorización de carpetas.
 
-## Requisitos fijados
+## Toolchain local
 
-- Visual Studio 2022 compatible con .NET 9.
-- SDK .NET 9, banda 9.0.3xx.
-- Node.js 24.18.0 LTS.
-- npm 11.16.0.
-- PostgreSQL 18 se incorporará en los siguientes habilitadores de F0.
+- .NET SDK: banda 9.0.3xx.
+- Node.js: 24.18.0.
+- npm: 11.16.0.
+- React: 19.2.7.
+- TypeScript: 7.0.2.
 
-> .NET 9 finaliza soporte el 10 de noviembre de 2026. Debe planificarse la actualización a .NET 10 LTS antes de esa fecha.
-
-## Primera restauración en Windows
-
-Desde PowerShell en la raíz:
+## Primer uso después de extraer este incremento
 
 ```powershell
-npm install -g npm@11.16.0
-.\scripts\restore-and-build.ps1
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+Unblock-File .\scripts\*.ps1
+npm.cmd install --package-lock-only
+.\scripts\format-code.ps1
+.\scripts\check-quality.ps1
 ```
 
-La primera ejecución genera `package-lock.json`. Después de comprobar que la compilación finaliza, ese archivo debe confirmarse en Git. Las ejecuciones posteriores usan `npm ci` y restauración NuGet bloqueada en CI.
+El primer `npm.cmd install --package-lock-only` actualiza el lockfile con las herramientas de formato incorporadas por BL-MVP-003.
 
-## Comandos individuales
+## Organización
 
-```powershell
-# Validar versiones instaladas
-.\scripts\check-toolchain.ps1
-
-# Herramientas y backend
-dotnet tool restore
-dotnet restore MusicaAprender.sln
-dotnet build MusicaAprender.sln --no-restore
-
-# Frontend
-npm install --package-lock-only
-npm ci
-npm run typecheck
-npm run build
-```
-
-## Archivos de control
-
-- `global.json`: banda aprobada del SDK .NET.
-- `Directory.Packages.props`: versiones NuGet centralizadas.
-- `NuGet.Config`: única fuente NuGet autorizada.
-- `.config/dotnet-tools.json`: herramienta local `dotnet-ef`.
-- `.nvmrc` y `.node-version`: Node.js aprobado.
-- `.npmrc` y `package.json`: npm, engines y versiones exactas.
-- `packages.lock.json`: lockfile NuGet por proyecto.
-- `package-lock.json`: se genera en la primera restauración local y luego se conserva.
+La estructura evita carpetas genéricas masivas. Frontend, API, módulos, pruebas y PostgreSQL se subdividen por responsabilidad. Ver `docs/conventions/folder-categorization.md`.

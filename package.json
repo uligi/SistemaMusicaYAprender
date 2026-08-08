@@ -14,7 +14,13 @@
     "dev": "npm run dev --workspace @musica-aprender/web",
     "build": "npm run build --workspace @musica-aprender/web",
     "typecheck": "npm run typecheck --workspace @musica-aprender/web",
+    "format": "prettier . --write --ignore-unknown",
+    "format:check": "prettier . --check --ignore-unknown",
     "restore:locked": "npm ci",
     "versions": "node --version && npm --version"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6",
+    "prettier-plugin-sql": "0.20.0"
   }
 }

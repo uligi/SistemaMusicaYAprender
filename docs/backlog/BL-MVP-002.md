@@ -1,9 +1,11 @@
 # BL-MVP-002 — Fijar SDK, runtime, gestores y lockfiles
 
 ## Tipo
+
 Habilitador · EP-00 · F0 · 3 SP · depende de BL-MVP-001.
 
 ## Resultado aceptable adaptado al entorno
+
 La restauración local y de CI utiliza versiones aprobadas y reproducibles compatibles con Visual Studio 2022:
 
 - .NET SDK 9.0, banda 9.0.3xx, último parche instalado.
@@ -27,4 +29,5 @@ La restauración local y de CI utiliza versiones aprobadas y reproducibles compa
 7. `npm run build` y `dotnet build --no-restore` finalizan correctamente.
 
 ## Advertencia de ciclo de vida
+
 .NET 9 permanece soportado hasta el 10 de noviembre de 2026. El proyecto debe migrar a .NET 10 LTS y a una versión de Visual Studio compatible antes de esa fecha. Esta adaptación no cambia la arquitectura modular ni el modelo de datos.
