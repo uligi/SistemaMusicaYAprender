@@ -13,3 +13,5 @@ package-lock.json
 *.props
 *.targets
 *.lock.json
+
+**/MVP_PostgreSQL_18_Master.sql
