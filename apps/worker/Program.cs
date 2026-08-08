@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using MusicaAprender.Worker.Workers;
 
 var builder = Host.CreateApplicationBuilder(args);

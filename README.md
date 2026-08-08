@@ -1,33 +1,24 @@
-# Música y Aprender
+# BL-MVP-003D - Corrección de Program.cs del Worker
 
-Plataforma de aprendizaje de japonés mediante canciones.
+Corrige el único error restante detectado en la compilación:
 
-## Estado de construcción
+`CS0103: El nombre 'Host' no existe en el contexto actual`
 
-- BL-MVP-001: estructura inicial del monorrepositorio.
-- BL-MVP-002: toolchain y dependencias reproducibles sobre .NET 9 por compatibilidad temporal con Visual Studio.
-- BL-MVP-003: análisis estático, formato reproducible y categorización de carpetas.
+El proyecto `MusicaAprender.Worker` usa el SDK base de .NET con una referencia al
+framework ASP.NET Core, por lo que `Program.cs` necesita importar explícitamente:
 
-## Toolchain local
+- `Microsoft.Extensions.Hosting`
+- `Microsoft.Extensions.DependencyInjection`
 
-- .NET SDK: banda 9.0.3xx.
-- Node.js: 24.18.0.
-- npm: 11.16.0.
-- React: 19.2.7.
-- TypeScript: 7.0.2.
+El script también conserva las reglas de formato del repositorio: UTF-8 sin BOM y LF.
 
-## Primer uso después de extraer este incremento
+## Uso
+
+Copie la carpeta `scripts` sobre la carpeta `scripts` del repositorio y ejecute:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 Unblock-File .\scripts\*.ps1
-npm.cmd install --package-lock-only
-.\scripts\format-code.ps1
+.\scripts\apply-bl-mvp-003d-fixes.ps1
 .\scripts\check-quality.ps1
 ```
-
-El primer `npm.cmd install --package-lock-only` actualiza el lockfile con las herramientas de formato incorporadas por BL-MVP-003.
-
-## Organización
-
-La estructura evita carpetas genéricas masivas. Frontend, API, módulos, pruebas y PostgreSQL se subdividen por responsabilidad. Ver `docs/conventions/folder-categorization.md`.
