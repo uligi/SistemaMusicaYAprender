@@ -1,24 +1,23 @@
-# BL-MVP-003D - Corrección de Program.cs del Worker
+# BL-MVP-004A — Corrección de referencia xUnit
 
-Corrige el único error restante detectado en la compilación:
+El proyecto de pruebas ya tiene las dependencias de xUnit, pero `EntityTests.cs`
+no importaba el espacio de nombres `Xunit`. Por eso C# no encontraba `[Fact]`.
 
-`CS0103: El nombre 'Host' no existe en el contexto actual`
+Este parche agrega:
 
-El proyecto `MusicaAprender.Worker` usa el SDK base de .NET con una referencia al
-framework ASP.NET Core, por lo que `Program.cs` necesita importar explícitamente:
+```csharp
+using Xunit;
+```
 
-- `Microsoft.Extensions.Hosting`
-- `Microsoft.Extensions.DependencyInjection`
-
-El script también conserva las reglas de formato del repositorio: UTF-8 sin BOM y LF.
+y conserva las reglas del repositorio: UTF-8 sin BOM y LF.
 
 ## Uso
 
-Copie la carpeta `scripts` sobre la carpeta `scripts` del repositorio y ejecute:
+Copie la carpeta `scripts` encima de la carpeta `scripts` del repositorio y ejecute:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 Unblock-File .\scripts\*.ps1
-.\scripts\apply-bl-mvp-003d-fixes.ps1
+.\scripts\apply-bl-mvp-004a-fixes.ps1
 .\scripts\check-quality.ps1
 ```

@@ -1,4 +1,5 @@
 using MusicaAprender.BuildingBlocks.Domain;
+using Xunit;
 
 namespace MusicaAprender.UnitTests.BuildingBlocks.Domain.Entities;
 
