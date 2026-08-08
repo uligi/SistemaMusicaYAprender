@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  verify:
+    name: Quality, tests and empty database
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: musica_aprender_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d musica_aprender_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET from global.json
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: |
+            **/packages.lock.json
+
+      - name: Setup Node from .nvmrc
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Prepare evidence folders
+        shell: bash
+        run: |
+          mkdir -p artifacts/ci
+          mkdir -p artifacts/test-results
+          mkdir -p artifacts/postgres
+
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      - name: Restore .NET packages in locked mode
+        run: dotnet restore MusicaAprender.sln --locked-mode
+
+      - name: Restore frontend packages from lockfile
+        run: npm ci
+
+      - name: TypeScript strict check
+        run: npm run typecheck
+
+      - name: Formatting check
+        run: npm run format:check
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Verify .NET formatting and analyzers
+        run: dotnet format MusicaAprender.sln --verify-no-changes --no-restore
+
+      - name: Build .NET solution
+        run: dotnet build MusicaAprender.sln --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: >
+          dotnet test
+          tests/UnitTests/MusicaAprender.UnitTests.csproj
+          --configuration Release
+          --no-build
+          --no-restore
+          --logger "trx;LogFileName=unit-tests.trx"
+          --results-directory artifacts/test-results
+
+      - name: Run architecture tests
+        run: >
+          dotnet run
+          --project tests/ArchitectureTests/MusicaAprender.ArchitectureTests.csproj
+          --configuration Release
+          --no-build
+          --no-restore
+
+      - name: Verify module boundaries
+        shell: bash
+        run: bash scripts/check-module-boundaries.sh
+
+      - name: Verify PostgreSQL 18 empty-database migration gate
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/ci/database/verify-empty-migration.sh
+
+      - name: Write evidence manifest
+        if: always()
+        shell: bash
+        run: bash scripts/ci/evidence/write-manifest.sh
+
+      - name: Publish CI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-evidence-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            artifacts/
+            apps/web/dist/
+          if-no-files-found: warn
+          retention-days: 14
