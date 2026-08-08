@@ -6,7 +6,7 @@ namespace MusicaAprender.UnitTests.BuildingBlocks.Domain.Entities;
 public sealed class EntityTests
 {
     [Fact]
-    public void Constructor_PreservesIdentifier()
+    public void ConstructorPreservesIdentifier()
     {
         var id = Guid.NewGuid();
 
