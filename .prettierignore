@@ -15,3 +15,9 @@ package-lock.json
 *.lock.json
 
 **/MVP_PostgreSQL_18_Master.sql
+database/postgresql/migrations/sql/01_initial_schema.sql
+database/postgresql/migrations/sql/02_seed_mvp.sql
+
+# Usa metacomandos de psql (\set) y bloques PL/pgSQL de verificacion.
+# Se valida ejecutandolo directamente contra PostgreSQL 18, no con sql-formatter.
+database/postgresql/tests/verify_initial_migration.sql

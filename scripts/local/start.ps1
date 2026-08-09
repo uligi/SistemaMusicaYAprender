@@ -27,6 +27,7 @@ if (-not (Test-Path ".env")) {
 & "$PSScriptRoot/ensure-local-secrets.ps1"
 & "$PSScriptRoot/sync-postgres-secret.ps1"
 & "$Root/scripts/database/apply-bootstrap.ps1"
+& "$Root/scripts/database/apply-initial-migration.ps1"
 
 Write-Host "Construyendo y levantando el entorno local..."
 docker compose up --build --detach

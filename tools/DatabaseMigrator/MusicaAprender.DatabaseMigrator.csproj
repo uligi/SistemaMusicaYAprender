@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>MusicaAprender.DatabaseMigrator</AssemblyName>
+    <RootNamespace>MusicaAprender.DatabaseMigrator</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource
+      Include="../../database/postgresql/migrations/sql/01_initial_schema.sql"
+      Link="Migrations/Sql/01_initial_schema.sql"
+      LogicalName="MusicaAprender.DatabaseMigrator.Migrations.Sql.01_initial_schema.sql" />
+    <EmbeddedResource
+      Include="../../database/postgresql/migrations/sql/02_seed_mvp.sql"
+      Link="Migrations/Sql/02_seed_mvp.sql"
+      LogicalName="MusicaAprender.DatabaseMigrator.Migrations.Sql.02_seed_mvp.sql" />
+  </ItemGroup>
+</Project>

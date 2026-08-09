@@ -49,6 +49,10 @@ jobs:
         shell: bash
         run: bash scripts/security/check-no-secrets.sh
 
+      - name: Verify authoritative physical SQL
+        shell: bash
+        run: bash scripts/ci/database/verify-master-source.sh
+
       - name: Prepare ephemeral Compose secrets
         shell: bash
         run: bash scripts/ci/security/create-compose-secrets.sh
@@ -155,7 +159,7 @@ jobs:
         shell: bash
         run: bash scripts/governance/check-templates.sh
 
-      - name: Verify PostgreSQL 18 empty-database migration gate
+      - name: Verify embedded initial migration on empty PostgreSQL 18
         shell: bash
         env:
           PGHOST: 127.0.0.1

@@ -1,0 +1,36 @@
+{
+  "backlogItem": "BL-MVP-011",
+  "sourceSha256": "da46cc9637c5b564f600f05b1c3dc4f16b6fc9ce161bf1f2943c2f9eb4929efa",
+  "expected": {
+    "schemas": 9,
+    "tables": 109,
+    "columns": 752,
+    "primaryKeys": 109,
+    "foreignKeys": 167,
+    "uniqueIndexes": 70,
+    "nonUniqueIndexes": 188,
+    "tableCheckConstraints": 356,
+    "rlsWithCheckClauses": 99,
+    "documentedCheckPredicates": 455,
+    "exclusionConstraints": 8,
+    "triggers": 53,
+    "rlsPolicies": 99,
+    "rlsEnabledTables": 33,
+    "rlsForcedTables": 33,
+    "views": 2,
+    "helperFunctions": 6,
+    "seed": {
+      "security.account": 1,
+      "security.role": 4,
+      "security.permission": 18,
+      "security.role_permission": 33,
+      "configuration.catalog_definition": 12,
+      "configuration.catalog_entry": 59,
+      "configuration.parameter_definition": 10,
+      "configuration.parameter_version": 10,
+      "configuration.effective_parameter": 10,
+      "configuration.business_calendar": 1,
+      "configuration.retention_policy": 3
+    }
+  }
+}
