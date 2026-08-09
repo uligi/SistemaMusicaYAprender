@@ -1,8 +1,23 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using MusicaAprender.Api.Health;
+using MusicaAprender.Api.Observability;
+using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddMusicaAprenderOpenTelemetry(
+    builder.Configuration,
+    ApiTelemetry.ServiceName,
+    ApiTelemetry.ServiceVersion,
+    ApiTelemetry.ActivitySourceName,
+    ApiTelemetry.MeterName,
+    instrumentAspNetCore: true);
+
+builder.Logging.AddMusicaAprenderOpenTelemetryLogging(
+    builder.Configuration,
+    ApiTelemetry.ServiceName,
+    ApiTelemetry.ServiceVersion);
 
 builder.Services.AddHttpClient(
     HealthConstants.HttpClientName,
@@ -33,11 +48,18 @@ builder.Services
 
 var app = builder.Build();
 
+app.UseMiddleware<CorrelationMiddleware>();
+
+using (var startupActivity = ApiTelemetry.ActivitySource.StartActivity("application.start"))
+{
+    startupActivity?.SetTag("app.operation.version", "v1");
+}
+
 app.MapGet("/", () => Results.Ok(new
 {
     service = "MusicaAprender.Api",
     status = "scaffold",
-    backlogItem = "BL-MVP-007"
+    backlogItem = "BL-MVP-008"
 }));
 
 app.MapHealthChecks(

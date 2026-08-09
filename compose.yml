@@ -30,6 +30,8 @@ services:
       Smtp__Host: smtp-sink
       Smtp__Port: '1025'
       OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_METRIC_EXPORT_INTERVAL: '5000'
       Dependencies__ObjectStoreHealthUrl: http://object-store:9000/minio/health/ready
       Dependencies__SmtpHost: smtp-sink
       Dependencies__SmtpPort: '1025'
@@ -63,6 +65,8 @@ services:
       Smtp__Host: smtp-sink
       Smtp__Port: '1025'
       OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_METRIC_EXPORT_INTERVAL: '5000'
     depends_on:
       postgres:
         condition: service_healthy

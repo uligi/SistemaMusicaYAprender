@@ -3,6 +3,19 @@
     <AssemblyName>MusicaAprender.BuildingBlocks.Infrastructure</AssemblyName>
     <RootNamespace>MusicaAprender.BuildingBlocks.Infrastructure</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Application\MusicaAprender.BuildingBlocks.Application.csproj" />
     <ProjectReference Include="..\Domain\MusicaAprender.BuildingBlocks.Domain.csproj" />

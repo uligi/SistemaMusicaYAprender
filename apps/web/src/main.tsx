@@ -1,7 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
+import { initializeClientTelemetry } from './observability/telemetry';
 import './styles/index.css';
+
+initializeClientTelemetry();
 
 const rootElement = document.getElementById('root');
 
