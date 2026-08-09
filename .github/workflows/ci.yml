@@ -189,6 +189,16 @@ jobs:
           PGDATABASE: musica_aprender_ci
         run: bash scripts/ci/database/verify-database-access.sh
 
+      - name: Verify transaction-local RLS context and pool cleanup
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/ci/database/verify-transaction-context.sh
+
       - name: Verify tracked tree still contains no secrets
         shell: bash
         run: bash scripts/security/check-no-secrets.sh

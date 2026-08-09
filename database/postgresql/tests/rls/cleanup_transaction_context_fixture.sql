@@ -1,0 +1,17 @@
+BEGIN;
+
+DELETE FROM identity.user_profile
+WHERE
+    account_id IN (
+        '13000000-0000-4000-8000-000000000001',
+        '13000000-0000-4000-8000-000000000002'
+    );
+
+DELETE FROM security.account
+WHERE
+    account_id IN (
+        '13000000-0000-4000-8000-000000000001',
+        '13000000-0000-4000-8000-000000000002'
+    );
+
+COMMIT;

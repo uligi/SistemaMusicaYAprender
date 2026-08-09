@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>MusicaAprender.DatabaseContextVerifier</AssemblyName>
+    <RootNamespace>MusicaAprender.DatabaseContextVerifier</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BuildingBlocks\Infrastructure\MusicaAprender.BuildingBlocks.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

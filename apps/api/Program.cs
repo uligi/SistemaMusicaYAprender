@@ -2,12 +2,18 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using MusicaAprender.Api.Health;
 using MusicaAprender.Api.Observability;
+using MusicaAprender.Api.Security;
 using MusicaAprender.BuildingBlocks.Infrastructure.Configuration;
+using MusicaAprender.BuildingBlocks.Infrastructure.Database;
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddMusicaAprenderExternalConfiguration();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IHttpDatabaseSessionContextFactory, HttpDatabaseSessionContextFactory>();
+builder.Services.AddSingleton<IRlsTransactionExecutor, RlsTransactionExecutor>();
 
 builder.Services.AddMusicaAprenderOpenTelemetry(
     builder.Configuration,
