@@ -1,0 +1,59 @@
+BEGIN;
+
+SELECT
+    set_config('app.maintenance_mode', 'on', true);
+
+DELETE FROM ops.inbox_message
+WHERE
+    event_id IN (
+        '15000000-0000-7000-8000-000000000101',
+        '15000000-0000-7000-8000-000000000102',
+        '15000000-0000-7000-8000-000000000103',
+        '15000000-0000-7000-8000-000000000104'
+    );
+
+DELETE FROM ops.job_attempt
+WHERE
+    job_id IN (
+        '15000000-0000-7000-8000-000000000101',
+        '15000000-0000-7000-8000-000000000102',
+        '15000000-0000-7000-8000-000000000103',
+        '15000000-0000-7000-8000-000000000104'
+    );
+
+DELETE FROM ops.background_job
+WHERE
+    job_id IN (
+        '15000000-0000-7000-8000-000000000101',
+        '15000000-0000-7000-8000-000000000102',
+        '15000000-0000-7000-8000-000000000103',
+        '15000000-0000-7000-8000-000000000104'
+    );
+
+DELETE FROM ops.idempotency_record
+WHERE
+    account_id = '15000000-0000-4000-8000-000000000001'
+    OR operation_code LIKE 'BL015.%';
+
+DELETE FROM ops.outbox_message
+WHERE
+    event_id IN (
+        '15000000-0000-7000-8000-000000000101',
+        '15000000-0000-7000-8000-000000000102',
+        '15000000-0000-7000-8000-000000000103',
+        '15000000-0000-7000-8000-000000000104'
+    );
+
+DELETE FROM ops.read_model_checkpoint
+WHERE
+    projection_code LIKE 'BL015.%';
+
+DELETE FROM identity.user_profile
+WHERE
+    account_id = '15000000-0000-4000-8000-000000000001';
+
+DELETE FROM security.account
+WHERE
+    account_id = '15000000-0000-4000-8000-000000000001';
+
+COMMIT;

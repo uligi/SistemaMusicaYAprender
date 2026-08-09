@@ -21,4 +21,22 @@ internal static class WorkerTelemetry
             "musica_aprender.worker.heartbeats",
             unit: "{heartbeat}",
             description: "Latidos emitidos por el worker.");
+
+    public static readonly Counter<long> OutboxProcessed =
+        Meter.CreateCounter<long>(
+            "musica_aprender.worker.outbox.processed",
+            unit: "{event}",
+            description: "Eventos de outbox procesados.");
+
+    public static readonly Counter<long> OutboxRetries =
+        Meter.CreateCounter<long>(
+            "musica_aprender.worker.outbox.retries",
+            unit: "{retry}",
+            description: "Reintentos de outbox programados.");
+
+    public static readonly Counter<long> OutboxReview =
+        Meter.CreateCounter<long>(
+            "musica_aprender.worker.outbox.review",
+            unit: "{event}",
+            description: "Eventos de outbox enviados a revision.");
 }
