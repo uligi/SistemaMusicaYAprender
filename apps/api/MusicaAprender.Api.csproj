@@ -3,6 +3,11 @@
     <AssemblyName>MusicaAprender.Api</AssemblyName>
     <RootNamespace>MusicaAprender.Api</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\BuildingBlocks\Infrastructure\MusicaAprender.BuildingBlocks.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\Identity\MusicaAprender.Modules.Identity.csproj" />

@@ -30,6 +30,10 @@ services:
       Smtp__Host: smtp-sink
       Smtp__Port: '1025'
       OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
+      Dependencies__ObjectStoreHealthUrl: http://object-store:9000/minio/health/ready
+      Dependencies__SmtpHost: smtp-sink
+      Dependencies__SmtpPort: '1025'
+      Dependencies__OpenTelemetryHealthUrl: http://otel-collector:13133/
     ports:
       - '${API_PORT:-5080}:8080'
     depends_on:
