@@ -140,6 +140,9 @@ jobs:
       - name: Verify app shell and route boundaries
         run: node scripts/frontend/verify-app-shell.mjs
 
+      - name: Verify typed HTTP client and ProblemDetails
+        run: node scripts/frontend/verify-http-client.mjs
+
       - name: Formatting check
         run: npm run format:check
 
