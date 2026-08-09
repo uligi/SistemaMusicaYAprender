@@ -1,45 +1,41 @@
-# Configuración externa y secret store — BL-MVP-009
+# Configuración externa y secret store — BL-MVP-009 / BL-MVP-012
 
 La imagen es idéntica entre ambientes. La configuración no secreta y los secretos tienen ciclos separados.
 
 ## Contrato
 
-La aplicación recibe datos no secretos mediante proveedores normales de configuración de .NET
-y recibe secretos mediante archivos montados en un directorio externo, por defecto `/run/secrets`.
+La aplicación recibe configuración no secreta mediante proveedores normales de .NET y secretos mediante
+archivos montados, por defecto en `/run/secrets`.
 
-Los nombres del contrato se versionan en `config/secrets/manifest.json`.
+`config/secrets/manifest.json` versiona únicamente nombres, propósito y consumidores; jamás valores.
 
-## Local
+BL-MVP-012 separa las credenciales PostgreSQL:
 
-Docker Compose usa `secrets:`. Los valores viven en `secrets/local/`, carpeta ignorada por Git
-y también excluida del contexto de construcción Docker.
+| Identidad             | Rol heredado    | Secreto                        | Consumidor                        |
+| --------------------- | --------------- | ------------------------------ | --------------------------------- |
+| `jp_login_migrator`   | `jp_migrator`   | `postgres_migrator_password`   | migrador explícito                |
+| `jp_login_api`        | `jp_app`        | `postgres_api_password`        | API                               |
+| `jp_login_backoffice` | `jp_backoffice` | `postgres_backoffice_password` | pool privilegiado futuro/separado |
+| `jp_login_worker`     | `jp_worker`     | `postgres_worker_password`     | Worker                            |
+| `jp_login_readonly`   | `jp_readonly`   | `postgres_readonly_password`   | herramientas de lectura           |
 
-`scripts/local/ensure-local-secrets.ps1` crea secretos aleatorios si no existen.
+`musica_local` y `postgres_password` quedan reservados para DBA/bootstrap local. No se montan en API ni Worker.
 
-## CI
+## Runtime
 
-El job ejecuta primero un escaneo del árbol rastreado. Después crea secretos efímeros únicamente
-para validar la definición Compose. Esos archivos no se publican como evidencia ni forman parte del commit.
-
-## Pruebas y producción
-
-La plataforma elegida deberá montar los mismos nombres desde su secret store. No se requiere recompilar
-la imagen para cambiar valores.
-
-## M19
-
-M19 conserva parámetros funcionales no secretos. Un valor sensible no puede escribirse en M19.
-El control físico asociado es DDC-27: cero secretos en M19.
+`Database:PasswordSecret` selecciona el nombre del archivo secreto correspondiente al proceso.
+`ExternalConfigurationExtensions` valida ese nombre y construye la cadena de conexión solo en memoria.
 
 ## Rotación
 
-`verify-secret-rotation.ps1` cambia las credenciales locales, sincroniza PostgreSQL, recrea únicamente
-los consumidores y demuestra que:
+`scripts/local/verify-secret-rotation.ps1` rota las credenciales DBA, migrador, API, backoffice,
+Worker, readonly y object store; después revalida health, autenticación, permisos y ausencia de valores
+en `docker inspect`.
 
-1. los valores cambian;
-2. las imágenes no se recompilan;
-3. readiness vuelve a `Healthy`;
-4. `docker inspect` no contiene los valores secretos.
+## Seguridad
 
-Para un proveedor de producción, el mecanismo de rotación será el propio del secret store de la plataforma,
-conservando este mismo contrato de nombres.
+- `jp_owner`, `jp_migrator`, `jp_app`, `jp_backoffice`, `jp_worker` y `jp_readonly` continúan NOLOGIN.
+- cada LOGIN tiene un único membership funcional directo;
+- API/Worker no pueden asumir owner/migrator;
+- ninguna identidad runtime es SUPERUSER, CREATEDB, CREATEROLE, REPLICATION o BYPASSRLS;
+- los valores secretos no viven en Git, `.env`, M19 ni artefactos CI.

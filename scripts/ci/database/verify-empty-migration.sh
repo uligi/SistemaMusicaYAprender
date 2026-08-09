@@ -48,25 +48,13 @@ if [[ "$before_count" != "0" ]]; then
   exit 1
 fi
 
-# El SQL físico hace SET LOCAL ROLE jp_owner antes de CREATE SCHEMA.
-# El bootstrap crea el rol, pero CREATE es un privilegio a nivel de base.
-psql \
-  --host="$PGHOST" \
-  --port="$PGPORT" \
-  --username="$PGUSER" \
-  --dbname=postgres \
-  --no-password \
-  --set=ON_ERROR_STOP=1 \
-  --command="GRANT CREATE ON DATABASE \"$PGDATABASE\" TO jp_owner;"
+bash scripts/database/prepare-database-access.sh
 
-password_file="${RUNNER_TEMP:-/tmp}/musica-aprender-bl-mvp-011-password"
-umask 077
-printf '%s' "$PGPASSWORD" > "$password_file"
-
-cleanup() {
-  rm -f "$password_file"
-}
-trap cleanup EXIT
+migrator_password_file="secrets/local/postgres_migrator_password"
+if [[ ! -f "$migrator_password_file" ]]; then
+  echo "ERROR: falta $migrator_password_file." >&2
+  exit 1
+fi
 
 dotnet run \
   --project tools/DatabaseMigrator/MusicaAprender.DatabaseMigrator.csproj \
@@ -77,8 +65,11 @@ dotnet run \
   --host "$PGHOST" \
   --port "$PGPORT" \
   --database "$PGDATABASE" \
-  --username "$PGUSER" \
-  --password-file "$password_file"
+  --username jp_login_migrator \
+  --password-file "$migrator_password_file"
+
+# Normaliza ownership de __EFMigrationsHistory tras una instalación nueva.
+bash scripts/database/prepare-database-access.sh
 
 psql \
   --host="$PGHOST" \
@@ -103,10 +94,11 @@ permission_count="$("${psql_base[@]}" --command="SELECT count(*) FROM security.p
 catalog_entry_count="$("${psql_base[@]}" --command="SELECT count(*) FROM configuration.catalog_entry;" | tr -d '[:space:]')"
 
 {
-  echo "bl_mvp=011"
+  echo "bl_mvp=011-regression-under-012"
   echo "postgres_server_version_num=$server_version_num"
   echo "initial_application_table_count=$before_count"
   echo "final_application_table_count=$table_count"
+  echo "migration_login=jp_login_migrator"
   echo "seed_security_role_count=$role_count"
   echo "seed_security_permission_count=$permission_count"
   echo "seed_catalog_entry_count=$catalog_entry_count"
@@ -119,4 +111,4 @@ catalog_entry_count="$("${psql_base[@]}" --command="SELECT count(*) FROM configu
     | awk '{print "seed_sha256="$1}'
 } > artifacts/postgres/initial-migration-summary.txt
 
-echo "OK: BL-MVP-011 aplico la migracion EF Core embebida sobre una base PostgreSQL 18 vacia."
+echo "OK: migracion embebida aplicada por jp_login_migrator sobre PostgreSQL 18 vacio."

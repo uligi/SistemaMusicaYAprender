@@ -31,27 +31,31 @@ function Write-Secret([string]$Name, [string]$Value) {
 
 & "$PSScriptRoot/ensure-local-secrets.ps1"
 
-Write-Host "Deteniendo consumidores antes de rotar..."
+Write-Host "Deteniendo consumidores runtime antes de rotar..."
 docker compose stop api worker object-store
 if ($LASTEXITCODE -ne 0) {
     throw "No se pudieron detener los consumidores de secretos."
 }
 
-$newPostgresPassword = New-RandomHex 32
-$newObjectAccessKey = "local-" + (New-RandomHex 16)
-$newObjectSecretKey = New-RandomHex 32
-
-Write-Secret "postgres_password" $newPostgresPassword
+Write-Secret "postgres_password" (New-RandomHex 32)
 
 try {
     & "$PSScriptRoot/sync-postgres-secret.ps1"
 }
 catch {
-    throw "La rotacion PostgreSQL no pudo confirmarse. Revise el estado antes de continuar. $($_.Exception.Message)"
+    throw "La rotacion DBA PostgreSQL no pudo confirmarse. $($_.Exception.Message)"
 }
 
-Write-Secret "object_store_access_key" $newObjectAccessKey
-Write-Secret "object_store_secret_key" $newObjectSecretKey
+Write-Secret "postgres_migrator_password" (New-RandomHex 32)
+Write-Secret "postgres_api_password" (New-RandomHex 32)
+Write-Secret "postgres_backoffice_password" (New-RandomHex 32)
+Write-Secret "postgres_worker_password" (New-RandomHex 32)
+Write-Secret "postgres_readonly_password" (New-RandomHex 32)
+
+& "$Root/scripts/database/apply-login-identities.ps1"
+
+Write-Secret "object_store_access_key" ("local-" + (New-RandomHex 16))
+Write-Secret "object_store_secret_key" (New-RandomHex 32)
 
 Write-Host "Recreando servicios consumidores sin reconstruir imagenes..."
 docker compose up --detach --force-recreate object-store api worker

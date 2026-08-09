@@ -7,7 +7,7 @@ public static class ExternalConfigurationExtensions
 {
     private const string DefaultSecretDirectory = "/run/secrets";
 
-    private const string PostgreSqlPasswordSecret = "postgres_password";
+    private const string DefaultPostgreSqlPasswordSecret = "postgres_password";
     private const string ObjectStoreAccessKeySecret = "object_store_access_key";
     private const string ObjectStoreSecretKeySecret = "object_store_secret_key";
 
@@ -29,9 +29,13 @@ public static class ExternalConfigurationExtensions
             return configuration;
         }
 
+        var postgresPasswordSecret = ReadSecretName(
+            configuration["Database:PasswordSecret"],
+            DefaultPostgreSqlPasswordSecret);
+
         var postgresPassword = ReadSecret(
             secretDirectory,
-            PostgreSqlPasswordSecret,
+            postgresPasswordSecret,
             minimumLength: 24);
 
         var objectStoreAccessKey = ReadSecret(
@@ -99,6 +103,32 @@ public static class ExternalConfigurationExtensions
         }
 
         return value;
+    }
+
+    private static string ReadSecretName(
+        string? value,
+        string defaultName)
+    {
+        var secretName = string.IsNullOrWhiteSpace(value)
+            ? defaultName
+            : value.Trim();
+
+        foreach (var character in secretName)
+        {
+            if (!(char.IsAsciiLetterOrDigit(character) || character is '_' or '-'))
+            {
+                throw new InvalidOperationException(
+                    "Database:PasswordSecret contiene un nombre de secreto no permitido.");
+            }
+        }
+
+        if (secretName.Length is < 1 or > 128)
+        {
+            throw new InvalidOperationException(
+                "Database:PasswordSecret debe tener entre 1 y 128 caracteres.");
+        }
+
+        return secretName;
     }
 
     private static string RequireNonSecret(

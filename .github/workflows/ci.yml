@@ -22,7 +22,7 @@ env:
 
 jobs:
   verify:
-    name: Quality, tests and empty database
+    name: Quality, tests and least-privilege database
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -99,6 +99,16 @@ jobs:
           PGDATABASE: musica_aprender_ci
         run: bash scripts/database/apply-bootstrap.sh
 
+      - name: Apply separated PostgreSQL LOGIN identities
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/database/apply-login-identities.sh
+
       - name: Verify PostgreSQL bootstrap and idempotency
         shell: bash
         env:
@@ -159,7 +169,7 @@ jobs:
         shell: bash
         run: bash scripts/governance/check-templates.sh
 
-      - name: Verify embedded initial migration on empty PostgreSQL 18
+      - name: Verify embedded migration with separated migrator
         shell: bash
         env:
           PGHOST: 127.0.0.1
@@ -168,6 +178,20 @@ jobs:
           PGPASSWORD: postgres
           PGDATABASE: musica_aprender_ci
         run: bash scripts/ci/database/verify-empty-migration.sh
+
+      - name: Verify separated database identities and least privilege
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/ci/database/verify-database-access.sh
+
+      - name: Verify tracked tree still contains no secrets
+        shell: bash
+        run: bash scripts/security/check-no-secrets.sh
 
       - name: Write evidence manifest
         if: always()

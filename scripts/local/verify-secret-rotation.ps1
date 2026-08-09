@@ -7,6 +7,11 @@ Set-Location $Root
 
 $secretNames = @(
     "postgres_password",
+    "postgres_migrator_password",
+    "postgres_api_password",
+    "postgres_backoffice_password",
+    "postgres_worker_password",
+    "postgres_readonly_password",
     "object_store_access_key",
     "object_store_secret_key"
 )
@@ -14,8 +19,7 @@ $secretNames = @(
 $before = @{}
 foreach ($name in $secretNames) {
     $path = Join-Path $Root "secrets\local\$name"
-    $value = [System.IO.File]::ReadAllText($path).Trim()
-    $before[$name] = $value
+    $before[$name] = [System.IO.File]::ReadAllText($path).Trim()
 }
 
 & "$PSScriptRoot/rotate-local-secrets.ps1"
@@ -30,6 +34,7 @@ foreach ($name in $secretNames) {
 }
 
 & "$PSScriptRoot/verify-running.ps1"
+& "$Root/scripts/database/verify-database-access.ps1"
 
 $inspect = docker inspect `
     musica-aprender-local-api-1 `
@@ -50,4 +55,4 @@ foreach ($name in $secretNames) {
     }
 }
 
-Write-Host "OK: rotacion demostrada sin recompilar y sin secretos visibles en docker inspect."
+Write-Host "OK: rotacion de 8 secretos demostrada, accesos revalidados y valores ausentes de docker inspect."

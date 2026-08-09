@@ -1,0 +1,83 @@
+{
+  "backlogItem": "BL-MVP-012",
+  "principle": "least-privilege-by-login-membership",
+  "loginIdentities": [
+    {
+      "login": "jp_login_migrator",
+      "functionalRole": "jp_migrator",
+      "secret": "postgres_migrator_password",
+      "consumer": "DatabaseMigrator",
+      "runtime": false,
+      "canReachOwner": true
+    },
+    {
+      "login": "jp_login_api",
+      "functionalRole": "jp_app",
+      "secret": "postgres_api_password",
+      "consumer": "API",
+      "runtime": true,
+      "canReachOwner": false
+    },
+    {
+      "login": "jp_login_backoffice",
+      "functionalRole": "jp_backoffice",
+      "secret": "postgres_backoffice_password",
+      "consumer": "reserved-separated-backoffice-pool",
+      "runtime": true,
+      "canReachOwner": false
+    },
+    {
+      "login": "jp_login_worker",
+      "functionalRole": "jp_worker",
+      "secret": "postgres_worker_password",
+      "consumer": "Worker",
+      "runtime": true,
+      "canReachOwner": false
+    },
+    {
+      "login": "jp_login_readonly",
+      "functionalRole": "jp_readonly",
+      "secret": "postgres_readonly_password",
+      "consumer": "readonly-tooling",
+      "runtime": true,
+      "canReachOwner": false
+    }
+  ],
+  "functionalRoleGrantsFromAuthoritativeDDL": {
+    "jp_app": [
+      "USAGE: identity,security,catalog,content,learning,progress,editorial,configuration,ops",
+      "SELECT: catalog,content,editorial,configuration",
+      "SELECT/INSERT/UPDATE: identity,learning,progress",
+      "restricted DML/SELECT: security",
+      "SELECT/INSERT/UPDATE: ops.idempotency_record,ops.outbox_message"
+    ],
+    "jp_backoffice": [
+      "USAGE: identity,security,catalog,content,learning,progress,editorial,configuration,ops",
+      "SELECT/INSERT/UPDATE: security,catalog,content,editorial,configuration",
+      "SELECT: identity,learning,progress,ops",
+      "INSERT: security.audit_event,ops.outbox_message"
+    ],
+    "jp_worker": [
+      "USAGE: identity,security,catalog,content,learning,progress,editorial,configuration,ops",
+      "SELECT: identity,security,catalog,content,learning,progress,editorial,configuration",
+      "SELECT/INSERT/UPDATE/DELETE: ops",
+      "INSERT/UPDATE: selected projections"
+    ],
+    "jp_readonly": [
+      "USAGE: catalog",
+      "SELECT: catalog.v_public_song,catalog.v_public_song_search",
+      "no private table grants"
+    ]
+  },
+  "forbiddenForRuntimeLogins": [
+    "SUPERUSER",
+    "CREATEDB",
+    "CREATEROLE",
+    "REPLICATION",
+    "BYPASSRLS",
+    "membership jp_owner",
+    "membership jp_migrator",
+    "CREATE on application schemas",
+    "direct table ACL grants"
+  ]
+}
