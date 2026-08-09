@@ -106,6 +106,8 @@ services:
       - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - postgres-data:/var/lib/postgresql
+      - ./database/postgresql/bootstrap/roles/00_bootstrap_roles_extensions.sql:/docker-entrypoint-initdb.d/00_bootstrap_roles_extensions.sql:ro
+      - ./database/postgresql:/workspace/database/postgresql:ro
     healthcheck:
       test:
         - CMD-SHELL

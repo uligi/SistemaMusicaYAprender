@@ -1,34 +1,20 @@
-# BL-MVP-009B — Corrección CA1859
+# BL-MVP-010A — Limpieza del mensaje de Quality Gate
 
-El analizador `CA1859` se convirtió en error porque el repositorio usa
-`TreatWarningsAsErrors=true`.
+Este parche elimina el texto heredado:
 
-`RequireNonSecret` recibía `IConfiguration`, aunque dentro de este archivo siempre
-se invoca con el `ConfigurationManager` de `builder.Configuration`.
+`OK: puerta local BL-MVP-009 aprobada.`
 
-La corrección cambia únicamente la firma privada:
+y lo reemplaza por un mensaje genérico:
 
-```csharp
-IConfiguration configuration
-```
+`OK: puerta local de calidad aprobada.`
 
-por:
+No cambia ninguna validación ni comportamiento funcional.
 
-```csharp
-ConfigurationManager configuration
-```
-
-No cambia el comportamiento funcional ni el contrato de configuración.
-
-Después de copiar el parche:
+## Aplicación
 
 ```powershell
 Unblock-File .\scripts\*.ps1
-.\scripts\apply-bl-mvp-009b.ps1
+.\scripts\apply-bl-mvp-010a.ps1
 ```
 
-Si compila, vuelva a ejecutar:
-
-```powershell
-.\scripts\apply-bl-mvp-009.ps1
-```
+Si termina en `OK`, el repositorio queda listo para commit/push de BL-MVP-010.

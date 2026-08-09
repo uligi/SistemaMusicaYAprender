@@ -85,6 +85,26 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y postgresql-client
 
+      - name: Apply PostgreSQL roles and extensions bootstrap
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/database/apply-bootstrap.sh
+
+      - name: Verify PostgreSQL bootstrap and idempotency
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/database/verify-bootstrap.sh
+
       - name: Restore .NET tools
         run: dotnet tool restore
 

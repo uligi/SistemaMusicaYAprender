@@ -13,4 +13,4 @@ dotnet run --project tests/ArchitectureTests/MusicaAprender.ArchitectureTests.cs
 "$SCRIPT_DIR/check-module-boundaries.sh"
 "$SCRIPT_DIR/governance/check-templates.sh"
 
-echo "OK: puerta local BL-MVP-009 aprobada."
+echo "OK: puerta local de calidad aprobada."

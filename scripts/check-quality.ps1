@@ -20,4 +20,4 @@ Assert-LastExitCode "Pruebas de arquitectura"
 & "$PSScriptRoot/check-module-boundaries.ps1"
 & "$PSScriptRoot/governance/check-templates.ps1"
 
-Write-Host "OK: puerta local BL-MVP-009 aprobada."
+Write-Host "OK: puerta local de calidad aprobada."
