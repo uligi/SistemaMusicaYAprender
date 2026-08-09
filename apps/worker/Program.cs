@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MusicaAprender.BuildingBlocks.Infrastructure.Configuration;
+using MusicaAprender.BuildingBlocks.Infrastructure.Email.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
@@ -25,9 +26,11 @@ builder.Logging.AddMusicaAprenderOpenTelemetryLogging(
     WorkerTelemetry.ServiceVersion);
 
 builder.Services.AddMusicaAprenderOutboxDispatch();
+builder.Services.AddMusicaAprenderEmailDelivery(builder.Configuration);
 builder.Services.AddMusicaAprenderPrivateObjectStore(builder.Configuration);
 builder.Services.AddHostedService<HeartbeatWorker>();
 builder.Services.AddHostedService<OutboxDispatchWorker>();
+builder.Services.AddHostedService<EmailDeliveryWorker>();
 
 var host = builder.Build();
 await host.RunAsync();

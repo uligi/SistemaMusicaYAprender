@@ -35,6 +35,9 @@ services:
       ObjectStore__EncryptionKeyReference: local-secret://object_store_encryption_key/v1
       Smtp__Host: smtp-sink
       Smtp__Port: '1025'
+      Smtp__FromAddress: no-reply@musica-aprender.local
+      Smtp__FromDisplayName: Musica y Aprender
+      Smtp__Security: None
       OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_METRIC_EXPORT_INTERVAL: '5000'
@@ -81,6 +84,9 @@ services:
       ObjectStore__EncryptionKeyReference: local-secret://object_store_encryption_key/v1
       Smtp__Host: smtp-sink
       Smtp__Port: '1025'
+      Smtp__FromAddress: no-reply@musica-aprender.local
+      Smtp__FromDisplayName: Musica y Aprender
+      Smtp__Security: None
       OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_METRIC_EXPORT_INTERVAL: '5000'

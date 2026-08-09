@@ -240,6 +240,14 @@ jobs:
           PGDATABASE: musica_aprender_ci
         run: bash scripts/ci/object-storage/verify-private-object-store.sh
 
+      - name: Verify queued versioned SMTP email delivery
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/ci/email/verify-email-delivery.sh
+
       - name: Verify tracked tree still contains no secrets
         shell: bash
         run: bash scripts/security/check-no-secrets.sh

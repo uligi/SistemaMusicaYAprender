@@ -2,6 +2,11 @@
   "version": 2,
   "dependencies": {
     "net9.0": {
+      "BouncyCastle.Cryptography": {
+        "type": "Transitive",
+        "resolved": "2.6.2",
+        "contentHash": "7oWOcvnntmMKNzDLsdxAYqApt+AjpRpP2CShjMfIa3umZ42UQMvH0tl1qAliYPNYO6vTdcGMqnRrCPmsfzTI1w=="
+      },
       "CommunityToolkit.HighPerformance": {
         "type": "Transitive",
         "resolved": "8.4.0",
@@ -172,6 +177,15 @@
         "resolved": "9.0.18",
         "contentHash": "hfHudMC5zDlwMrC0HiHOJesSHMvM+CdqjomjcV/YVzFq5dfSpBRvyRLm1n1Bfh41ZpQnyJzqX+YEo95BAmcDAQ=="
       },
+      "MimeKit": {
+        "type": "Transitive",
+        "resolved": "4.17.0",
+        "contentHash": "h/KXsCreJf8RpR/PSAtlbvYtZFndp9N8Wn1Bs248AL7ITyhn+AiIY5bLTvt60tbN2mu6g8KadtBNWygTji2lqg==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.6.2",
+          "System.Security.Cryptography.Pkcs": "8.0.1"
+        }
+      },
       "OpenTelemetry": {
         "type": "Transitive",
         "resolved": "1.17.0",
@@ -205,6 +219,11 @@
         "resolved": "10.0.0",
         "contentHash": "0KdBK+h7G13PuOSC2R/DalAoFMvdYMznvGRuICtkdcUMXgl/gYXsG6z4yUvTxHSMACorWgHCU1Faq0KUHU6yAQ=="
       },
+      "System.Formats.Asn1": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "XqKba7Mm/koKSjKMfW82olQdmfbI5yqeoLV/tidRp7fbh5rmHAQ5raDI/7SU0swTzv+jgqtUGkzmFxuUg0it1A=="
+      },
       "System.IO.Hashing": {
         "type": "Transitive",
         "resolved": "9.0.4",
@@ -214,6 +233,11 @@
         "type": "Transitive",
         "resolved": "6.0.1",
         "contentHash": "rHaWtKDwCi9qJ3ObKo8LHPMuuwv33YbmQi7TcUK1C264V3MFnOr5Im7QgCTdLniztP3GJyeiSg5x8NqYJFqRmg=="
+      },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "CoCRHFym33aUSf/NtWSVSZa99dkd0Hm7OCZUxORBjRB16LNhIEOf8THPqzIYlvKM0nNDAPTRBa1FxEECrgaxxA=="
       },
       "musicaaprender.api": {
         "type": "Project",
@@ -246,6 +270,7 @@
       "musicaaprender.buildingblocks.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "MailKit": "[4.17.0, )",
           "Microsoft.EntityFrameworkCore": "[9.0.18, )",
           "Minio": "[7.0.0, )",
           "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
@@ -330,6 +355,16 @@
           "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
           "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )",
           "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "MailKit": {
+        "type": "CentralTransitive",
+        "requested": "[4.17.0, )",
+        "resolved": "4.17.0",
+        "contentHash": "1nUAVLxM9fhT/78we6/AGsCesnpn5dRNLLeRqOfr52Wnk87pzVwo5YMTMyqnmoXrYc7piGhmayiMA/OgDluIjg==",
+        "dependencies": {
+          "MimeKit": "4.17.0",
+          "System.Formats.Asn1": "8.0.1"
         }
       },
       "Microsoft.EntityFrameworkCore": {

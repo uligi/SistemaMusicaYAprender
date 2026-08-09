@@ -63,6 +63,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ObjectStoreVerifier", "Obje
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicaAprender.ObjectStoreVerifier", "tools\ObjectStoreVerifier\MusicaAprender.ObjectStoreVerifier.csproj", "{5E86E108-E4ED-46A6-A711-085439BD4DA5}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "EmailDeliveryVerifier", "EmailDeliveryVerifier", "{5A16C91C-15DF-6F83-1D6A-31402D6DB9CA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicaAprender.EmailDeliveryVerifier", "tools\EmailDeliveryVerifier\MusicaAprender.EmailDeliveryVerifier.csproj", "{9B200BCF-743F-4397-AE71-D3F247791A12}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -349,6 +353,18 @@ Global
 		{5E86E108-E4ED-46A6-A711-085439BD4DA5}.Release|x64.Build.0 = Release|Any CPU
 		{5E86E108-E4ED-46A6-A711-085439BD4DA5}.Release|x86.ActiveCfg = Release|Any CPU
 		{5E86E108-E4ED-46A6-A711-085439BD4DA5}.Release|x86.Build.0 = Release|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Debug|x64.Build.0 = Debug|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Debug|x86.Build.0 = Debug|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Release|x64.ActiveCfg = Release|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Release|x64.Build.0 = Release|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Release|x86.ActiveCfg = Release|Any CPU
+		{9B200BCF-743F-4397-AE71-D3F247791A12}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -366,5 +382,7 @@ Global
 		{64297FBE-6E1B-4ACD-8A27-E467AFC83935} = {5AB35BC0-C43E-8736-D7E9-BDEC8299A663}
 		{750D2A28-4F7E-556A-0310-686777067DA8} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
 		{5E86E108-E4ED-46A6-A711-085439BD4DA5} = {750D2A28-4F7E-556A-0310-686777067DA8}
+		{5A16C91C-15DF-6F83-1D6A-31402D6DB9CA} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
+		{9B200BCF-743F-4397-AE71-D3F247791A12} = {5A16C91C-15DF-6F83-1D6A-31402D6DB9CA}
 	EndGlobalSection
 EndGlobal

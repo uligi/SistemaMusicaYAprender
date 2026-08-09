@@ -39,4 +39,22 @@ internal static class WorkerTelemetry
             "musica_aprender.worker.outbox.review",
             unit: "{event}",
             description: "Eventos de outbox enviados a revision.");
+
+    public static readonly Counter<long> EmailDelivered =
+        Meter.CreateCounter<long>(
+            "musica_aprender.worker.email.delivered",
+            unit: "{email}",
+            description: "Trabajos de correo entregados por SMTP.");
+
+    public static readonly Counter<long> EmailRetries =
+        Meter.CreateCounter<long>(
+            "musica_aprender.worker.email.retries",
+            unit: "{retry}",
+            description: "Reintentos de trabajos de correo.");
+
+    public static readonly Counter<long> EmailReview =
+        Meter.CreateCounter<long>(
+            "musica_aprender.worker.email.review",
+            unit: "{email}",
+            description: "Trabajos de correo enviados a revision.");
 }
