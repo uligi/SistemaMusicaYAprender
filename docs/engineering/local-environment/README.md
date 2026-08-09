@@ -1,10 +1,10 @@
 # Entorno local reproducible — BL-MVP-006
 
 El backlog exige que un único comando levante web/API, worker, PostgreSQL, almacén de objetos
-de desarrollo, SMTP sink y collector. fileciteturn40file0
+de desarrollo, SMTP sink y collector.
 
 La arquitectura de referencia también define Docker Compose para local con app, worker,
-PostgreSQL, objeto de desarrollo, SMTP sink y collector. fileciteturn41file6
+PostgreSQL, objeto de desarrollo, SMTP sink y collector.
 
 ## Servicios
 

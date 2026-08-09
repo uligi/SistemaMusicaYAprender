@@ -6,7 +6,7 @@
 **Dependencias:** BL-MVP-001 y BL-MVP-002
 
 Resultado aceptable de la línea base: un comando levanta web/API, worker, PostgreSQL,
-almacén de objetos de desarrollo, SMTP sink y collector. fileciteturn40file0
+almacén de objetos de desarrollo, SMTP sink y collector.
 
 ## Aplicación
 
