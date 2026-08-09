@@ -2,15 +2,36 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const repoRoot = process.cwd();
-const tokenPath = path.join(repoRoot, 'apps', 'web', 'src', 'styles', 'tokens', 'v1.css');
-const indexPath = path.join(repoRoot, 'apps', 'web', 'src', 'styles', 'index.css');
-const appPath = path.join(repoRoot, 'apps', 'web', 'src', 'app', 'App.tsx');
+const sourceRoot = path.join(repoRoot, 'apps', 'web', 'src');
+const tokenPath = path.join(sourceRoot, 'styles', 'tokens', 'v1.css');
+const indexPath = path.join(sourceRoot, 'styles', 'index.css');
+const appPath = path.join(sourceRoot, 'app', 'App.tsx');
 const htmlPath = path.join(repoRoot, 'apps', 'web', 'index.html');
 const docsPath = path.join(repoRoot, 'docs', 'engineering', 'frontend', 'design-tokens.md');
 
 function fail(message) {
   console.error(`ERROR BL-MVP-018: ${message}`);
   process.exitCode = 1;
+}
+
+function collectFiles(directory, predicate) {
+  const found = [];
+
+  if (!fs.existsSync(directory)) {
+    return found;
+  }
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const absolutePath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      found.push(...collectFiles(absolutePath, predicate));
+    } else if (predicate(absolutePath)) {
+      found.push(absolutePath);
+    }
+  }
+
+  return found.sort();
 }
 
 for (const requiredPath of [tokenPath, indexPath, appPath, htmlPath, docsPath]) {
@@ -66,6 +87,7 @@ for (const [name, value] of requiredTokens) {
     )}\\s*;`,
     'i',
   );
+
   if (!pattern.test(tokens)) {
     fail(`token requerido ${name}: ${value} no coincide`);
   }
@@ -80,6 +102,7 @@ if (!tokens.includes('@media (prefers-reduced-motion: reduce)')) {
 }
 
 const reducedBlock = tokens.match(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]+)\}\s*$/);
+
 if (!reducedBlock || !/--ma-motion-duration-standard:\s*0ms/.test(reducedBlock[1])) {
   fail('movimiento reducido no lleva la duracion estandar a 0ms');
 }
@@ -88,8 +111,16 @@ if (!indexCss.startsWith("@import './tokens/v1.css';")) {
   fail('index.css debe importar tokens/v1.css como primera regla');
 }
 
-if (/(#[0-9a-f]{3,8}\b|rgba?\(|hsla?\()/i.test(indexCss)) {
-  fail('index.css contiene un color crudo; los colores deben venir de tokens');
+const consumerStylePaths = collectFiles(
+  sourceRoot,
+  (absolutePath) => absolutePath.endsWith('.css') && absolutePath !== tokenPath,
+);
+const consumerStyles = consumerStylePaths
+  .map((absolutePath) => fs.readFileSync(absolutePath, 'utf8'))
+  .join('\n');
+
+if (/(#[0-9a-f]{3,8}\b|rgba?\(|hsla?\()/i.test(consumerStyles)) {
+  fail('el CSS consumidor contiene un color crudo; los colores deben venir de tokens');
 }
 
 const consumedFamilies = [
@@ -102,8 +133,8 @@ const consumedFamilies = [
 ];
 
 for (const family of consumedFamilies) {
-  if (!indexCss.includes(`var(${family}`)) {
-    fail(`index.css no consume la familia ${family}`);
+  if (!consumerStyles.includes(`var(${family}`)) {
+    fail(`el CSS consumidor no usa la familia ${family}`);
   }
 }
 
@@ -115,16 +146,24 @@ if (!app.includes('lang="ja"')) {
   fail('App.tsx no ejercita el contrato tipografico japones con lang="ja"');
 }
 
-const expectedTitle = 'M\u00FAsica y Aprender';
 const expectedJapanese = '\u97F3\u697D\u3067\u65E5\u672C\u8A9E\u3092\u5B66\u3076';
 const suspiciousMojibake = /[\u00C2\u00C3\uFFFD]/;
+const textSourcePaths = collectFiles(
+  sourceRoot,
+  (absolutePath) =>
+    absolutePath.endsWith('.tsx') || absolutePath.endsWith('.ts') || absolutePath.endsWith('.css'),
+);
 
-if (!app.includes(expectedTitle) || !app.includes(expectedJapanese)) {
-  fail('App.tsx no conserva los literales UTF-8 esperados');
+if (!app.includes(expectedJapanese)) {
+  fail('App.tsx no conserva el literal japones UTF-8 de referencia');
 }
 
-if (suspiciousMojibake.test(app)) {
-  fail('App.tsx contiene marcadores tipicos de mojibake');
+for (const sourcePath of textSourcePaths) {
+  const content = fs.readFileSync(sourcePath, 'utf8');
+
+  if (suspiciousMojibake.test(content)) {
+    fail(`${path.relative(repoRoot, sourcePath)} contiene marcadores tipicos de mojibake`);
+  }
 }
 
 if (!/<meta\s+charset=["']UTF-8["']\s*\/?>/i.test(html)) {
@@ -141,6 +180,6 @@ if (!docs.includes('Tokens visuales v1') || !docs.includes('prefers-reduced-moti
 
 if (!process.exitCode) {
   console.log(
-    'OK: BL-MVP-018 tokens v1 verificados: color, tipografia, espaciado, radios, elevacion y movimiento.',
+    'OK: BL-MVP-018 tokens v1 verificados: definicion, consumo transversal, UTF-8 y movimiento reducido.',
   );
 }

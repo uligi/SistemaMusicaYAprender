@@ -86,3 +86,15 @@ PowerShell 5.1.
 La línea base v1 usa superficies claras y declara `color-scheme: only light`; el tema oscuro no forma
 parte de BL-MVP-018. Un tema alternativo deberá introducirse explícitamente mediante tokens y pruebas, no
 mediante transformación automática del navegador.
+
+## Verificación después de BL-MVP-019
+
+El verificador de tokens no queda acoplado a la pantalla demostrativa de BL-MVP-018. Las familias de
+tokens se consideran correctamente consumidas cuando aparecen en cualquier CSS de aplicación bajo
+`apps/web/src`, excluyendo el propio archivo de definición `tokens/v1.css`. Esto permite distribuir
+estilos por componentes sin perder la regla de que el color, tipografía, espacio, radios, elevación y
+movimiento provienen del sistema versionado.
+
+La comprobación UTF-8 conserva un literal japonés de referencia y recorre las fuentes TypeScript/TSX y
+CSS para rechazar marcadores típicos de mojibake. El título temporal de una pantalla no forma parte del
+contrato permanente de los tokens.

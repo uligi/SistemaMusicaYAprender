@@ -1,4 +1,5 @@
 @import './tokens/v1.css';
+@import '../components/ui/ui.css';
 
 :root {
   color-scheme: only light;
@@ -19,33 +20,52 @@
   background: var(--ma-color-primary);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   min-width: var(--ma-layout-min-viewport);
   min-height: 100vh;
 }
 
-.app-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
+button,
+input,
+select {
+  font: inherit;
+}
+
+.component-catalog {
+  width: min(72rem, 100%);
+  margin: 0 auto;
   padding: var(--ma-space-5);
 }
 
-.welcome-card {
-  width: min(var(--ma-content-reading-max), 100%);
-  padding: clamp(var(--ma-space-5), 5vw, var(--ma-space-7));
+.catalog-hero,
+.catalog-section {
   border: var(--ma-border-width-thin) solid var(--ma-color-border);
-  border-radius: var(--ma-radius-surface);
   background: var(--ma-color-canvas);
   box-shadow: var(--ma-elevation-none);
-  transition-duration: var(--ma-motion-duration-standard);
-  transition-property: border-color;
-  transition-timing-function: var(--ma-motion-easing-standard);
 }
 
-.welcome-card:hover {
-  border-color: var(--ma-color-primary);
+.catalog-hero {
+  padding: clamp(var(--ma-space-5), 5vw, var(--ma-space-7));
+  border-radius: var(--ma-radius-surface);
+}
+
+.catalog-section {
+  margin-top: var(--ma-space-5);
+  padding: var(--ma-space-5);
+  border-radius: var(--ma-radius-panel);
+}
+
+.catalog-section h2 {
+  margin-top: 0;
+}
+
+.catalog-section p {
+  line-height: var(--ma-line-height-body);
 }
 
 .eyebrow {
@@ -64,12 +84,62 @@ h1 {
   line-height: var(--ma-line-height-heading);
 }
 
-p {
-  line-height: var(--ma-line-height-body);
-}
-
-.welcome-card__japanese {
-  margin: 0 0 var(--ma-space-4);
+.catalog-hero__japanese {
+  margin-bottom: 0;
   font-family: var(--ma-font-japanese);
   font-size: var(--ma-font-size-japanese);
+}
+
+.catalog-row,
+.catalog-stack,
+.catalog-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-3);
+}
+
+.catalog-row {
+  align-items: center;
+}
+
+.catalog-stack,
+.catalog-form {
+  flex-direction: column;
+}
+
+.catalog-form {
+  max-width: var(--ma-content-reading-max);
+}
+
+.state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+  gap: var(--ma-space-3);
+}
+
+@media (max-width: 29.9375rem) {
+  .component-catalog {
+    padding: var(--ma-space-3);
+  }
+
+  .catalog-hero,
+  .catalog-section {
+    padding: var(--ma-space-4);
+  }
+
+  .catalog-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .catalog-row .ma-button,
+  .catalog-row .ma-link {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

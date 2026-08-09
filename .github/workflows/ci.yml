@@ -134,6 +134,9 @@ jobs:
       - name: Verify versioned visual tokens
         run: node scripts/frontend/verify-design-tokens.mjs
 
+      - name: Verify accessible essential components
+        run: node scripts/frontend/verify-accessible-components.mjs
+
       - name: Formatting check
         run: npm run format:check
 
