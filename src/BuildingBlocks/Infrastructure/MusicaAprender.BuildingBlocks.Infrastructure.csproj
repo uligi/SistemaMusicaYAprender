@@ -9,7 +9,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Npgsql" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
@@ -21,5 +23,11 @@
     <ProjectReference Include="..\Application\MusicaAprender.BuildingBlocks.Application.csproj" />
     <ProjectReference Include="..\Domain\MusicaAprender.BuildingBlocks.Domain.csproj" />
     <ProjectReference Include="..\Contracts\MusicaAprender.BuildingBlocks.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource
+      Include="..\..\..\database\postgresql\ef-model\cross-schema-foreign-keys.json"
+      LogicalName="MusicaAprender.BuildingBlocks.Infrastructure.Database.Modeling.CrossSchemaForeignKeys.json" />
   </ItemGroup>
 </Project>

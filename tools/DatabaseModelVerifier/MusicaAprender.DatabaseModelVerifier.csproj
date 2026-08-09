@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>MusicaAprender.DatabaseModelVerifier</AssemblyName>
+    <RootNamespace>MusicaAprender.DatabaseModelVerifier</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BuildingBlocks\Infrastructure\MusicaAprender.BuildingBlocks.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\MusicaAprender.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Security\MusicaAprender.Modules.Security.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Catalog\MusicaAprender.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Content\MusicaAprender.Modules.Content.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Learning\MusicaAprender.Modules.Learning.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Progress\MusicaAprender.Modules.Progress.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Editorial\MusicaAprender.Modules.Editorial.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Configuration\MusicaAprender.Modules.Configuration.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,473 @@
+{
+  "backlogItem": "BL-MVP-014",
+  "relationships": [
+    {
+      "constraint": "fk_catalog_recording_status_history_changed_by",
+      "dependentTable": "recording_status_history",
+      "principalTable": "account",
+      "dependentSchema": "catalog",
+      "principalSchema": "security",
+      "dependentColumns": ["changed_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_catalog_song_search_document_publication_id",
+      "dependentTable": "song_search_document",
+      "principalTable": "publication",
+      "dependentSchema": "catalog",
+      "principalSchema": "editorial",
+      "dependentColumns": ["publication_id"],
+      "principalColumns": ["publication_id"]
+    },
+    {
+      "constraint": "fk_configuration_configuration_activation_applied_by",
+      "dependentTable": "configuration_activation",
+      "principalTable": "account",
+      "dependentSchema": "configuration",
+      "principalSchema": "security",
+      "dependentColumns": ["applied_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_configuration_configuration_change_set_approved_by",
+      "dependentTable": "configuration_change_set",
+      "principalTable": "account",
+      "dependentSchema": "configuration",
+      "principalSchema": "security",
+      "dependentColumns": ["approved_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_configuration_configuration_change_set_created_by",
+      "dependentTable": "configuration_change_set",
+      "principalTable": "account",
+      "dependentSchema": "configuration",
+      "principalSchema": "security",
+      "dependentColumns": ["created_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_content_lyrics_revision_created_by",
+      "dependentTable": "lyrics_revision",
+      "principalTable": "account",
+      "dependentSchema": "content",
+      "principalSchema": "security",
+      "dependentColumns": ["created_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_content_lyrics_revision_recording_id",
+      "dependentTable": "lyrics_revision",
+      "principalTable": "recording",
+      "dependentSchema": "content",
+      "principalSchema": "catalog",
+      "dependentColumns": ["recording_id"],
+      "principalColumns": ["recording_id"]
+    },
+    {
+      "constraint": "fk_content_timing_revision_source_id",
+      "dependentTable": "timing_revision",
+      "principalTable": "recording_source",
+      "dependentSchema": "content",
+      "principalSchema": "catalog",
+      "dependentColumns": ["source_id"],
+      "principalColumns": ["source_id"]
+    },
+    {
+      "constraint": "fk_content_translation_note_source_reference_id",
+      "dependentTable": "translation_note",
+      "principalTable": "source_reference",
+      "dependentSchema": "content",
+      "principalSchema": "catalog",
+      "dependentColumns": ["source_reference_id"],
+      "principalColumns": ["source_reference_id"]
+    },
+    {
+      "constraint": "fk_editorial_correction_case_opened_by",
+      "dependentTable": "correction_case",
+      "principalTable": "account",
+      "dependentSchema": "editorial",
+      "principalSchema": "security",
+      "dependentColumns": ["opened_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_editorial_editorial_lock_recording_id",
+      "dependentTable": "editorial_lock",
+      "principalTable": "recording",
+      "dependentSchema": "editorial",
+      "principalSchema": "catalog",
+      "dependentColumns": ["recording_id"],
+      "principalColumns": ["recording_id"]
+    },
+    {
+      "constraint": "fk_editorial_editorial_package_created_by",
+      "dependentTable": "editorial_package",
+      "principalTable": "account",
+      "dependentSchema": "editorial",
+      "principalSchema": "security",
+      "dependentColumns": ["created_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_editorial_editorial_package_recording_id",
+      "dependentTable": "editorial_package",
+      "principalTable": "recording",
+      "dependentSchema": "editorial",
+      "principalSchema": "catalog",
+      "dependentColumns": ["recording_id"],
+      "principalColumns": ["recording_id"]
+    },
+    {
+      "constraint": "fk_editorial_package_component_analysis_revision_id",
+      "dependentTable": "package_component",
+      "principalTable": "linguistic_analysis_revision",
+      "dependentSchema": "editorial",
+      "principalSchema": "content",
+      "dependentColumns": ["analysis_revision_id"],
+      "principalColumns": ["analysis_revision_id"]
+    },
+    {
+      "constraint": "fk_editorial_package_component_exercise_revision_id",
+      "dependentTable": "package_component",
+      "principalTable": "exercise_revision",
+      "dependentSchema": "editorial",
+      "principalSchema": "learning",
+      "dependentColumns": ["exercise_revision_id"],
+      "principalColumns": ["exercise_revision_id"]
+    },
+    {
+      "constraint": "fk_editorial_package_component_lyrics_revision_id",
+      "dependentTable": "package_component",
+      "principalTable": "lyrics_revision",
+      "dependentSchema": "editorial",
+      "principalSchema": "content",
+      "dependentColumns": ["lyrics_revision_id"],
+      "principalColumns": ["lyrics_revision_id"]
+    },
+    {
+      "constraint": "fk_editorial_package_component_timing_revision_id",
+      "dependentTable": "package_component",
+      "principalTable": "timing_revision",
+      "dependentSchema": "editorial",
+      "principalSchema": "content",
+      "dependentColumns": ["timing_revision_id"],
+      "principalColumns": ["timing_revision_id"]
+    },
+    {
+      "constraint": "fk_editorial_package_component_translation_revision_id",
+      "dependentTable": "package_component",
+      "principalTable": "translation_revision",
+      "dependentSchema": "editorial",
+      "principalSchema": "content",
+      "dependentColumns": ["translation_revision_id"],
+      "principalColumns": ["translation_revision_id"]
+    },
+    {
+      "constraint": "fk_editorial_provenance_record_recorded_by",
+      "dependentTable": "provenance_record",
+      "principalTable": "account",
+      "dependentSchema": "editorial",
+      "principalSchema": "security",
+      "dependentColumns": ["recorded_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_editorial_provenance_record_source_reference_id",
+      "dependentTable": "provenance_record",
+      "principalTable": "source_reference",
+      "dependentSchema": "editorial",
+      "principalSchema": "catalog",
+      "dependentColumns": ["source_reference_id"],
+      "principalColumns": ["source_reference_id"]
+    },
+    {
+      "constraint": "fk_editorial_publication_published_by",
+      "dependentTable": "publication",
+      "principalTable": "account",
+      "dependentSchema": "editorial",
+      "principalSchema": "security",
+      "dependentColumns": ["published_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_editorial_publication_recording_id",
+      "dependentTable": "publication",
+      "principalTable": "recording",
+      "dependentSchema": "editorial",
+      "principalSchema": "catalog",
+      "dependentColumns": ["recording_id"],
+      "principalColumns": ["recording_id"]
+    },
+    {
+      "constraint": "fk_editorial_publication_action_actor_id",
+      "dependentTable": "publication_action",
+      "principalTable": "account",
+      "dependentSchema": "editorial",
+      "principalSchema": "security",
+      "dependentColumns": ["actor_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_editorial_published_package_projection_payload_ref",
+      "dependentTable": "published_package_projection",
+      "principalTable": "stored_object",
+      "dependentSchema": "editorial",
+      "principalSchema": "ops",
+      "dependentColumns": ["payload_ref"],
+      "principalColumns": ["object_id"]
+    },
+    {
+      "constraint": "fk_editorial_published_package_projection_recording_id",
+      "dependentTable": "published_package_projection",
+      "principalTable": "recording",
+      "dependentSchema": "editorial",
+      "principalSchema": "catalog",
+      "dependentColumns": ["recording_id"],
+      "principalColumns": ["recording_id"]
+    },
+    {
+      "constraint": "fk_editorial_review_assignment_reviewer_id",
+      "dependentTable": "review_assignment",
+      "principalTable": "account",
+      "dependentSchema": "editorial",
+      "principalSchema": "security",
+      "dependentColumns": ["reviewer_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_editorial_review_submission_submitted_by",
+      "dependentTable": "review_submission",
+      "principalTable": "account",
+      "dependentSchema": "editorial",
+      "principalSchema": "security",
+      "dependentColumns": ["submitted_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_editorial_rights_record_evidence_object_id",
+      "dependentTable": "rights_record",
+      "principalTable": "stored_object",
+      "dependentSchema": "editorial",
+      "principalSchema": "ops",
+      "dependentColumns": ["evidence_object_id"],
+      "principalColumns": ["object_id"]
+    },
+    {
+      "constraint": "fk_identity_consent_record_account_id",
+      "dependentTable": "consent_record",
+      "principalTable": "account",
+      "dependentSchema": "identity",
+      "principalSchema": "security",
+      "dependentColumns": ["account_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_identity_preference_revision_created_by",
+      "dependentTable": "preference_revision",
+      "principalTable": "account",
+      "dependentSchema": "identity",
+      "principalSchema": "security",
+      "dependentColumns": ["created_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_identity_preference_set_account_id",
+      "dependentTable": "preference_set",
+      "principalTable": "account",
+      "dependentSchema": "identity",
+      "principalSchema": "security",
+      "dependentColumns": ["account_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_identity_privacy_request_account_id",
+      "dependentTable": "privacy_request",
+      "principalTable": "account",
+      "dependentSchema": "identity",
+      "principalSchema": "security",
+      "dependentColumns": ["account_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_identity_user_profile_account_id",
+      "dependentTable": "user_profile",
+      "principalTable": "account",
+      "dependentSchema": "identity",
+      "principalSchema": "security",
+      "dependentColumns": ["account_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_learning_evidence_correction_corrected_by",
+      "dependentTable": "evidence_correction",
+      "principalTable": "account",
+      "dependentSchema": "learning",
+      "principalSchema": "security",
+      "dependentColumns": ["corrected_by"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_learning_exercise_definition_line_id",
+      "dependentTable": "exercise_definition",
+      "principalTable": "lyric_line",
+      "dependentSchema": "learning",
+      "principalSchema": "content",
+      "dependentColumns": ["line_id"],
+      "principalColumns": ["line_id"]
+    },
+    {
+      "constraint": "fk_learning_exercise_definition_recording_id",
+      "dependentTable": "exercise_definition",
+      "principalTable": "recording",
+      "dependentSchema": "learning",
+      "principalSchema": "catalog",
+      "dependentColumns": ["recording_id"],
+      "principalColumns": ["recording_id"]
+    },
+    {
+      "constraint": "fk_learning_learner_profile_account_id",
+      "dependentTable": "learner_profile",
+      "principalTable": "account",
+      "dependentSchema": "learning",
+      "principalSchema": "security",
+      "dependentColumns": ["account_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_learning_learning_evidence_recording_id",
+      "dependentTable": "learning_evidence",
+      "principalTable": "recording",
+      "dependentSchema": "learning",
+      "principalSchema": "catalog",
+      "dependentColumns": ["recording_id"],
+      "principalColumns": ["recording_id"]
+    },
+    {
+      "constraint": "fk_learning_study_session_publication_id",
+      "dependentTable": "study_session",
+      "principalTable": "publication",
+      "dependentSchema": "learning",
+      "principalSchema": "editorial",
+      "dependentColumns": ["publication_id"],
+      "principalColumns": ["publication_id"]
+    },
+    {
+      "constraint": "fk_learning_study_session_recording_id",
+      "dependentTable": "study_session",
+      "principalTable": "recording",
+      "dependentSchema": "learning",
+      "principalSchema": "catalog",
+      "dependentColumns": ["recording_id"],
+      "principalColumns": ["recording_id"]
+    },
+    {
+      "constraint": "fk_ops_idempotency_record_account_id",
+      "dependentTable": "idempotency_record",
+      "principalTable": "account",
+      "dependentSchema": "ops",
+      "principalSchema": "security",
+      "dependentColumns": ["account_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_progress_competency_progress_competency_id",
+      "dependentTable": "competency_progress",
+      "principalTable": "competency",
+      "dependentSchema": "progress",
+      "principalSchema": "learning",
+      "dependentColumns": ["competency_id"],
+      "principalColumns": ["competency_id"]
+    },
+    {
+      "constraint": "fk_progress_learner_progress_projection_account_id",
+      "dependentTable": "learner_progress_projection",
+      "principalTable": "account",
+      "dependentSchema": "progress",
+      "principalSchema": "security",
+      "dependentColumns": ["account_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_progress_progress_contribution_evidence_id",
+      "dependentTable": "progress_contribution",
+      "principalTable": "learning_evidence",
+      "dependentSchema": "progress",
+      "principalSchema": "learning",
+      "dependentColumns": ["evidence_id"],
+      "principalColumns": ["evidence_id"]
+    },
+    {
+      "constraint": "fk_progress_resume_point_account_id",
+      "dependentTable": "resume_point",
+      "principalTable": "account",
+      "dependentSchema": "progress",
+      "principalSchema": "security",
+      "dependentColumns": ["account_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_progress_resume_point_instance_id",
+      "dependentTable": "resume_point",
+      "principalTable": "exercise_instance",
+      "dependentSchema": "progress",
+      "principalSchema": "learning",
+      "dependentColumns": ["instance_id"],
+      "principalColumns": ["instance_id"]
+    },
+    {
+      "constraint": "fk_progress_resume_point_line_id",
+      "dependentTable": "resume_point",
+      "principalTable": "lyric_line",
+      "dependentSchema": "progress",
+      "principalSchema": "content",
+      "dependentColumns": ["line_id"],
+      "principalColumns": ["line_id"]
+    },
+    {
+      "constraint": "fk_progress_resume_point_recording_id",
+      "dependentTable": "resume_point",
+      "principalTable": "recording",
+      "dependentSchema": "progress",
+      "principalSchema": "catalog",
+      "dependentColumns": ["recording_id"],
+      "principalColumns": ["recording_id"]
+    },
+    {
+      "constraint": "fk_progress_resume_point_study_session_id",
+      "dependentTable": "resume_point",
+      "principalTable": "study_session",
+      "dependentSchema": "progress",
+      "principalSchema": "learning",
+      "dependentColumns": ["study_session_id"],
+      "principalColumns": ["study_session_id"]
+    },
+    {
+      "constraint": "fk_progress_song_progress_account_id",
+      "dependentTable": "song_progress",
+      "principalTable": "account",
+      "dependentSchema": "progress",
+      "principalSchema": "security",
+      "dependentColumns": ["account_id"],
+      "principalColumns": ["account_id"]
+    },
+    {
+      "constraint": "fk_progress_song_progress_recording_id",
+      "dependentTable": "song_progress",
+      "principalTable": "recording",
+      "dependentSchema": "progress",
+      "principalSchema": "catalog",
+      "dependentColumns": ["recording_id"],
+      "principalColumns": ["recording_id"]
+    },
+    {
+      "constraint": "fk_security_audit_seal_object_id",
+      "dependentTable": "audit_seal",
+      "principalTable": "stored_object",
+      "dependentSchema": "security",
+      "principalSchema": "ops",
+      "dependentColumns": ["object_id"],
+      "principalColumns": ["object_id"]
+    }
+  ]
+}
