@@ -2,9 +2,12 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using MusicaAprender.Api.Health;
 using MusicaAprender.Api.Observability;
+using MusicaAprender.BuildingBlocks.Infrastructure.Configuration;
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddMusicaAprenderExternalConfiguration();
 
 builder.Services.AddMusicaAprenderOpenTelemetry(
     builder.Configuration,
@@ -59,7 +62,7 @@ app.MapGet("/", () => Results.Ok(new
 {
     service = "MusicaAprender.Api",
     status = "scaffold",
-    backlogItem = "BL-MVP-008"
+    backlogItem = "BL-MVP-009"
 }));
 
 app.MapHealthChecks(

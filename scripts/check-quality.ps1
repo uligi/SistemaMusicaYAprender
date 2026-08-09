@@ -8,6 +8,7 @@ function Assert-LastExitCode([string]$Step) {
     }
 }
 
+& "$PSScriptRoot/security/check-no-secrets.ps1"
 & "$PSScriptRoot/restore-and-build.ps1"
 
 dotnet test tests/UnitTests/MusicaAprender.UnitTests.csproj --no-build --no-restore
@@ -19,4 +20,4 @@ Assert-LastExitCode "Pruebas de arquitectura"
 & "$PSScriptRoot/check-module-boundaries.ps1"
 & "$PSScriptRoot/governance/check-templates.ps1"
 
-Write-Host "OK: puerta local BL-MVP-005 aprobada."
+Write-Host "OK: puerta local BL-MVP-009 aprobada."

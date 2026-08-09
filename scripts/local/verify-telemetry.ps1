@@ -56,10 +56,20 @@ $requiredMarkers = @(
     $correlationId
 )
 
-$forbiddenValues = @(
-    "musica-local-postgres",
-    "musica-local-object-store"
-)
+# Los valores prohibidos se leen en tiempo de ejecucion desde el secret store
+# local. No se codifican credenciales en este script.
+$forbiddenValues = @()
+$secretDirectory = Join-Path $Root "secrets\local"
+
+if (Test-Path $secretDirectory) {
+    Get-ChildItem $secretDirectory -File | ForEach-Object {
+        $value = [System.IO.File]::ReadAllText($_.FullName).Trim()
+
+        if ($value.Length -ge 16) {
+            $forbiddenValues += $value
+        }
+    }
+}
 
 $lastMissing = @()
 
@@ -72,8 +82,8 @@ for ($attempt = 1; $attempt -le 10; $attempt++) {
     }
 
     foreach ($forbidden in $forbiddenValues) {
-        if ($collectorLogs -match [regex]::Escape($forbidden)) {
-            throw "La telemetria contiene un secreto local prohibido."
+        if ($collectorLogs.Contains($forbidden)) {
+            throw "La telemetria contiene un valor del secret store local."
         }
     }
 

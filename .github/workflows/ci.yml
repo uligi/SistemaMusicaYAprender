@@ -45,6 +45,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Verify tracked tree contains no secrets
+        shell: bash
+        run: bash scripts/security/check-no-secrets.sh
+
+      - name: Prepare ephemeral Compose secrets
+        shell: bash
+        run: bash scripts/ci/security/create-compose-secrets.sh
+
       - name: Validate local Docker Compose definition
         shell: bash
         run: docker compose config --quiet

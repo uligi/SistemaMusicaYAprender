@@ -21,8 +21,11 @@ Assert-LastExitCode "Docker Compose"
 
 if (-not (Test-Path ".env")) {
     Copy-Item ".env.example" ".env"
-    Write-Host "Creado .env desde .env.example con credenciales SOLO de desarrollo local."
+    Write-Host "Creado .env desde .env.example con configuracion NO secreta."
 }
+
+& "$PSScriptRoot/ensure-local-secrets.ps1"
+& "$PSScriptRoot/sync-postgres-secret.ps1"
 
 Write-Host "Construyendo y levantando el entorno local..."
 docker compose up --build --detach

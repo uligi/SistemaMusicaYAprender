@@ -23,10 +23,13 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__PostgreSQL: Host=postgres;Port=5432;Database=${POSTGRES_DB:-musica_aprender};Username=${POSTGRES_USER:-musica_local};Password=${POSTGRES_PASSWORD:-musica-local-postgres}
+      Database__Host: postgres
+      Database__Port: '5432'
+      Database__Name: ${POSTGRES_DB:-musica_aprender}
+      Database__Username: ${POSTGRES_USER:-musica_local}
+      Secrets__Directory: /run/secrets
+      Secrets__RequireExternal: 'true'
       ObjectStore__Endpoint: http://object-store:9000
-      ObjectStore__AccessKey: ${OBJECT_STORE_USER:-musica_local}
-      ObjectStore__SecretKey: ${OBJECT_STORE_PASSWORD:-musica-local-object-store}
       Smtp__Host: smtp-sink
       Smtp__Port: '1025'
       OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
@@ -36,6 +39,10 @@ services:
       Dependencies__SmtpHost: smtp-sink
       Dependencies__SmtpPort: '1025'
       Dependencies__OpenTelemetryHealthUrl: http://otel-collector:13133/
+    secrets:
+      - postgres_password
+      - object_store_access_key
+      - object_store_secret_key
     ports:
       - '${API_PORT:-5080}:8080'
     depends_on:
@@ -58,15 +65,22 @@ services:
     image: musica-aprender/worker:local
     environment:
       DOTNET_ENVIRONMENT: Development
-      ConnectionStrings__PostgreSQL: Host=postgres;Port=5432;Database=${POSTGRES_DB:-musica_aprender};Username=${POSTGRES_USER:-musica_local};Password=${POSTGRES_PASSWORD:-musica-local-postgres}
+      Database__Host: postgres
+      Database__Port: '5432'
+      Database__Name: ${POSTGRES_DB:-musica_aprender}
+      Database__Username: ${POSTGRES_USER:-musica_local}
+      Secrets__Directory: /run/secrets
+      Secrets__RequireExternal: 'true'
       ObjectStore__Endpoint: http://object-store:9000
-      ObjectStore__AccessKey: ${OBJECT_STORE_USER:-musica_local}
-      ObjectStore__SecretKey: ${OBJECT_STORE_PASSWORD:-musica-local-object-store}
       Smtp__Host: smtp-sink
       Smtp__Port: '1025'
       OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_METRIC_EXPORT_INTERVAL: '5000'
+    secrets:
+      - postgres_password
+      - object_store_access_key
+      - object_store_secret_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -85,7 +99,9 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-musica_aprender}
       POSTGRES_USER: ${POSTGRES_USER:-musica_local}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-musica-local-postgres}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
     ports:
       - '${POSTGRES_PORT:-5432}:5432'
     volumes:
@@ -106,8 +122,11 @@ services:
     image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
     command: server /data --console-address ':9001'
     environment:
-      MINIO_ROOT_USER: ${OBJECT_STORE_USER:-musica_local}
-      MINIO_ROOT_PASSWORD: ${OBJECT_STORE_PASSWORD:-musica-local-object-store}
+      MINIO_ROOT_USER_FILE: /run/secrets/object_store_access_key
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/object_store_secret_key
+    secrets:
+      - object_store_access_key
+      - object_store_secret_key
     ports:
       - '${OBJECT_STORE_PORT:-9000}:9000'
       - '${OBJECT_STORE_CONSOLE_PORT:-9001}:9001'
@@ -154,3 +173,11 @@ volumes:
   postgres-data:
   object-store-data:
   smtp-data:
+
+secrets:
+  postgres_password:
+    file: ./secrets/local/postgres_password
+  object_store_access_key:
+    file: ./secrets/local/object_store_access_key
+  object_store_secret_key:
+    file: ./secrets/local/object_store_secret_key

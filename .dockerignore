@@ -14,4 +14,9 @@ test-results/
 .env
 .env.*
 !.env.example
+secrets/
+*.pfx
+*.p12
+*.key
+*.pem
 *.log

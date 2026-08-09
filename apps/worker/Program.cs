@@ -1,10 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MusicaAprender.BuildingBlocks.Infrastructure.Configuration;
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.Worker.Observability;
 using MusicaAprender.Worker.Workers;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+builder.Configuration.AddMusicaAprenderExternalConfiguration();
 
 builder.Services.AddMusicaAprenderOpenTelemetry(
     builder.Configuration,
