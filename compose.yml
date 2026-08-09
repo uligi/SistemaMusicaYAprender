@@ -1,0 +1,148 @@
+name: musica-aprender-local
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/containers/web/Dockerfile
+    image: musica-aprender/web:local
+    ports:
+      - '${WEB_PORT:-5173}:8080'
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - musica-aprender
+
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/containers/api/Dockerfile
+    image: musica-aprender/api:local
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__PostgreSQL: Host=postgres;Port=5432;Database=${POSTGRES_DB:-musica_aprender};Username=${POSTGRES_USER:-musica_local};Password=${POSTGRES_PASSWORD:-musica-local-postgres}
+      ObjectStore__Endpoint: http://object-store:9000
+      ObjectStore__AccessKey: ${OBJECT_STORE_USER:-musica_local}
+      ObjectStore__SecretKey: ${OBJECT_STORE_PASSWORD:-musica-local-object-store}
+      Smtp__Host: smtp-sink
+      Smtp__Port: '1025'
+      OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
+    ports:
+      - '${API_PORT:-5080}:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      object-store:
+        condition: service_started
+      smtp-sink:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - musica-aprender
+
+  worker:
+    build:
+      context: .
+      dockerfile: infrastructure/containers/worker/Dockerfile
+    image: musica-aprender/worker:local
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__PostgreSQL: Host=postgres;Port=5432;Database=${POSTGRES_DB:-musica_aprender};Username=${POSTGRES_USER:-musica_local};Password=${POSTGRES_PASSWORD:-musica-local-postgres}
+      ObjectStore__Endpoint: http://object-store:9000
+      ObjectStore__AccessKey: ${OBJECT_STORE_USER:-musica_local}
+      ObjectStore__SecretKey: ${OBJECT_STORE_PASSWORD:-musica-local-object-store}
+      Smtp__Host: smtp-sink
+      Smtp__Port: '1025'
+      OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      object-store:
+        condition: service_started
+      smtp-sink:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - musica-aprender
+
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-musica_aprender}
+      POSTGRES_USER: ${POSTGRES_USER:-musica_local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-musica-local-postgres}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-musica_local} -d ${POSTGRES_DB:-musica_aprender}
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - musica-aprender
+
+  object-store:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: ${OBJECT_STORE_USER:-musica_local}
+      MINIO_ROOT_PASSWORD: ${OBJECT_STORE_PASSWORD:-musica-local-object-store}
+    ports:
+      - '${OBJECT_STORE_PORT:-9000}:9000'
+      - '${OBJECT_STORE_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - object-store-data:/data
+    restart: unless-stopped
+    networks:
+      - musica-aprender
+
+  smtp-sink:
+    image: axllent/mailpit:v1.30.0
+    environment:
+      MP_MAX_MESSAGES: '500'
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
+    ports:
+      - '${SMTP_PORT:-1025}:1025'
+      - '${SMTP_UI_PORT:-8025}:8025'
+    volumes:
+      - smtp-data:/data
+    restart: unless-stopped
+    networks:
+      - musica-aprender
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.157.0
+    command:
+      - --config=/etc/otelcol-contrib/config.yaml
+    volumes:
+      - ./infrastructure/containers/otel/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - '${OTEL_GRPC_PORT:-4317}:4317'
+      - '${OTEL_HTTP_PORT:-4318}:4318'
+      - '${OTEL_HEALTH_PORT:-13133}:13133'
+    restart: unless-stopped
+    networks:
+      - musica-aprender
+
+networks:
+  musica-aprender:
+    name: musica-aprender-local
+
+volumes:
+  postgres-data:
+  object-store-data:
+  smtp-data:

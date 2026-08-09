@@ -45,6 +45,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Validate local Docker Compose definition
+        shell: bash
+        run: docker compose config --quiet
+
       - name: Setup .NET from global.json
         uses: actions/setup-dotnet@v6
         with:

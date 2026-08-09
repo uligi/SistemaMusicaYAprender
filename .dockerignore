@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/.vs/
+**/.idea/
+**/TestResults/
+.git/
+.github/
+artifacts/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+*.log

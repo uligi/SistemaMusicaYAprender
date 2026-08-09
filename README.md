@@ -1,13 +1,19 @@
-# BL-MVP-005A — Corrección de lectura UTF-8
+# BL-MVP-006B — Corrección PostgreSQL 18
 
-El contenido de `pull_request_template.md` sí contiene `## Revisión requerida`.
+Los logs confirman el cambio introducido por la imagen oficial de PostgreSQL 18:
 
-El fallo se produce porque Windows PowerShell 5.1 puede interpretar un archivo UTF-8 sin BOM
-usando la página de códigos local cuando se llama a `Get-Content`. En ese caso `Revisión`
-se convierte internamente en texto mojibake y la comparación literal falla.
+- el montaje anterior `postgres-data:/var/lib/postgresql/data` ya no es válido;
+- para PostgreSQL 18+ el volumen debe montarse en `/var/lib/postgresql`;
+- el contenedor crea internamente el directorio específico de la versión.
 
-Este parche cambia el verificador para leer los archivos explícitamente como UTF-8 mediante
-`System.IO.File.ReadAllText`.
+Este parche:
+
+1. corrige `compose.yml`;
+2. documenta la decisión;
+3. detiene el entorno;
+4. elimina **solo** el volumen local de PostgreSQL creado con la ruta incorrecta;
+5. conserva los volúmenes de MinIO y Mailpit;
+6. valida el Compose.
 
 ## Uso
 
@@ -16,11 +22,17 @@ Copie la carpeta `scripts` sobre la carpeta `scripts` del repositorio y ejecute:
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 Unblock-File .\scripts\*.ps1
-.\scripts\apply-bl-mvp-005a-fixes.ps1
+.\scripts\apply-bl-mvp-006b.ps1
 ```
 
-Si muestra que las plantillas fueron verificadas, continúe con:
+Si termina en `OK`, ejecute:
 
 ```powershell
-.\scripts\apply-bl-mvp-005.ps1
+.\scripts\local\start.ps1
+```
+
+Después:
+
+```powershell
+.\scripts\local\verify-running.ps1
 ```
