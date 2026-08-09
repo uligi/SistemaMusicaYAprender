@@ -1,0 +1,74 @@
+:root {
+  /* BL-MVP-018 · Design tokens v1 */
+  --ma-design-token-version: 1;
+
+  /* Semantic color roles. The palette is provisional; the roles are stable. */
+  --ma-color-ink: #182338;
+  --ma-color-muted: #5b6475;
+  --ma-color-primary: #2f4eb2;
+  --ma-color-success: #107c66;
+  --ma-color-warning: #9a5b00;
+  --ma-color-danger: #b83a3a;
+  --ma-color-surface: #f7f8fc;
+  --ma-color-border: #d9deea;
+  --ma-color-canvas: #ffffff;
+
+  /* Typography. Japanese content must keep lang="ja" in markup. */
+  --ma-font-interface:
+    'Noto Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ma-font-japanese:
+    'Noto Sans JP', 'Yu Gothic', YuGothic, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+  --ma-font-size-secondary: 0.875rem;
+  --ma-font-size-body: 1rem;
+  --ma-font-size-japanese: 1.125rem;
+  --ma-font-size-page-title-min: 1.75rem;
+  --ma-font-size-page-title-max: 2.25rem;
+  --ma-font-weight-semibold: 600;
+  --ma-font-weight-bold: 700;
+  --ma-line-height-heading: 1.1;
+  --ma-line-height-body: 1.6;
+  --ma-font-variant-data: tabular-nums;
+
+  /* Spacing scale: 4, 8, 12, 16, 24, 32, 48 and 64 px. */
+  --ma-space-1: 0.25rem;
+  --ma-space-2: 0.5rem;
+  --ma-space-3: 0.75rem;
+  --ma-space-4: 1rem;
+  --ma-space-5: 1.5rem;
+  --ma-space-6: 2rem;
+  --ma-space-7: 3rem;
+  --ma-space-8: 4rem;
+
+  /* Geometry. */
+  --ma-radius-control: 0.625rem;
+  --ma-radius-panel: 0.875rem;
+  --ma-radius-surface: 1.125rem;
+  --ma-border-width-thin: 1px;
+  --ma-touch-target: 2.75rem;
+  --ma-layout-min-viewport: 20rem;
+  --ma-content-reading-max: 42rem;
+
+  /* Elevation is intentionally scarce. */
+  --ma-elevation-none: none;
+  --ma-elevation-floating: 0 0.75rem 2rem rgb(24 35 56 / 14%);
+
+  /* Motion. Non-essential motion becomes immediate when the user requests it. */
+  --ma-motion-duration-instant: 0ms;
+  --ma-motion-duration-fast: 120ms;
+  --ma-motion-duration-standard: 180ms;
+  --ma-motion-duration-slow: 240ms;
+  --ma-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ma-motion-distance: 0.5rem;
+
+  /* Focus is a semantic interaction token, not a status conveyed only by color. */
+  --ma-focus-ring: 0 0 0 3px rgb(47 78 178 / 28%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ma-motion-duration-fast: 0ms;
+    --ma-motion-duration-standard: 0ms;
+    --ma-motion-duration-slow: 0ms;
+    --ma-motion-distance: 0;
+  }
+}

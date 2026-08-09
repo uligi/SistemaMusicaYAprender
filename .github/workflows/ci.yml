@@ -131,6 +131,9 @@ jobs:
       - name: TypeScript strict check
         run: npm run typecheck
 
+      - name: Verify versioned visual tokens
+        run: node scripts/frontend/verify-design-tokens.mjs
+
       - name: Formatting check
         run: npm run format:check
 
