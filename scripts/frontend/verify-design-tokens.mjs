@@ -5,7 +5,6 @@ const repoRoot = process.cwd();
 const sourceRoot = path.join(repoRoot, 'apps', 'web', 'src');
 const tokenPath = path.join(sourceRoot, 'styles', 'tokens', 'v1.css');
 const indexPath = path.join(sourceRoot, 'styles', 'index.css');
-const appPath = path.join(sourceRoot, 'app', 'App.tsx');
 const htmlPath = path.join(repoRoot, 'apps', 'web', 'index.html');
 const docsPath = path.join(repoRoot, 'docs', 'engineering', 'frontend', 'design-tokens.md');
 
@@ -34,7 +33,7 @@ function collectFiles(directory, predicate) {
   return found.sort();
 }
 
-for (const requiredPath of [tokenPath, indexPath, appPath, htmlPath, docsPath]) {
+for (const requiredPath of [tokenPath, indexPath, htmlPath, docsPath]) {
   if (!fs.existsSync(requiredPath)) {
     fail(`falta ${path.relative(repoRoot, requiredPath)}`);
   }
@@ -46,7 +45,6 @@ if (process.exitCode) {
 
 const tokens = fs.readFileSync(tokenPath, 'utf8');
 const indexCss = fs.readFileSync(indexPath, 'utf8');
-const app = fs.readFileSync(appPath, 'utf8');
 const html = fs.readFileSync(htmlPath, 'utf8');
 const docs = fs.readFileSync(docsPath, 'utf8');
 
@@ -138,24 +136,28 @@ for (const family of consumedFamilies) {
   }
 }
 
-if (!app.includes('data-design-tokens="v1"')) {
-  fail('App.tsx no declara la version visual v1');
-}
-
-if (!app.includes('lang="ja"')) {
-  fail('App.tsx no ejercita el contrato tipografico japones con lang="ja"');
-}
-
-const expectedJapanese = '\u97F3\u697D\u3067\u65E5\u672C\u8A9E\u3092\u5B66\u3076';
-const suspiciousMojibake = /[\u00C2\u00C3\uFFFD]/;
 const textSourcePaths = collectFiles(
   sourceRoot,
   (absolutePath) =>
     absolutePath.endsWith('.tsx') || absolutePath.endsWith('.ts') || absolutePath.endsWith('.css'),
 );
+const sourceText = textSourcePaths
+  .map((sourcePath) => fs.readFileSync(sourcePath, 'utf8'))
+  .join('\n');
 
-if (!app.includes(expectedJapanese)) {
-  fail('App.tsx no conserva el literal japones UTF-8 de referencia');
+if (!sourceText.includes('data-design-tokens="v1"')) {
+  fail('el arbol de UI no declara la version visual v1');
+}
+
+if (!sourceText.includes('lang="ja"')) {
+  fail('el arbol de UI no ejercita el contrato tipografico japones con lang="ja"');
+}
+
+const expectedJapanese = '\u97F3\u697D\u3067\u65E5\u672C\u8A9E\u3092\u5B66\u3076';
+const suspiciousMojibake = /[\u00C2\u00C3\uFFFD]/;
+
+if (!sourceText.includes(expectedJapanese)) {
+  fail('el arbol de UI no conserva el literal japones UTF-8 de referencia');
 }
 
 for (const sourcePath of textSourcePaths) {

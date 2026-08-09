@@ -73,8 +73,8 @@ node .\scripts\frontend\verify-design-tokens.mjs
 ```
 
 El verificador confirma los valores vinculantes, la escala, el tratamiento de movimiento reducido, la
-importación de v1, el uso real de todas las familias de tokens y la ausencia de colores crudos en
-`index.css`.
+importación de v1, el uso real de todas las familias de tokens y la ausencia de colores crudos en el CSS
+consumidor.
 
 ## Codificación y esquema de color
 
@@ -84,17 +84,16 @@ decodificados desde Base64 para no depender de la interpretación de literales n
 PowerShell 5.1.
 
 La línea base v1 usa superficies claras y declara `color-scheme: only light`; el tema oscuro no forma
-parte de BL-MVP-018. Un tema alternativo deberá introducirse explícitamente mediante tokens y pruebas, no
-mediante transformación automática del navegador.
+parte de BL-MVP-018.
 
 ## Verificación después de BL-MVP-019
 
-El verificador de tokens no queda acoplado a la pantalla demostrativa de BL-MVP-018. Las familias de
-tokens se consideran correctamente consumidas cuando aparecen en cualquier CSS de aplicación bajo
-`apps/web/src`, excluyendo el propio archivo de definición `tokens/v1.css`. Esto permite distribuir
-estilos por componentes sin perder la regla de que el color, tipografía, espacio, radios, elevación y
-movimiento provienen del sistema versionado.
+El verificador de tokens no queda acoplado a una hoja concreta. Las familias se consideran consumidas
+cuando aparecen en cualquier CSS de aplicación bajo `apps/web/src`, excluyendo `tokens/v1.css`.
+La comprobación UTF-8 recorre las fuentes TypeScript/TSX y CSS para rechazar marcadores de mojibake.
 
-La comprobación UTF-8 conserva un literal japonés de referencia y recorre las fuentes TypeScript/TSX y
-CSS para rechazar marcadores típicos de mojibake. El título temporal de una pantalla no forma parte del
-contrato permanente de los tokens.
+## Verificación después de BL-MVP-020
+
+El app shell mueve `data-design-tokens="v1"` y la referencia japonesa a componentes de ruta reales.
+El verificador busca el contrato en el árbol completo de `apps/web/src`, no en `App.tsx`. Con ello la
+regresión de tokens permanece independiente de la composición temporal de una pantalla.

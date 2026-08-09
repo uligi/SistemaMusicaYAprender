@@ -37,24 +37,28 @@ Sans JP definida por tokens. DI-MVP-14 exige zoom/reflujo y base usable desde 32
 
 ## Estados UI-EST-01 a UI-EST-12
 
-El catálogo visual incluye carga inicial, carga progresiva, sin resultados, vacío autorizado, YouTube
-no disponible, red interrumpida, sesión vencida, acceso denegado, validación, conflicto de versión,
+El contrato incluye carga inicial, carga progresiva, sin resultados, vacío autorizado, YouTube no
+disponible, red interrumpida, sesión vencida, acceso denegado, validación, conflicto de versión,
 guardando y confirmado. `StateMessage` usa una región viva cortés y `aria-busy` únicamente cuando el
 estado representa trabajo en curso.
 
+## Fixture de regresión después de BL-MVP-020
+
+BL-MVP-020 convierte `App.tsx` en el app shell real. Para que la regresión de BL-MVP-019 no dependa de
+una pantalla temporal, los usos representativos de botón, enlace, campo, select, diálogo, tabla,
+pestañas, alertas y UI-EST-01 a UI-EST-12 viven en
+`apps/web/src/components/ui/AccessibilityContractFixture.tsx`.
+
+El fixture compila con la aplicación y el verificador lo inspecciona, pero no agrega una ruta de
+producto fuera de UI-MVP-001-032.
+
 ## Validación manual antes del commit
 
-Con `http://localhost:5173` abierto:
+1. Recorrer la vista con Tab y Shift+Tab; ningún elemento interactivo debe perder foco visible.
+2. Abrir un diálogo, cerrarlo con Escape y comprobar retorno del foco.
+3. Usar Flecha izquierda/derecha, Inicio y Fin en pestañas.
+4. Revisar formularios con etiqueta, ayuda y errores asociados.
+5. Reducir el viewport a 320 px y confirmar reflujo sin scroll horizontal de página.
+6. Verificar japonés con `lang="ja"` y sin glifos corruptos.
 
-1. Recorrer la vista solo con Tab y Shift+Tab. Ningún elemento interactivo debe perder el foco visible.
-2. Abrir el diálogo, cerrarlo con Escape y comprobar el retorno del foco al botón que lo abrió.
-3. Abrir de nuevo el diálogo y usar sus botones sin que el foco escape al contenido de fondo.
-4. En las pestañas usar Flecha izquierda/derecha, Inicio y Fin. La pestaña seleccionada y el foco deben
-   cambiar juntos.
-5. Revisar el formulario: etiqueta y ayuda deben permanecer visibles; el error debe estar enlazado con
-   el campo.
-6. Reducir el viewport a 320 px: tabla, botones, formulario y estados deben refluir sin perder acciones.
-7. Verificar el contenido japonés con `lang="ja"` y sin glifos corruptos.
-
-BL-MVP-022 añadirá Playwright, axe y capturas automatizadas. BL-MVP-019 deja el contrato de componentes
-listo para que ese arnés pruebe los mismos comportamientos sin tener que rediseñarlos.
+BL-MVP-022 añadirá Playwright, axe y capturas automatizadas.

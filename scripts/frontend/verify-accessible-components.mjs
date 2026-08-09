@@ -14,9 +14,9 @@ const requiredFiles = [
   'apps/web/src/components/ui/Tabs.tsx',
   'apps/web/src/components/ui/Alert.tsx',
   'apps/web/src/components/ui/StateMessage.tsx',
+  'apps/web/src/components/ui/AccessibilityContractFixture.tsx',
   'apps/web/src/components/ui/ui.css',
   'apps/web/src/components/ui/index.ts',
-  'apps/web/src/app/App.tsx',
   'apps/web/src/styles/index.css',
   'docs/engineering/frontend/accessible-components.md',
 ];
@@ -43,8 +43,8 @@ const table = read('apps/web/src/components/ui/DataTable.tsx');
 const tabs = read('apps/web/src/components/ui/Tabs.tsx');
 const alert = read('apps/web/src/components/ui/Alert.tsx');
 const state = read('apps/web/src/components/ui/StateMessage.tsx');
+const fixture = read('apps/web/src/components/ui/AccessibilityContractFixture.tsx');
 const uiCss = read('apps/web/src/components/ui/ui.css');
-const app = read('apps/web/src/app/App.tsx');
 const indexCss = read('apps/web/src/styles/index.css');
 const docs = read('docs/engineering/frontend/accessible-components.md');
 
@@ -103,7 +103,7 @@ expectAll(alert, ['aria-live', "role={assertive ? 'alert' : 'status'}", 'toneLab
 for (let index = 1; index <= 12; index += 1) {
   const id = `UI-EST-${String(index).padStart(2, '0')}`;
 
-  if (!state.includes(`'${id}'`) || !app.includes(`id: '${id}'`)) {
+  if (!state.includes(`'${id}'`) || !fixture.includes(`'${id}'`)) {
     fail(`falta cobertura del estado ${id}`);
   }
 }
@@ -131,7 +131,7 @@ if (!indexCss.startsWith("@import './tokens/v1.css';\n@import '../components/ui/
 }
 
 expectAll(
-  app,
+  fixture,
   [
     'data-component-catalog="bl-mvp-019"',
     '<Button',
@@ -145,7 +145,7 @@ expectAll(
     '<StateMessage',
     'lang="ja"',
   ],
-  'App.tsx',
+  'AccessibilityContractFixture.tsx',
 );
 
 expectAll(
@@ -158,6 +158,7 @@ expectAll(
     'UI-EST-12',
     'retorno del foco',
     '320 px',
+    'AccessibilityContractFixture.tsx',
   ],
   'documentación',
 );

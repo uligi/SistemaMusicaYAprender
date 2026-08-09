@@ -137,6 +137,9 @@ jobs:
       - name: Verify accessible essential components
         run: node scripts/frontend/verify-accessible-components.mjs
 
+      - name: Verify app shell and route boundaries
+        run: node scripts/frontend/verify-app-shell.mjs
+
       - name: Formatting check
         run: npm run format:check
 

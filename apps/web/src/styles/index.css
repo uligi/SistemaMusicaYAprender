@@ -1,5 +1,6 @@
 @import './tokens/v1.css';
 @import '../components/ui/ui.css';
+@import '../app/shell/shell.css';
 
 :root {
   color-scheme: only light;
@@ -36,38 +37,6 @@ select {
   font: inherit;
 }
 
-.component-catalog {
-  width: min(72rem, 100%);
-  margin: 0 auto;
-  padding: var(--ma-space-5);
-}
-
-.catalog-hero,
-.catalog-section {
-  border: var(--ma-border-width-thin) solid var(--ma-color-border);
-  background: var(--ma-color-canvas);
-  box-shadow: var(--ma-elevation-none);
-}
-
-.catalog-hero {
-  padding: clamp(var(--ma-space-5), 5vw, var(--ma-space-7));
-  border-radius: var(--ma-radius-surface);
-}
-
-.catalog-section {
-  margin-top: var(--ma-space-5);
-  padding: var(--ma-space-5);
-  border-radius: var(--ma-radius-panel);
-}
-
-.catalog-section h2 {
-  margin-top: 0;
-}
-
-.catalog-section p {
-  line-height: var(--ma-line-height-body);
-}
-
 .eyebrow {
   margin: 0 0 var(--ma-space-2);
   color: var(--ma-color-muted);
@@ -78,64 +47,21 @@ select {
 }
 
 h1 {
-  margin: 0 0 var(--ma-space-4);
   font-size: clamp(var(--ma-font-size-page-title-min), 5vw, var(--ma-font-size-page-title-max));
   font-weight: var(--ma-font-weight-semibold);
   line-height: var(--ma-line-height-heading);
 }
 
-.catalog-hero__japanese {
-  margin-bottom: 0;
-  font-family: var(--ma-font-japanese);
-  font-size: var(--ma-font-size-japanese);
+p {
+  line-height: var(--ma-line-height-body);
 }
 
-.catalog-row,
-.catalog-stack,
-.catalog-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--ma-space-3);
-}
-
-.catalog-row {
-  align-items: center;
-}
-
-.catalog-stack,
-.catalog-form {
-  flex-direction: column;
-}
-
-.catalog-form {
-  max-width: var(--ma-content-reading-max);
-}
-
-.state-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
-  gap: var(--ma-space-3);
-}
-
-@media (max-width: 29.9375rem) {
-  .component-catalog {
-    padding: var(--ma-space-3);
-  }
-
-  .catalog-hero,
-  .catalog-section {
-    padding: var(--ma-space-4);
-  }
-
-  .catalog-row {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .catalog-row .ma-button,
-  .catalog-row .ma-link {
-    width: 100%;
-  }
+a:focus-visible,
+.app-main:focus-visible,
+.route-title:focus-visible {
+  outline: calc(var(--ma-border-width-thin) * 2) solid var(--ma-color-primary);
+  outline-offset: var(--ma-space-1);
+  box-shadow: var(--ma-focus-ring);
 }
 
 @media (prefers-reduced-motion: reduce) {
