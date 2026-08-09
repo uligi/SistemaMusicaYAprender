@@ -2,6 +2,28 @@
   "version": 2,
   "dependencies": {
     "net9.0": {
+      "Minio": {
+        "type": "Direct",
+        "requested": "[7.0.0, )",
+        "resolved": "7.0.0",
+        "contentHash": "GiCD0koYBM8/VCXRkrfSzOtySEmrA2ngceJuxRO5H+/uGodiTX+XPaUHQq9/1DpaeBxWnkmrgqu52dwuZqIYgw==",
+        "dependencies": {
+          "CommunityToolkit.HighPerformance": "8.4.0",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.4",
+          "Microsoft.Extensions.Logging": "9.0.4",
+          "System.IO.Hashing": "9.0.4",
+          "System.Reactive": "6.0.1"
+        }
+      },
+      "Npgsql": {
+        "type": "Direct",
+        "requested": "[9.0.5, )",
+        "resolved": "9.0.5",
+        "contentHash": "NRZkUlTUh06f7f14wriEoO+BrJcyw/agh3xozXLM3ii7C/08SyXqcI89EMfZJuHkOcfDU8W0enGcZ8RGNVOw0w==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.2"
+        }
+      },
       "CommunityToolkit.HighPerformance": {
         "type": "Transitive",
         "resolved": "8.4.0",
@@ -215,21 +237,6 @@
         "resolved": "6.0.1",
         "contentHash": "rHaWtKDwCi9qJ3ObKo8LHPMuuwv33YbmQi7TcUK1C264V3MFnOr5Im7QgCTdLniztP3GJyeiSg5x8NqYJFqRmg=="
       },
-      "musicaaprender.api": {
-        "type": "Project",
-        "dependencies": {
-          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )",
-          "MusicaAprender.Modules.Catalog": "[1.0.0, )",
-          "MusicaAprender.Modules.Configuration": "[1.0.0, )",
-          "MusicaAprender.Modules.Content": "[1.0.0, )",
-          "MusicaAprender.Modules.Editorial": "[1.0.0, )",
-          "MusicaAprender.Modules.Identity": "[1.0.0, )",
-          "MusicaAprender.Modules.Learning": "[1.0.0, )",
-          "MusicaAprender.Modules.Progress": "[1.0.0, )",
-          "MusicaAprender.Modules.Security": "[1.0.0, )",
-          "Npgsql": "[9.0.5, )"
-        }
-      },
       "musicaaprender.buildingblocks.application": {
         "type": "Project",
         "dependencies": {
@@ -260,78 +267,6 @@
           "OpenTelemetry.Instrumentation.Runtime": "[1.17.0, )"
         }
       },
-      "musicaaprender.modules.catalog": {
-        "type": "Project",
-        "dependencies": {
-          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )"
-        }
-      },
-      "musicaaprender.modules.configuration": {
-        "type": "Project",
-        "dependencies": {
-          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )"
-        }
-      },
-      "musicaaprender.modules.content": {
-        "type": "Project",
-        "dependencies": {
-          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )"
-        }
-      },
-      "musicaaprender.modules.editorial": {
-        "type": "Project",
-        "dependencies": {
-          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )"
-        }
-      },
-      "musicaaprender.modules.identity": {
-        "type": "Project",
-        "dependencies": {
-          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )"
-        }
-      },
-      "musicaaprender.modules.learning": {
-        "type": "Project",
-        "dependencies": {
-          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )"
-        }
-      },
-      "musicaaprender.modules.progress": {
-        "type": "Project",
-        "dependencies": {
-          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )"
-        }
-      },
-      "musicaaprender.modules.security": {
-        "type": "Project",
-        "dependencies": {
-          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )",
-          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )"
-        }
-      },
       "Microsoft.EntityFrameworkCore": {
         "type": "CentralTransitive",
         "requested": "[9.0.18, )",
@@ -354,28 +289,6 @@
           "Microsoft.Extensions.Caching.Memory": "9.0.1",
           "Microsoft.Extensions.Configuration.Abstractions": "9.0.1",
           "Microsoft.Extensions.Logging": "9.0.1"
-        }
-      },
-      "Minio": {
-        "type": "CentralTransitive",
-        "requested": "[7.0.0, )",
-        "resolved": "7.0.0",
-        "contentHash": "GiCD0koYBM8/VCXRkrfSzOtySEmrA2ngceJuxRO5H+/uGodiTX+XPaUHQq9/1DpaeBxWnkmrgqu52dwuZqIYgw==",
-        "dependencies": {
-          "CommunityToolkit.HighPerformance": "8.4.0",
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "9.0.4",
-          "Microsoft.Extensions.Logging": "9.0.4",
-          "System.IO.Hashing": "9.0.4",
-          "System.Reactive": "6.0.1"
-        }
-      },
-      "Npgsql": {
-        "type": "CentralTransitive",
-        "requested": "[9.0.5, )",
-        "resolved": "9.0.5",
-        "contentHash": "NRZkUlTUh06f7f14wriEoO+BrJcyw/agh3xozXLM3ii7C/08SyXqcI89EMfZJuHkOcfDU8W0enGcZ8RGNVOw0w==",
-        "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "8.0.2"
         }
       },
       "Npgsql.EntityFrameworkCore.PostgreSQL": {

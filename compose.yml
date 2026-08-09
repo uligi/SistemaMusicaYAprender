@@ -31,6 +31,8 @@ services:
       Secrets__Directory: /run/secrets
       Secrets__RequireExternal: 'true'
       ObjectStore__Endpoint: http://object-store:9000
+      ObjectStore__Bucket: ${OBJECT_STORE_BUCKET:-musica-aprender-private}
+      ObjectStore__EncryptionKeyReference: local-secret://object_store_encryption_key/v1
       Smtp__Host: smtp-sink
       Smtp__Port: '1025'
       OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
@@ -44,6 +46,7 @@ services:
       - postgres_api_password
       - object_store_access_key
       - object_store_secret_key
+      - object_store_encryption_key
     ports:
       - '${API_PORT:-5080}:8080'
     depends_on:
@@ -74,6 +77,8 @@ services:
       Secrets__Directory: /run/secrets
       Secrets__RequireExternal: 'true'
       ObjectStore__Endpoint: http://object-store:9000
+      ObjectStore__Bucket: ${OBJECT_STORE_BUCKET:-musica-aprender-private}
+      ObjectStore__EncryptionKeyReference: local-secret://object_store_encryption_key/v1
       Smtp__Host: smtp-sink
       Smtp__Port: '1025'
       OpenTelemetry__OtlpEndpoint: http://otel-collector:4317
@@ -83,6 +88,7 @@ services:
       - postgres_worker_password
       - object_store_access_key
       - object_store_secret_key
+      - object_store_encryption_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -195,3 +201,5 @@ secrets:
     file: ./secrets/local/object_store_access_key
   object_store_secret_key:
     file: ./secrets/local/object_store_secret_key
+  object_store_encryption_key:
+    file: ./secrets/local/object_store_encryption_key

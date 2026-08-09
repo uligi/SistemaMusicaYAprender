@@ -219,6 +219,27 @@ jobs:
           PGDATABASE: musica_aprender_ci
         run: bash scripts/ci/database/verify-reliability.sh
 
+      - name: Start private development object store
+        shell: bash
+        run: |
+          docker compose up --detach object-store
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:9000/minio/health/ready >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose logs object-store
+          exit 1
+
+      - name: Verify encrypted private object storage
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/ci/object-storage/verify-private-object-store.sh
+
       - name: Verify tracked tree still contains no secrets
         shell: bash
         run: bash scripts/security/check-no-secrets.sh

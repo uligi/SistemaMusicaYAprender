@@ -10,6 +10,7 @@ public static class ExternalConfigurationExtensions
     private const string DefaultPostgreSqlPasswordSecret = "postgres_password";
     private const string ObjectStoreAccessKeySecret = "object_store_access_key";
     private const string ObjectStoreSecretKeySecret = "object_store_secret_key";
+    private const string ObjectStoreEncryptionKeySecret = "object_store_encryption_key";
 
     public static ConfigurationManager AddMusicaAprenderExternalConfiguration(
         this ConfigurationManager configuration)
@@ -48,6 +49,11 @@ public static class ExternalConfigurationExtensions
             ObjectStoreSecretKeySecret,
             minimumLength: 32);
 
+        var objectStoreEncryptionKey = ReadSecret(
+            secretDirectory,
+            ObjectStoreEncryptionKeySecret,
+            minimumLength: 64);
+
         var databaseHost = RequireNonSecret(configuration, "Database:Host");
         var databaseName = RequireNonSecret(configuration, "Database:Name");
         var databaseUsername = RequireNonSecret(configuration, "Database:Username");
@@ -69,7 +75,8 @@ public static class ExternalConfigurationExtensions
             {
                 ["ConnectionStrings:PostgreSQL"] = connectionString,
                 ["ObjectStore:AccessKey"] = objectStoreAccessKey,
-                ["ObjectStore:SecretKey"] = objectStoreSecretKey
+                ["ObjectStore:SecretKey"] = objectStoreSecretKey,
+                ["ObjectStore:EncryptionKey"] = objectStoreEncryptionKey
             });
 
         return configuration;

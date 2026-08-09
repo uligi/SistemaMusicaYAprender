@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MusicaAprender.BuildingBlocks.Infrastructure.Configuration;
+using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
 using MusicaAprender.Worker.Observability;
@@ -24,6 +25,7 @@ builder.Logging.AddMusicaAprenderOpenTelemetryLogging(
     WorkerTelemetry.ServiceVersion);
 
 builder.Services.AddMusicaAprenderOutboxDispatch();
+builder.Services.AddMusicaAprenderPrivateObjectStore(builder.Configuration);
 builder.Services.AddHostedService<HeartbeatWorker>();
 builder.Services.AddHostedService<OutboxDispatchWorker>();
 

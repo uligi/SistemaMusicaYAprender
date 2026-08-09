@@ -5,6 +5,7 @@ using MusicaAprender.Api.Observability;
 using MusicaAprender.Api.Security;
 using MusicaAprender.BuildingBlocks.Infrastructure.Configuration;
 using MusicaAprender.BuildingBlocks.Infrastructure.Database;
+using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
 
@@ -16,6 +17,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IHttpDatabaseSessionContextFactory, HttpDatabaseSessionContextFactory>();
 builder.Services.AddSingleton<IRlsTransactionExecutor, RlsTransactionExecutor>();
 builder.Services.AddMusicaAprenderReliableOperations();
+builder.Services.AddMusicaAprenderPrivateObjectStore(builder.Configuration);
 
 builder.Services.AddMusicaAprenderOpenTelemetry(
     builder.Configuration,

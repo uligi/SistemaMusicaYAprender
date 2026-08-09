@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 
 $Root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Set-Location $Root
@@ -54,5 +54,6 @@ Ensure-Secret "postgres_worker_password" 32
 Ensure-Secret "postgres_readonly_password" 32
 Ensure-Secret "object_store_access_key" 16 "local-"
 Ensure-Secret "object_store_secret_key" 32
+Ensure-Secret "object_store_encryption_key" 32
 
 Write-Host "OK: secret store local preparado fuera del repositorio."

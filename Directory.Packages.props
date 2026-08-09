@@ -12,6 +12,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.18" />
     <PackageVersion Include="Npgsql" Version="9.0.5" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+    <PackageVersion Include="Minio" Version="7.0.0" />
 
     <!-- BL-MVP-004: pruebas unitarias ejecutables en CI y Visual Studio. -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />

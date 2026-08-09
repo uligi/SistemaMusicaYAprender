@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>MusicaAprender.ObjectStoreVerifier</AssemblyName>
+    <RootNamespace>MusicaAprender.ObjectStoreVerifier</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Minio" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BuildingBlocks\Contracts\MusicaAprender.BuildingBlocks.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Infrastructure\MusicaAprender.BuildingBlocks.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
