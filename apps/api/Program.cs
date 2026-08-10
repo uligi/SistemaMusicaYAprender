@@ -10,6 +10,8 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Email.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
+using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
+using MusicaAprender.Modules.Security.Infrastructure.Authorization;
 using MusicaAprender.Modules.Security.Infrastructure.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +27,8 @@ builder.Services.AddMusicaAprenderPrivateObjectStore(builder.Configuration);
 builder.Services.AddSingleton(
     PersonalEmailProtector.FromConfiguration(builder.Configuration));
 builder.Services.AddSingleton<PersonalAccountRegistrationService>();
+builder.Services.AddSingleton<MinimumPublishedConfigurationReader>();
+builder.Services.AddSingleton<MinimumRoleCatalogReader>();
 
 builder.Services.AddMusicaAprenderOpenTelemetry(
     builder.Configuration,
@@ -51,6 +55,10 @@ builder.Services
         tags: HealthConstants.LiveTags)
     .AddCheck<PostgreSqlHealthCheck>(
         "postgresql",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: HealthConstants.ReadyDependencyTags)
+    .AddCheck<MinimumConfigurationHealthCheck>(
+        "minimum-configuration",
         failureStatus: HealthStatus.Unhealthy,
         tags: HealthConstants.ReadyDependencyTags)
     .AddCheck<ObjectStoreHealthCheck>(

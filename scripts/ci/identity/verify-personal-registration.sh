@@ -90,6 +90,19 @@ for attempt in $(seq 1 30); do
   sleep 1
 done
 
+curl \
+  --fail \
+  --silent \
+  --show-error \
+  --output "$work_dir/dependencies.json" \
+  "$api_url/health/dependencies"
+
+if ! grep -F -q '"name":"minimum-configuration","status":"Healthy"' "$work_dir/dependencies.json"; then
+  echo "ERROR: minimum-configuration no reporto Healthy en /health/dependencies." >&2
+  cat "$work_dir/dependencies.json" >&2
+  exit 1
+fi
+
 post_registration() {
   local request_email="$1"
   local idempotency_key="$2"

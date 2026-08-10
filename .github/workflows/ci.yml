@@ -233,6 +233,14 @@ jobs:
           PGDATABASE: musica_aprender_ci
         run: bash scripts/ci/database/verify-ef-model.sh
 
+      - name: Verify minimum effective configuration publication
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/ci/configuration/verify-minimum-effective-configuration.sh
+
       - name: Verify transactional outbox, inbox and idempotency
         shell: bash
         env:
