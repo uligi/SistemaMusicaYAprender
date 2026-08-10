@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Button, Field, StateMessage } from '../../components/ui';
+import { Button, Field, Link, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
 
@@ -349,6 +349,7 @@ export function PersonalAccountRegistrationPage() {
 
       {submission.phase === 'accepted' ? (
         <StateMessage
+          action={<Link href="/verificar-cuenta">Ingresar código de verificación</Link>}
           description={submission.message}
           state="UI-EST-12"
           title="Solicitud recibida"
@@ -378,8 +379,8 @@ export function PersonalAccountRegistrationPage() {
       ) : null}
 
       <p className="registration__privacy">
-        Una cuenta nueva permanece pendiente. La verificación de un solo uso y la credencial se
-        completarán antes de activar el acceso.
+        Una cuenta nueva permanece pendiente hasta que uses el código enviado por correo. El código
+        vence y solo puede activar la cuenta una vez.
       </p>
     </article>
   );

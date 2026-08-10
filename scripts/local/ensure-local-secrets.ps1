@@ -57,5 +57,6 @@ Ensure-Secret "object_store_secret_key" 32
 Ensure-Secret "object_store_encryption_key" 32
 Ensure-Secret "identity_email_lookup_key" 32
 Ensure-Secret "identity_email_encryption_key" 32
+Ensure-Secret "identity_verification_token_key" 32
 
 Write-Host "OK: secret store local preparado fuera del repositorio."

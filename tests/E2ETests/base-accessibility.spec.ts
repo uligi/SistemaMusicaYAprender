@@ -300,3 +300,116 @@ test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados
     await auditAccessibility(page, testInfo, 'registration-consent-required-320');
   });
 });
+
+test.describe('BL-MVP-025 · verificación de cuenta con token de un uso', () => {
+  test('verifica con teclado sin exponer el código en URL ni almacenamiento', async ({
+    page,
+  }, testInfo) => {
+    const verificationCode = 'codigo-de-prueba-no-secreto';
+    let submittedToken = '';
+
+    await page.route('**/api/v1/auth/verify-account', async (route) => {
+      submittedToken = (route.request().postDataJSON() as { token: string }).token;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'VERIFIED',
+          message: 'La cuenta quedó verificada. El código no puede activar la cuenta nuevamente.',
+        }),
+      });
+    });
+
+    await page.goto('/verificar-cuenta');
+    await expect(page.locator('[data-route-id="UI-MVP-006"]')).toBeVisible();
+    await expect(page).toHaveURL(/\/verificar-cuenta$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Verifica tu cuenta' })).toBeFocused();
+    await expect(page.getByLabel('Código recibido')).toHaveAttribute(
+      'autocomplete',
+      'one-time-code',
+    );
+    await assertNoHorizontalPageOverflow(page);
+    await auditAccessibility(page, testInfo, 'account-verification-empty-320');
+
+    await page.keyboard.press('Tab');
+    const tokenInput = page.getByLabel('Código recibido');
+    await assertFocusVisible(tokenInput);
+    await tokenInput.fill(verificationCode);
+    await page.keyboard.press('Tab');
+    await assertFocusVisible(page.getByRole('button', { name: 'Verificar cuenta' }));
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('[data-state="UI-EST-12"]')).toContainText('Cuenta verificada');
+    await expect(tokenInput).toHaveValue('');
+    await expect(page).toHaveURL(/\/verificar-cuenta$/);
+    expect(submittedToken).toBe(verificationCode);
+    expect(await page.evaluate(() => localStorage.length)).toBe(0);
+    expect(await page.evaluate(() => sessionStorage.length)).toBe(0);
+    await auditAccessibility(page, testInfo, 'account-verification-accepted-320');
+    await captureState(page, testInfo, 'account-verification-accepted-320');
+  });
+
+  test('asocia un código inválido con su campo y conserva la corrección accesible', async ({
+    page,
+  }, testInfo) => {
+    await page.route('**/api/v1/auth/verify-account', async (route) => {
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          type: 'about:blank',
+          title: 'No pudimos verificar la cuenta',
+          status: 400,
+          detail: 'Solicita un código nuevo e inténtalo otra vez.',
+          code: 'identity.verification.invalid',
+          errors: { token: ['El código no es válido o ya venció. Solicita uno nuevo.'] },
+        }),
+      });
+    });
+
+    await page.goto('/verificar-cuenta');
+    const tokenInput = page.getByLabel('Código recibido');
+    await tokenInput.fill('codigo-invalido');
+    await page.getByRole('button', { name: 'Verificar cuenta' }).click();
+
+    await expect(tokenInput).toBeFocused();
+    await expect(tokenInput).toHaveAttribute('aria-invalid', 'true');
+    await expect(tokenInput).toHaveValue('codigo-invalido');
+    await expect(page.getByText(/no es válido, ya fue consumido o venció/i)).toBeVisible();
+    await auditAccessibility(page, testInfo, 'account-verification-invalid-320');
+  });
+
+  test('reenvía con respuesta no enumerable e idempotencia por operación', async ({ page }) => {
+    const requests: Array<{ email: string; idempotencyKey: string }> = [];
+    await page.route('**/api/v1/auth/verification/resend', async (route) => {
+      const request = route.request();
+      requests.push({
+        email: (request.postDataJSON() as { email: string }).email,
+        idempotencyKey: request.headers()['idempotency-key'] ?? '',
+      });
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'RECEIVED',
+          message: 'Si existe una cuenta pendiente para ese correo, enviaremos un código nuevo.',
+        }),
+      });
+    });
+
+    await page.goto('/verificar-cuenta');
+    const email = page.getByLabel('Correo electrónico');
+    await email.fill('persona@example.com');
+    await page.getByRole('button', { name: 'Solicitar otro código' }).click();
+    await expect(page.getByText(/Si existe una cuenta pendiente/i)).toBeVisible();
+
+    await email.fill('otra-persona@example.com');
+    await page.getByRole('button', { name: 'Solicitar otro código' }).click();
+    await expect(page.getByText(/Si existe una cuenta pendiente/i)).toBeVisible();
+
+    expect(requests).toHaveLength(2);
+    expect(requests[0]?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
+    expect(requests[1]?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
+    expect(requests[0]?.idempotencyKey).not.toBe(requests[1]?.idempotencyKey);
+  });
+});

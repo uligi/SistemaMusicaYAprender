@@ -13,6 +13,41 @@ REVOKE CREATE, TEMPORARY ON DATABASE :"database_name"
 -- El DDL embebido hace SET LOCAL ROLE jp_owner para crear los nueve esquemas.
 GRANT CREATE ON DATABASE :"database_name" TO jp_owner;
 
+-- BL-MVP-025. La búsqueda de reenvío es la única excepción pública al RLS
+-- por propietario: devuelve solo el UUID opaco de una cuenta PENDING cuyo
+-- hash de correo coincide. La función queda con search_path fijo y sin
+-- privilegio PUBLIC; la API nunca devuelve este resultado al cliente.
+DO $account_verification_lookup$
+BEGIN
+    IF to_regclass('security.account') IS NOT NULL THEN
+        EXECUTE $function$
+            CREATE OR REPLACE FUNCTION security.resolve_pending_account_for_verification(
+                p_email_lookup_hash bytea
+            )
+            RETURNS uuid
+            LANGUAGE sql
+            STABLE
+            SECURITY DEFINER
+            SET search_path = pg_catalog
+            AS $body$
+                SELECT account.account_id
+                FROM security.account AS account
+                WHERE octet_length(p_email_lookup_hash) = 32
+                  AND account.email_lookup_hash = p_email_lookup_hash
+                  AND account.status_code = 'PENDING'
+                  AND account.verified_at IS NULL
+                LIMIT 1
+            $body$
+        $function$;
+
+        REVOKE ALL ON FUNCTION security.resolve_pending_account_for_verification(bytea)
+            FROM PUBLIC;
+        GRANT EXECUTE ON FUNCTION security.resolve_pending_account_for_verification(bytea)
+            TO jp_app;
+    END IF;
+END;
+$account_verification_lookup$;
+
 -- EF Core mantiene __EFMigrationsHistory en public. Solo el rol de migracion
 -- puede crear/gestionar esa tabla; los roles runtime no reciben CREATE.
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;

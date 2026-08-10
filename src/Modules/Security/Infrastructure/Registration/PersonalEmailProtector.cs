@@ -93,6 +93,53 @@ public sealed class PersonalEmailProtector
         }
     }
 
+    public string Unprotect(ReadOnlySpan<byte> protectedEmail)
+    {
+        var minimumLength = 1 + NonceSize + TagSize + 3;
+        if (protectedEmail.Length < minimumLength
+            || protectedEmail[0] != CipherVersion)
+        {
+            throw new InvalidOperationException(
+                "El correo protegido no cumple el formato versionado esperado.");
+        }
+
+        var nonce = protectedEmail.Slice(1, NonceSize);
+        var tag = protectedEmail.Slice(1 + NonceSize, TagSize);
+        var encrypted = protectedEmail[(1 + NonceSize + TagSize)..];
+        var plaintext = new byte[encrypted.Length];
+
+        try
+        {
+            using var aes = new AesGcm(_encryptionKey, TagSize);
+            aes.Decrypt(
+                nonce,
+                encrypted,
+                tag,
+                plaintext,
+                [CipherVersion]);
+
+            var value = new UTF8Encoding(false, true).GetString(plaintext);
+            if (!TryNormalize(value, out var normalized)
+                || !string.Equals(value, normalized, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "El correo descifrado no conserva su forma canonica.");
+            }
+
+            return value;
+        }
+        catch (CryptographicException exception)
+        {
+            throw new InvalidOperationException(
+                "No se pudo autenticar el correo protegido.",
+                exception);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plaintext);
+        }
+    }
+
     private static bool TryNormalize(string? value, out string normalized)
     {
         normalized = string.Empty;

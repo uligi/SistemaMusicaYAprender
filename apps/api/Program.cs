@@ -13,6 +13,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjecti
 using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
 using MusicaAprender.Modules.Security.Infrastructure.Authorization;
 using MusicaAprender.Modules.Security.Infrastructure.Registration;
+using MusicaAprender.Modules.Security.Infrastructure.Verification;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +27,10 @@ builder.Services.AddMusicaAprenderEmailQueue();
 builder.Services.AddMusicaAprenderPrivateObjectStore(builder.Configuration);
 builder.Services.AddSingleton(
     PersonalEmailProtector.FromConfiguration(builder.Configuration));
+builder.Services.AddSingleton(
+    AccountVerificationTokenService.FromConfiguration(builder.Configuration));
 builder.Services.AddSingleton<PersonalAccountRegistrationService>();
+builder.Services.AddSingleton<PersonalAccountVerificationService>();
 builder.Services.AddSingleton<MinimumPublishedConfigurationReader>();
 builder.Services.AddSingleton<MinimumRoleCatalogReader>();
 
@@ -103,6 +107,7 @@ app.MapHealthChecks(
     HealthEndpointOptions.Create(HealthConstants.DependencyTag));
 
 app.MapPersonalAccountRegistration();
+app.MapPersonalAccountVerification();
 
 app.Run();
 

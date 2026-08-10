@@ -1,15 +1,20 @@
 using System.Text.Json;
+using MusicaAprender.BuildingBlocks.Contracts.Email;
 using MusicaAprender.BuildingBlocks.Infrastructure.Database;
+using MusicaAprender.BuildingBlocks.Infrastructure.Email.Queue;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.Idempotency;
 using MusicaAprender.Modules.Identity.Application.Consent;
 using MusicaAprender.Modules.Identity.Infrastructure.Registration;
 using MusicaAprender.Modules.Security.Infrastructure.Registration;
+using MusicaAprender.Modules.Security.Infrastructure.Verification;
 
 namespace MusicaAprender.Api.Endpoints.Identity;
 
 public sealed class PersonalAccountRegistrationService(
     IReliableOperationExecutor reliableOperationExecutor,
-    PersonalEmailProtector emailProtector)
+    ITransactionalEmailEnqueuer emailEnqueuer,
+    PersonalEmailProtector emailProtector,
+    AccountVerificationTokenService tokenService)
 {
     private const string OperationCode = "IDENTITY.PERSONAL_ACCOUNT.REGISTER";
     private const string AnonymousRole = "ANONYMOUS";
@@ -57,6 +62,7 @@ public sealed class PersonalAccountRegistrationService(
             CreateCanonicalRequest(protectedEmail, validation.AcceptedConsents),
             IdempotencyRetention);
         var responseJson = JsonSerializer.Serialize(AcceptedResponse, ResponseJsonOptions);
+        var correlationGuid = IdentityOperationCorrelation.ToGuid(correlationId);
 
         var outcome = await reliableOperationExecutor.ExecuteAnonymousAsync(
             provisionalContext,
@@ -83,6 +89,32 @@ public sealed class PersonalAccountRegistrationService(
                         transaction,
                         proposedAccountId,
                         validation.AcceptedConsents,
+                        token);
+
+                    var verificationId = Guid.CreateVersion7();
+                    var verificationTokenHash = tokenService.CreateTokenHash(
+                        proposedAccountId,
+                        verificationId);
+
+                    await AccountVerificationPersistence.CreateAsync(
+                        connection,
+                        transaction,
+                        proposedAccountId,
+                        verificationId,
+                        verificationTokenHash,
+                        token);
+
+                    await emailEnqueuer.EnqueueAsync(
+                        connection,
+                        transaction,
+                        new EmailQueueRequest(
+                            "SECURITY",
+                            proposedAccountId,
+                            verificationId,
+                            AccountVerificationEmailTemplate.Code,
+                            AccountVerificationEmailTemplate.Version,
+                            AccountVerificationEmailTemplate.Language,
+                            correlationGuid),
                         token);
                 }
 

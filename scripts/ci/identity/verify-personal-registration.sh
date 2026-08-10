@@ -79,6 +79,34 @@ cleanup() {
 
   "${psql_base[@]}" --command="
 BEGIN;
+DELETE FROM ops.job_attempt
+WHERE job_id IN (
+  SELECT job_id
+  FROM ops.background_job
+  WHERE payload->>'aggregateId' IN (
+    SELECT account_id::text
+    FROM security.account
+    WHERE encode(email_lookup_hash, 'hex') IN ('$email_hash', '$stale_hash', '$missing_hash', '$rejected_hash')
+  )
+);
+DELETE FROM ops.background_job
+WHERE payload->>'aggregateId' IN (
+  SELECT account_id::text
+  FROM security.account
+  WHERE encode(email_lookup_hash, 'hex') IN ('$email_hash', '$stale_hash', '$missing_hash', '$rejected_hash')
+);
+DELETE FROM ops.outbox_message
+WHERE aggregate_id IN (
+  SELECT account_id
+  FROM security.account
+  WHERE encode(email_lookup_hash, 'hex') IN ('$email_hash', '$stale_hash', '$missing_hash', '$rejected_hash')
+);
+DELETE FROM security.account_verification
+WHERE account_id IN (
+  SELECT account_id
+  FROM security.account
+  WHERE encode(email_lookup_hash, 'hex') IN ('$email_hash', '$stale_hash', '$missing_hash', '$rejected_hash')
+);
 ALTER TABLE identity.consent_record DISABLE TRIGGER tr_identity_consent_record_append_only;
 DELETE FROM identity.consent_record
 WHERE account_id IN (
@@ -114,6 +142,8 @@ trap cleanup EXIT
 before_accounts="$("${psql_base[@]}" --command="SELECT count(*) FROM security.account;")"
 before_profiles="$("${psql_base[@]}" --command="SELECT count(*) FROM identity.user_profile;")"
 before_consents="$("${psql_base[@]}" --command="SELECT count(*) FROM identity.consent_record;")"
+before_verifications="$("${psql_base[@]}" --command="SELECT count(*) FROM security.account_verification;")"
+before_outbox="$("${psql_base[@]}" --command="SELECT count(*) FROM ops.outbox_message WHERE event_name = 'email.delivery.requested';")"
 
 if [[ "${BL024_USE_RUNNING_API:-false}" != "true" ]]; then
   Secrets__Directory="$ROOT/secrets/local" \
@@ -279,10 +309,14 @@ grep -F -q '"idempotencyKey"' "$work_dir/missing-key.json"
 after_accounts="$("${psql_base[@]}" --command="SELECT count(*) FROM security.account;")"
 after_profiles="$("${psql_base[@]}" --command="SELECT count(*) FROM identity.user_profile;")"
 after_consents="$("${psql_base[@]}" --command="SELECT count(*) FROM identity.consent_record;")"
+after_verifications="$("${psql_base[@]}" --command="SELECT count(*) FROM security.account_verification;")"
+after_outbox="$("${psql_base[@]}" --command="SELECT count(*) FROM ops.outbox_message WHERE event_name = 'email.delivery.requested';")"
 
 [[ "$after_accounts" -eq $((before_accounts + 1)) ]]
 [[ "$after_profiles" -eq $((before_profiles + 1)) ]]
 [[ "$after_consents" -eq $((before_consents + 2)) ]]
+[[ "$after_verifications" -eq $((before_verifications + 1)) ]]
+[[ "$after_outbox" -eq $((before_outbox + 1)) ]]
 
 account_check="$("${psql_base[@]}" --command="SELECT status_code = 'PENDING' AND verified_at IS NULL AND octet_length(email_lookup_hash) = 32 AND octet_length(email_cipher) > 29 FROM security.account WHERE account_id = '$account_id';")"
 [[ "$account_check" == "t" ]]
@@ -304,6 +338,28 @@ WHERE account_id = '$account_id'
   AND purpose_code IN ('TERMS_OF_USE', 'PRIVACY_POLICY');
 ")"
 [[ "$consent_check" == "t" ]]
+
+verification_check="$("${psql_base[@]}" --command="
+SELECT count(*) = 1
+   AND bool_and(octet_length(token_hash) = 32)
+   AND bool_and(consumed_at IS NULL)
+   AND bool_and(expires_at > CURRENT_TIMESTAMP)
+   AND bool_and(expires_at <= created_at + interval '30 minutes 5 seconds')
+FROM security.account_verification
+WHERE account_id = '$account_id';
+")"
+[[ "$verification_check" == "t" ]]
+
+opaque_email_payload_check="$("${psql_base[@]}" --command="
+SELECT count(*) = 1
+   AND bool_and(payload->>'templateCode' = 'PERSONAL_ACCOUNT_VERIFICATION')
+   AND bool_and(payload->>'templateVersion' = '1')
+   AND bool_and(position('@' IN payload::text) = 0)
+FROM ops.outbox_message
+WHERE aggregate_id = '$account_id'
+  AND event_name = 'email.delivery.requested';
+")"
+[[ "$opaque_email_payload_check" == "t" ]]
 
 if "${psql_base[@]}" --command="UPDATE identity.consent_record SET decision = FALSE WHERE account_id = '$account_id';" >/dev/null 2>&1; then
   echo "ERROR: identity.consent_record permitio mutar una aceptación confirmada." >&2
@@ -328,6 +384,9 @@ account_delta=1
 profile_delta=1
 consent_delta=2
 consent_storage=append-only
+verification_delta=1
+verification_token_storage=sha256-only
+verification_email_payload=opaque-references-only
 EOF
 
 echo "OK: BL-MVP-024 consentimientos vigentes, versionados, atomicos e inmutables verificados."

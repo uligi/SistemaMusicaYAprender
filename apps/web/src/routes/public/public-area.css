@@ -2,6 +2,10 @@
   gap: var(--ma-space-5);
 }
 
+.verification {
+  gap: var(--ma-space-5);
+}
+
 .registration__intro,
 .registration__form {
   display: grid;
@@ -67,8 +71,41 @@
   font-size: var(--ma-font-size-secondary);
 }
 
+.verification__intro,
+.verification__panel,
+.verification__form {
+  display: grid;
+  gap: var(--ma-space-3);
+}
+
+.verification__panel {
+  max-width: 36rem;
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.verification__form {
+  max-width: 32rem;
+}
+
+.verification__form .ma-button {
+  justify-self: start;
+}
+
+.verification__help {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
 @media (max-width: 29.9375rem) {
-  .registration__form .ma-button {
+  .registration__form .ma-button,
+  .verification__form .ma-button {
     width: 100%;
+  }
+
+  .verification__panel {
+    padding: var(--ma-space-3);
   }
 }
