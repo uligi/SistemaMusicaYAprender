@@ -14,13 +14,21 @@
     "dev": "npm run dev --workspace @musica-aprender/web",
     "build": "npm run build --workspace @musica-aprender/web",
     "typecheck": "npm run typecheck --workspace @musica-aprender/web",
+    "typecheck:e2e": "tsc -p tests/E2ETests/tsconfig.json --noEmit --pretty false",
+    "test:e2e": "playwright test --config tests/E2ETests/playwright.config.ts",
+    "test:e2e:install": "playwright install chromium",
     "format": "prettier . --write --ignore-unknown",
     "format:check": "prettier . --check --ignore-unknown",
     "restore:locked": "npm ci",
     "versions": "node --version && npm --version"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.11.3",
+    "@playwright/test": "1.62.0",
+    "playwright-core": "1.62.0",
+    "@types/node": "24.13.3",
     "prettier": "3.9.6",
-    "prettier-plugin-sql": "0.20.0"
+    "prettier-plugin-sql": "0.20.0",
+    "typescript": "7.0.2"
   }
 }

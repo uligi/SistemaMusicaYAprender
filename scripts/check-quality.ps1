@@ -11,6 +11,14 @@ function Assert-LastExitCode([string]$Step) {
 & "$PSScriptRoot/security/check-no-secrets.ps1"
 & "$PSScriptRoot/restore-and-build.ps1"
 
+node scripts/frontend/verify-e2e-harness.mjs
+Assert-LastExitCode "Verificador BL-MVP-022"
+
+npm.cmd run typecheck:e2e
+Assert-LastExitCode "TypeScript E2E"
+
+npm.cmd run test:e2e
+Assert-LastExitCode "Playwright E2E"
 dotnet test tests/UnitTests/MusicaAprender.UnitTests.csproj --no-build --no-restore
 Assert-LastExitCode "Pruebas unitarias"
 
