@@ -11,6 +11,8 @@ public static class ExternalConfigurationExtensions
     private const string ObjectStoreAccessKeySecret = "object_store_access_key";
     private const string ObjectStoreSecretKeySecret = "object_store_secret_key";
     private const string ObjectStoreEncryptionKeySecret = "object_store_encryption_key";
+    private const string IdentityEmailLookupKeySecret = "identity_email_lookup_key";
+    private const string IdentityEmailEncryptionKeySecret = "identity_email_encryption_key";
 
     public static ConfigurationManager AddMusicaAprenderExternalConfiguration(
         this ConfigurationManager configuration)
@@ -54,6 +56,22 @@ public static class ExternalConfigurationExtensions
             ObjectStoreEncryptionKeySecret,
             minimumLength: 64);
 
+        var identityEmailLookupKey = TryReadSecret(
+            secretDirectory,
+            IdentityEmailLookupKeySecret,
+            minimumLength: 64);
+
+        var identityEmailEncryptionKey = TryReadSecret(
+            secretDirectory,
+            IdentityEmailEncryptionKeySecret,
+            minimumLength: 64);
+
+        if ((identityEmailLookupKey is null) != (identityEmailEncryptionKey is null))
+        {
+            throw new InvalidOperationException(
+                "Las dos claves de proteccion de correo deben estar disponibles juntas.");
+        }
+
         var databaseHost = RequireNonSecret(configuration, "Database:Host");
         var databaseName = RequireNonSecret(configuration, "Database:Name");
         var databaseUsername = RequireNonSecret(configuration, "Database:Username");
@@ -70,16 +88,37 @@ public static class ExternalConfigurationExtensions
             Pooling = true
         }.ConnectionString;
 
-        configuration.AddInMemoryCollection(
-            new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:PostgreSQL"] = connectionString,
-                ["ObjectStore:AccessKey"] = objectStoreAccessKey,
-                ["ObjectStore:SecretKey"] = objectStoreSecretKey,
-                ["ObjectStore:EncryptionKey"] = objectStoreEncryptionKey
-            });
+        var protectedConfiguration = new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:PostgreSQL"] = connectionString,
+            ["ObjectStore:AccessKey"] = objectStoreAccessKey,
+            ["ObjectStore:SecretKey"] = objectStoreSecretKey,
+            ["ObjectStore:EncryptionKey"] = objectStoreEncryptionKey
+        };
+
+        if (identityEmailLookupKey is not null
+            && identityEmailEncryptionKey is not null)
+        {
+            protectedConfiguration["IdentityProtection:EmailLookupKey"] =
+                identityEmailLookupKey;
+            protectedConfiguration["IdentityProtection:EmailEncryptionKey"] =
+                identityEmailEncryptionKey;
+        }
+
+        configuration.AddInMemoryCollection(protectedConfiguration);
 
         return configuration;
+    }
+
+    private static string? TryReadSecret(
+        string secretDirectory,
+        string secretName,
+        int minimumLength)
+    {
+        var path = Path.Combine(secretDirectory, secretName);
+        return File.Exists(path)
+            ? ReadSecret(secretDirectory, secretName, minimumLength)
+            : null;
     }
 
     private static string ReadSecret(

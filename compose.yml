@@ -50,6 +50,8 @@ services:
       - object_store_access_key
       - object_store_secret_key
       - object_store_encryption_key
+      - identity_email_lookup_key
+      - identity_email_encryption_key
     ports:
       - '${API_PORT:-5080}:8080'
     depends_on:
@@ -209,3 +211,7 @@ secrets:
     file: ./secrets/local/object_store_secret_key
   object_store_encryption_key:
     file: ./secrets/local/object_store_encryption_key
+  identity_email_lookup_key:
+    file: ./secrets/local/identity_email_lookup_key
+  identity_email_encryption_key:
+    file: ./secrets/local/identity_email_encryption_key

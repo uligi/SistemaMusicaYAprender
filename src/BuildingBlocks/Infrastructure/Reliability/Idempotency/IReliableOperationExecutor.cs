@@ -11,4 +11,11 @@ public interface IReliableOperationExecutor
         Func<NpgsqlConnection, NpgsqlTransaction, CancellationToken, Task<ReliableOperationResult>>
             operation,
         CancellationToken cancellationToken = default);
+
+    Task<ReliableOperationOutcome> ExecuteAnonymousAsync(
+        DatabaseSessionContext provisionalContext,
+        ReliableOperationRequest request,
+        Func<NpgsqlConnection, NpgsqlTransaction, CancellationToken, Task<ReliableOperationResult>>
+            operation,
+        CancellationToken cancellationToken = default);
 }

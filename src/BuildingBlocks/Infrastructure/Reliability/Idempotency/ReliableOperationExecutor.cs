@@ -18,6 +18,37 @@ public sealed class ReliableOperationExecutor(
             operation,
         CancellationToken cancellationToken = default)
     {
+        return await ExecuteCoreAsync(
+            context,
+            context.AccountId,
+            request,
+            operation,
+            cancellationToken);
+    }
+
+    public async Task<ReliableOperationOutcome> ExecuteAnonymousAsync(
+        DatabaseSessionContext provisionalContext,
+        ReliableOperationRequest request,
+        Func<NpgsqlConnection, NpgsqlTransaction, CancellationToken, Task<ReliableOperationResult>>
+            operation,
+        CancellationToken cancellationToken = default)
+    {
+        return await ExecuteCoreAsync(
+            provisionalContext,
+            idempotencyAccountId: null,
+            request,
+            operation,
+            cancellationToken);
+    }
+
+    private async Task<ReliableOperationOutcome> ExecuteCoreAsync(
+        DatabaseSessionContext context,
+        Guid? idempotencyAccountId,
+        ReliableOperationRequest request,
+        Func<NpgsqlConnection, NpgsqlTransaction, CancellationToken, Task<ReliableOperationResult>>
+            operation,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(operation);
@@ -29,7 +60,7 @@ public sealed class ReliableOperationExecutor(
                 var reservation = await ReserveAsync(
                     connection,
                     transaction,
-                    context.AccountId,
+                    idempotencyAccountId,
                     request,
                     token);
 
@@ -70,7 +101,7 @@ public sealed class ReliableOperationExecutor(
     private static async Task<Reservation> ReserveAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
-        Guid accountId,
+        Guid? accountId,
         ReliableOperationRequest request,
         CancellationToken cancellationToken)
     {
@@ -103,7 +134,10 @@ public sealed class ReliableOperationExecutor(
         await using (var insertCommand =
                      new NpgsqlCommand(insertSql, connection, transaction))
         {
-            insertCommand.Parameters.AddWithValue("account_id", accountId);
+            insertCommand.Parameters.AddWithValue(
+                "account_id",
+                NpgsqlDbType.Uuid,
+                accountId is null ? DBNull.Value : accountId.Value);
             insertCommand.Parameters.AddWithValue(
                 "operation_code",
                 request.OperationCode);
@@ -136,7 +170,7 @@ public sealed class ReliableOperationExecutor(
                 expires_at <= CURRENT_TIMESTAMP AS expired
             FROM ops.idempotency_record
             WHERE
-                account_id = @account_id
+                account_id IS NOT DISTINCT FROM @account_id
                 AND operation_code = @operation_code
                 AND idempotency_key = @idempotency_key
             FOR UPDATE;
@@ -145,7 +179,10 @@ public sealed class ReliableOperationExecutor(
         await using var existingCommand =
             new NpgsqlCommand(existingSql, connection, transaction);
 
-        existingCommand.Parameters.AddWithValue("account_id", accountId);
+        existingCommand.Parameters.AddWithValue(
+            "account_id",
+            NpgsqlDbType.Uuid,
+            accountId is null ? DBNull.Value : accountId.Value);
         existingCommand.Parameters.AddWithValue(
             "operation_code",
             request.OperationCode);

@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react';
+import { forwardRef, type InputHTMLAttributes } from 'react';
 
 export type FieldProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -10,15 +10,10 @@ export type FieldProps = Omit<
   error?: string;
 };
 
-export function Field({
-  className,
-  error,
-  helpText,
-  id,
-  label,
-  required,
-  ...inputProps
-}: FieldProps) {
+export const Field = forwardRef<HTMLInputElement, FieldProps>(function Field(
+  { className, error, helpText, id, label, required, ...inputProps },
+  ref,
+) {
   const helpId = `${id}-help`;
   const errorId = `${id}-error`;
   const describedBy =
@@ -43,6 +38,7 @@ export function Field({
         aria-invalid={error ? true : undefined}
         className={classes}
         id={id}
+        ref={ref}
         required={required}
       />
       {error ? (
@@ -52,4 +48,4 @@ export function Field({
       ) : null}
     </div>
   );
-}
+});

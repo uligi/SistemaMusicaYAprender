@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using MusicaAprender.Api.Endpoints.Identity;
 using MusicaAprender.Api.Health;
 using MusicaAprender.Api.Observability;
 using MusicaAprender.Api.Security;
@@ -9,6 +10,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Email.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
+using MusicaAprender.Modules.Security.Infrastructure.Registration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,9 @@ builder.Services.AddSingleton<IRlsTransactionExecutor, RlsTransactionExecutor>()
 builder.Services.AddMusicaAprenderReliableOperations();
 builder.Services.AddMusicaAprenderEmailQueue();
 builder.Services.AddMusicaAprenderPrivateObjectStore(builder.Configuration);
+builder.Services.AddSingleton(
+    PersonalEmailProtector.FromConfiguration(builder.Configuration));
+builder.Services.AddSingleton<PersonalAccountRegistrationService>();
 
 builder.Services.AddMusicaAprenderOpenTelemetry(
     builder.Configuration,
@@ -88,6 +93,8 @@ app.MapHealthChecks(
 app.MapHealthChecks(
     "/health/dependencies",
     HealthEndpointOptions.Create(HealthConstants.DependencyTag));
+
+app.MapPersonalAccountRegistration();
 
 app.Run();
 

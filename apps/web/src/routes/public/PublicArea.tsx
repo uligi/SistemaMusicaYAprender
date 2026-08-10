@@ -1,11 +1,17 @@
 import type { RouteMatch } from '../../app/router/match-route';
 import { RoutePlaceholder } from '../shared/RoutePlaceholder';
+import { PersonalAccountRegistrationPage } from './PersonalAccountRegistrationPage';
+import './public-area.css';
 
 export type PublicAreaProps = {
   match: RouteMatch;
 };
 
 export default function PublicArea({ match }: PublicAreaProps) {
+  if (match.route.id === 'UI-MVP-005') {
+    return <PersonalAccountRegistrationPage />;
+  }
+
   return (
     <RoutePlaceholder
       areaLabel="Área pública"

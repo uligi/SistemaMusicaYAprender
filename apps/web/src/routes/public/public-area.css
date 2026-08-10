@@ -1,0 +1,30 @@
+.registration {
+  gap: var(--ma-space-5);
+}
+
+.registration__intro,
+.registration__form {
+  display: grid;
+  gap: var(--ma-space-3);
+}
+
+.registration__form {
+  max-width: 32rem;
+}
+
+.registration__form .ma-button {
+  justify-self: start;
+}
+
+.registration__privacy {
+  padding-block-start: var(--ma-space-3);
+  border-block-start: var(--ma-border-width-thin) solid var(--ma-color-border);
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+@media (max-width: 29.9375rem) {
+  .registration__form .ma-button {
+    width: 100%;
+  }
+}

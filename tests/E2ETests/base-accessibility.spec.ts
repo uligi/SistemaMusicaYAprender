@@ -132,3 +132,89 @@ test.describe('BL-MVP-022 · navegación base, teclado, axe y evidencia visual',
     await captureState(page, testInfo, 'route-not-found-320');
   });
 });
+
+test.describe('BL-MVP-023 · registro personal no enumerativo', () => {
+  test('completa el formulario con teclado y conserva una respuesta genérica', async ({
+    page,
+  }, testInfo) => {
+    const requests: Array<{ email: string; idempotencyKey: string }> = [];
+
+    await page.route('**/api/v1/auth/register', async (route) => {
+      const request = route.request();
+      const payload = request.postDataJSON() as { email: string };
+      requests.push({
+        email: payload.email,
+        idempotencyKey: request.headers()['idempotency-key'] ?? '',
+      });
+
+      await route.fulfill({
+        status: 202,
+        contentType: 'application/json',
+        headers: { 'x-correlation-id': 'e2e-registration-correlation' },
+        body: JSON.stringify({
+          status: 'RECEIVED',
+          message:
+            'La solicitud fue recibida. El resultado no confirma si el correo ya estaba registrado.',
+        }),
+      });
+    });
+
+    await page.goto('/registro');
+
+    await expect(page.locator('[data-route-id="UI-MVP-005"]')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Crea tu cuenta personal' }),
+    ).toBeFocused();
+    await expect(page.getByLabel('Correo electrónico')).toHaveAttribute('autocomplete', 'email');
+    await expect(page.getByLabel(/contraseña/i)).toHaveCount(0);
+    await assertNoHorizontalPageOverflow(page);
+    await auditAccessibility(page, testInfo, 'registration-empty-320');
+
+    await page.keyboard.press('Tab');
+    const email = page.getByLabel('Correo electrónico');
+    await assertFocusVisible(email);
+    await email.fill('persona@example.com');
+    await page.keyboard.press('Tab');
+    await assertFocusVisible(page.getByRole('button', { name: 'Continuar registro' }));
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('[data-state="UI-EST-12"]')).toBeVisible();
+    await expect(
+      page.getByText('El resultado no confirma si el correo ya estaba registrado.'),
+    ).toBeVisible();
+    await expect(email).toHaveValue('');
+    await auditAccessibility(page, testInfo, 'registration-accepted-320');
+    await captureState(page, testInfo, 'registration-accepted-320');
+
+    await email.fill('persona@example.com');
+    await page.getByRole('button', { name: 'Continuar registro' }).click();
+    await expect(page.locator('[data-state="UI-EST-12"]')).toBeVisible();
+
+    expect(requests).toHaveLength(2);
+    expect(requests[0]?.email).toBe(requests[1]?.email);
+    expect(requests[0]?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
+    expect(requests[1]?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
+    expect(requests[0]?.idempotencyKey).not.toBe(requests[1]?.idempotencyKey);
+  });
+
+  test('asocia el error local con el campo y no envía datos inválidos', async ({
+    page,
+  }, testInfo) => {
+    let requestCount = 0;
+    await page.route('**/api/v1/auth/register', async (route) => {
+      requestCount += 1;
+      await route.abort();
+    });
+
+    await page.goto('/registro');
+    const email = page.getByLabel('Correo electrónico');
+    await email.fill('correo-invalido');
+    await page.getByRole('button', { name: 'Continuar registro' }).click();
+
+    await expect(email).toBeFocused();
+    await expect(email).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByText('Escribe una dirección de correo válida')).toBeVisible();
+    expect(requestCount).toBe(0);
+    await auditAccessibility(page, testInfo, 'registration-invalid-320');
+  });
+});
