@@ -30,6 +30,36 @@
   justify-self: start;
 }
 
+.login__logout {
+  display: flex;
+  max-width: 40rem;
+  gap: var(--ma-space-4);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.login__logout > div {
+  display: grid;
+  gap: var(--ma-space-2);
+}
+
+.login__logout h2 {
+  margin: 0;
+}
+
+.login__logout p {
+  margin: 0;
+  color: var(--ma-color-muted);
+}
+
+.login__logout .ma-button {
+  flex: 0 0 auto;
+}
+
 .login__privacy {
   max-width: 40rem;
   padding-block-start: var(--ma-space-3);
@@ -128,8 +158,14 @@
 @media (max-width: 29.9375rem) {
   .registration__form .ma-button,
   .verification__form .ma-button,
-  .login__form .ma-button {
+  .login__form .ma-button,
+  .login__logout .ma-button {
     width: 100%;
+  }
+
+  .login__logout {
+    display: grid;
+    padding: var(--ma-space-3);
   }
 
   .verification__panel {

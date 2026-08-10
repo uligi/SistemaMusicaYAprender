@@ -162,6 +162,7 @@ app.MapHealthChecks(
 app.MapPersonalAccountRegistration();
 app.MapPersonalAccountVerification();
 app.MapPersonalAccountLogin();
+app.MapPersonalAccountLogout();
 
 app.Run();
 

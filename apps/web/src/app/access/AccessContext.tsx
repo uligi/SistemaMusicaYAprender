@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { createHttpClient } from '../../data/http';
 
 export type VisibleAccessSnapshot = {
@@ -7,13 +15,25 @@ export type VisibleAccessSnapshot = {
   source: 'anonymous-bootstrap' | 'server-session';
 };
 
+export type VisibleAccessActions = {
+  refreshSession: () => Promise<boolean>;
+  clearSession: () => void;
+};
+
 const anonymousAccess: VisibleAccessSnapshot = Object.freeze({
   isAuthenticated: false,
   capabilities: Object.freeze([]),
   source: 'anonymous-bootstrap',
 });
 
+const signedOutAccess: VisibleAccessSnapshot = Object.freeze({
+  isAuthenticated: false,
+  capabilities: Object.freeze([]),
+  source: 'server-session',
+});
+
 const AccessContext = createContext<VisibleAccessSnapshot>(anonymousAccess);
+const AccessActionsContext = createContext<VisibleAccessActions | null>(null);
 
 const httpClient = createHttpClient();
 
@@ -30,19 +50,44 @@ export type AccessProviderProps = {
 export function AccessProvider({ children, value = anonymousAccess }: AccessProviderProps) {
   const [sessionAccess, setSessionAccess] = useState<VisibleAccessSnapshot>(value);
 
+  const refreshSession = useCallback(async () => {
+    const result = await httpClient.get<SessionResponse>('/auth/session', {
+      cacheMode: 'no-store',
+      retry: 'never',
+    });
+
+    const authenticated = result.ok && result.data.status === 'AUTHENTICATED';
+    setSessionAccess({
+      isAuthenticated: authenticated,
+      capabilities: [],
+      source: 'server-session',
+    });
+
+    return authenticated;
+  }, []);
+
+  const clearSession = useCallback(() => {
+    httpClient.clearReadCache();
+    setSessionAccess(signedOutAccess);
+  }, []);
+
+  const actions = useMemo<VisibleAccessActions>(
+    () => ({ refreshSession, clearSession }),
+    [clearSession, refreshSession],
+  );
+
   useEffect(() => {
     if (value !== anonymousAccess) return;
 
-    const controller = new AbortController();
+    let active = true;
 
     const loadSession = async () => {
       const result = await httpClient.get<SessionResponse>('/auth/session', {
         cacheMode: 'no-store',
         retry: 'never',
-        signal: controller.signal,
       });
 
-      if (result.kind === 'cancelled') return;
+      if (!active || result.kind === 'cancelled') return;
 
       setSessionAccess({
         isAuthenticated: result.ok && result.data.status === 'AUTHENTICATED',
@@ -52,12 +97,27 @@ export function AccessProvider({ children, value = anonymousAccess }: AccessProv
     };
 
     void loadSession();
-    return () => controller.abort();
+    return () => {
+      active = false;
+    };
   }, [value]);
 
-  return <AccessContext.Provider value={sessionAccess}>{children}</AccessContext.Provider>;
+  return (
+    <AccessActionsContext.Provider value={actions}>
+      <AccessContext.Provider value={sessionAccess}>{children}</AccessContext.Provider>
+    </AccessActionsContext.Provider>
+  );
 }
 
 export function useVisibleAccess() {
   return useContext(AccessContext);
+}
+
+export function useVisibleAccessActions() {
+  const actions = useContext(AccessActionsContext);
+  if (!actions) {
+    throw new Error('useVisibleAccessActions requiere AccessProvider.');
+  }
+
+  return actions;
 }
