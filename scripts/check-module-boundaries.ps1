@@ -4,14 +4,19 @@ $projects = Get-ChildItem (Join-Path $repoRoot "src/Modules") -Filter *.csproj -
 $violations = @()
 
 foreach ($project in $projects) {
-    [xml]$xml = Get-Content $project.FullName
-    $references = $xml.Project.ItemGroup.ProjectReference
+    [xml]$xml = Get-Content $project.FullName -Raw
+    $references = @($xml.SelectNodes("//*[local-name()='ProjectReference']"))
 
     foreach ($reference in $references) {
-        $normalized = $reference.Include.Replace("\", "/")
+        $include = $reference.GetAttribute("Include")
+        if ([string]::IsNullOrWhiteSpace($include)) {
+            continue
+        }
+
+        $normalized = $include.Replace("\", "/")
         if ($normalized -match "/Modules/") {
             $relative = [System.IO.Path]::GetRelativePath($repoRoot, $project.FullName)
-            $violations += "$relative -> $($reference.Include)"
+            $violations += "$relative -> $include"
         }
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.Idempotency;
 using MusicaAprender.Modules.Identity.Application.Consent;
+using MusicaAprender.Modules.Security.Infrastructure.Credentials;
 using Npgsql;
 
 namespace MusicaAprender.Api.Endpoints.Identity;
@@ -69,6 +70,7 @@ public static partial class PersonalAccountRegistrationEndpoint
         {
             var response = await registrationService.RegisterAsync(
                 request.Email,
+                request.Password,
                 request.Consents,
                 idempotencyKey,
                 httpContext.TraceIdentifier,
@@ -79,6 +81,9 @@ public static partial class PersonalAccountRegistrationEndpoint
                 PersonalAccountRegistrationResultKind.InvalidEmail => ValidationProblem(
                     "email",
                     "Escribe una dirección de correo válida de hasta 254 caracteres."),
+                PersonalAccountRegistrationResultKind.InvalidPassword => ValidationProblem(
+                    "password",
+                    PasswordMessage(response.PasswordError)),
                 PersonalAccountRegistrationResultKind.InvalidConsents => ValidationProblem(
                     "consents",
                     "Acepta las versiones vigentes de los términos de uso y la política de privacidad."),
@@ -120,6 +125,11 @@ public static partial class PersonalAccountRegistrationEndpoint
                 });
         }
     }
+
+    private static string PasswordMessage(PasswordValidationError error) =>
+        error == PasswordValidationError.Blocked
+            ? "Elige otra contraseña; la enviada aparece en la lista local de valores comunes o comprometidos."
+            : "Usa una contraseña de 15 a 128 caracteres. Se permiten espacios y Unicode.";
 
     private static IResult ValidationProblem(string field, string message)
     {

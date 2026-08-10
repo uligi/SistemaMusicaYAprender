@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using MusicaAprender.BuildingBlocks.Contracts.Email;
 using MusicaAprender.BuildingBlocks.Infrastructure.Database;
@@ -5,6 +6,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Email.Queue;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.Idempotency;
 using MusicaAprender.Modules.Identity.Application.Consent;
 using MusicaAprender.Modules.Identity.Infrastructure.Registration;
+using MusicaAprender.Modules.Security.Infrastructure.Credentials;
 using MusicaAprender.Modules.Security.Infrastructure.Registration;
 using MusicaAprender.Modules.Security.Infrastructure.Verification;
 
@@ -14,6 +16,8 @@ public sealed class PersonalAccountRegistrationService(
     IReliableOperationExecutor reliableOperationExecutor,
     ITransactionalEmailEnqueuer emailEnqueuer,
     PersonalEmailProtector emailProtector,
+    PasswordRequestFingerprintService passwordFingerprintService,
+    Argon2idPasswordHasher passwordHasher,
     AccountVerificationTokenService tokenService)
 {
     private const string OperationCode = "IDENTITY.PERSONAL_ACCOUNT.REGISTER";
@@ -27,6 +31,7 @@ public sealed class PersonalAccountRegistrationService(
 
     public async Task<PersonalAccountRegistrationResult> RegisterAsync(
         string? email,
+        string? password,
         IReadOnlyList<PersonalAccountRegistrationConsentRequest>? consents,
         string idempotencyKey,
         string correlationId,
@@ -36,6 +41,13 @@ public sealed class PersonalAccountRegistrationService(
             || protectedEmail is null)
         {
             return PersonalAccountRegistrationResult.InvalidEmail();
+        }
+
+        var passwordValidation = PasswordPolicy.Validate(password);
+        if (!passwordValidation.IsValid
+            || passwordValidation.NormalizedPassword is null)
+        {
+            return PersonalAccountRegistrationResult.InvalidPassword(passwordValidation.Error);
         }
 
         var validation = RequiredRegistrationConsentPolicy.Validate(
@@ -56,11 +68,11 @@ public sealed class PersonalAccountRegistrationService(
             proposedAccountId,
             AnonymousRole,
             correlationId);
-        var reliableRequest = ReliableOperationRequest.Create(
-            OperationCode,
-            idempotencyKey,
-            CreateCanonicalRequest(protectedEmail, validation.AcceptedConsents),
-            IdempotencyRetention);
+        var reliableRequest = CreateReliableRequest(
+            protectedEmail,
+            passwordValidation.NormalizedPassword,
+            validation.AcceptedConsents,
+            idempotencyKey);
         var responseJson = JsonSerializer.Serialize(AcceptedResponse, ResponseJsonOptions);
         var correlationGuid = IdentityOperationCorrelation.ToGuid(correlationId);
 
@@ -69,11 +81,14 @@ public sealed class PersonalAccountRegistrationService(
             reliableRequest,
             async (connection, transaction, token) =>
             {
+                var credential = passwordHasher.CreateCredential(
+                    passwordValidation.NormalizedPassword);
                 var created = await SecurityAccountRegistrationWriter.TryCreatePendingAsync(
                     connection,
                     transaction,
                     proposedAccountId,
                     protectedEmail,
+                    credential,
                     token);
 
                 if (created)
@@ -133,12 +148,47 @@ public sealed class PersonalAccountRegistrationService(
         return PersonalAccountRegistrationResult.Accepted(response);
     }
 
+    private ReliableOperationRequest CreateReliableRequest(
+        ProtectedEmail protectedEmail,
+        string normalizedPassword,
+        IReadOnlyList<AcceptedRegistrationConsent> consents,
+        string idempotencyKey)
+    {
+        var passwordFingerprint = passwordFingerprintService.CreateFingerprint(
+            normalizedPassword);
+        byte[]? canonicalRequest = null;
+
+        try
+        {
+            canonicalRequest = CreateCanonicalRequest(
+                protectedEmail,
+                passwordFingerprint,
+                consents);
+
+            return ReliableOperationRequest.Create(
+                OperationCode,
+                idempotencyKey,
+                canonicalRequest,
+                IdempotencyRetention);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(passwordFingerprint);
+            if (canonicalRequest is not null)
+            {
+                CryptographicOperations.ZeroMemory(canonicalRequest);
+            }
+        }
+    }
+
     private static byte[] CreateCanonicalRequest(
         ProtectedEmail protectedEmail,
+        byte[] passwordFingerprint,
         IReadOnlyList<AcceptedRegistrationConsent> consents) =>
         JsonSerializer.SerializeToUtf8Bytes(
             new CanonicalRegistrationRequest(
                 Convert.ToHexString(protectedEmail.LookupHash.Span),
+                passwordFingerprint,
                 consents.Select(static consent => new CanonicalRegistrationConsent(
                         consent.PurposeCode,
                         consent.NoticeVersion,
@@ -148,6 +198,7 @@ public sealed class PersonalAccountRegistrationService(
 
     private sealed record CanonicalRegistrationRequest(
         string EmailLookupHash,
+        byte[] PasswordFingerprint,
         IReadOnlyList<CanonicalRegistrationConsent> Consents);
 
     private sealed record CanonicalRegistrationConsent(
@@ -160,31 +211,44 @@ public enum PersonalAccountRegistrationResultKind
 {
     Accepted,
     InvalidEmail,
+    InvalidPassword,
     InvalidConsents
 }
 
 public sealed record PersonalAccountRegistrationResult(
     PersonalAccountRegistrationResultKind Kind,
     PersonalAccountRegistrationResponse? Response,
-    RegistrationConsentValidationError ConsentError)
+    RegistrationConsentValidationError ConsentError,
+    PasswordValidationError PasswordError)
 {
     public static PersonalAccountRegistrationResult Accepted(
         PersonalAccountRegistrationResponse response) =>
         new(
             PersonalAccountRegistrationResultKind.Accepted,
             response,
-            RegistrationConsentValidationError.None);
+            RegistrationConsentValidationError.None,
+            PasswordValidationError.None);
 
     public static PersonalAccountRegistrationResult InvalidEmail() =>
         new(
             PersonalAccountRegistrationResultKind.InvalidEmail,
             Response: null,
-            RegistrationConsentValidationError.None);
+            RegistrationConsentValidationError.None,
+            PasswordValidationError.None);
+
+    public static PersonalAccountRegistrationResult InvalidPassword(
+        PasswordValidationError error) =>
+        new(
+            PersonalAccountRegistrationResultKind.InvalidPassword,
+            Response: null,
+            RegistrationConsentValidationError.None,
+            error);
 
     public static PersonalAccountRegistrationResult InvalidConsents(
         RegistrationConsentValidationError error) =>
         new(
             PersonalAccountRegistrationResultKind.InvalidConsents,
             Response: null,
-            error);
+            error,
+            PasswordValidationError.None);
 }

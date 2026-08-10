@@ -12,6 +12,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
 using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
 using MusicaAprender.Modules.Security.Infrastructure.Authorization;
+using MusicaAprender.Modules.Security.Infrastructure.Credentials;
 using MusicaAprender.Modules.Security.Infrastructure.Registration;
 using MusicaAprender.Modules.Security.Infrastructure.Verification;
 
@@ -27,6 +28,10 @@ builder.Services.AddMusicaAprenderEmailQueue();
 builder.Services.AddMusicaAprenderPrivateObjectStore(builder.Configuration);
 builder.Services.AddSingleton(
     PersonalEmailProtector.FromConfiguration(builder.Configuration));
+builder.Services.AddSingleton(
+    PasswordRequestFingerprintService.FromConfiguration(builder.Configuration));
+builder.Services.AddSingleton(
+    Argon2idPasswordHasher.FromConfiguration(builder.Configuration));
 builder.Services.AddSingleton(
     AccountVerificationTokenService.FromConfiguration(builder.Configuration));
 builder.Services.AddSingleton<PersonalAccountRegistrationService>();

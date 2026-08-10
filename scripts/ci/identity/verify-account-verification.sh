@@ -28,6 +28,7 @@ valid_email_canonical="${valid_email^^}"
 expired_email="bl025-expired-$(openssl rand -hex 10)@example.test"
 prerequisite_email="bl025-prerequisite-$(openssl rand -hex 10)@example.test"
 unknown_email="bl025-unknown-$(openssl rand -hex 10)@example.test"
+registration_password="Brisa japonesa segura 2026"
 valid_registration_key="bl025-register-valid-$(openssl rand -hex 12)"
 expired_registration_key="bl025-register-expired-$(openssl rand -hex 12)"
 prerequisite_registration_key="bl025-register-prerequisite-$(openssl rand -hex 12)"
@@ -128,6 +129,8 @@ DELETE FROM identity.consent_record
 WHERE account_id IN (SELECT account_id FROM ($accounts_query) AS test_accounts);
 ALTER TABLE identity.consent_record ENABLE TRIGGER tr_identity_consent_record_append_only;
 DELETE FROM identity.user_profile
+WHERE account_id IN (SELECT account_id FROM ($accounts_query) AS test_accounts);
+DELETE FROM security.credential
 WHERE account_id IN (SELECT account_id FROM ($accounts_query) AS test_accounts);
 DELETE FROM security.account
 WHERE account_id IN (SELECT account_id FROM ($accounts_query) AS test_accounts);
@@ -300,7 +303,7 @@ post_registration() {
   local idempotency_key="$2"
   local output_file="$3"
   local body
-  body="$(printf '{"email":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$email" "$terms_version" "$privacy_version")"
+  body="$(printf '{"email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$email" "$registration_password" "$terms_version" "$privacy_version")"
   curl --silent --show-error \
     --output "$output_file" \
     --write-out '%{http_code}' \
@@ -556,7 +559,7 @@ WHERE aggregate_id IN ('$valid_account_id', '$expired_account_id', '$prerequisit
 smoke_stage="higiene-logs"
 for sensitive_value in \
   "$valid_email" "$expired_email" "$prerequisite_email" "$unknown_email" \
-  "$valid_token" "$expired_token" "$prerequisite_token"; do
+  "$registration_password" "$valid_token" "$expired_token" "$prerequisite_token"; do
   if grep -F -q "$sensitive_value" "$api_log" "$worker_log"; then
     echo "ERROR: una entrada sensible apareció en logs de servicio." >&2
     exit 1

@@ -1,3 +1,4 @@
+using MusicaAprender.Modules.Security.Infrastructure.Credentials;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -10,33 +11,56 @@ public static class SecurityAccountRegistrationWriter
         NpgsqlTransaction transaction,
         Guid accountId,
         ProtectedEmail email,
+        PasswordCredential credential,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(transaction);
         ArgumentNullException.ThrowIfNull(email);
+        ArgumentNullException.ThrowIfNull(credential);
 
         const string sql = """
-            INSERT INTO security.account (
+            WITH created_account AS (
+                INSERT INTO security.account (
+                    account_id,
+                    email_lookup_hash,
+                    email_cipher,
+                    status_code,
+                    verified_at,
+                    created_at,
+                    version
+                )
+                VALUES (
+                    @account_id,
+                    @email_lookup_hash,
+                    @email_cipher,
+                    'PENDING',
+                    NULL,
+                    CURRENT_TIMESTAMP,
+                    1
+                )
+                ON CONFLICT (email_lookup_hash)
+                DO NOTHING
+                RETURNING account_id
+            )
+            INSERT INTO security.credential (
+                credential_id,
                 account_id,
-                email_lookup_hash,
-                email_cipher,
-                status_code,
-                verified_at,
-                created_at,
-                version
+                hash,
+                algorithm,
+                parameters,
+                changed_at,
+                active
             )
-            VALUES (
-                @account_id,
-                @email_lookup_hash,
-                @email_cipher,
-                'PENDING',
-                NULL,
+            SELECT
+                @credential_id,
+                account_id,
+                @credential_hash,
+                @credential_algorithm,
+                @credential_parameters,
                 CURRENT_TIMESTAMP,
-                1
-            )
-            ON CONFLICT (email_lookup_hash)
-            DO NOTHING
+                TRUE
+            FROM created_account
             RETURNING account_id;
             """;
 
@@ -50,6 +74,10 @@ public static class SecurityAccountRegistrationWriter
             "email_cipher",
             NpgsqlDbType.Bytea,
             email.Ciphertext.ToArray());
+        command.Parameters.AddWithValue("credential_id", Guid.CreateVersion7());
+        command.Parameters.AddWithValue("credential_hash", credential.Hash);
+        command.Parameters.AddWithValue("credential_algorithm", credential.Algorithm);
+        command.Parameters.AddWithValue("credential_parameters", credential.Parameters);
 
         var result = await command.ExecuteScalarAsync(cancellationToken);
         return result is Guid createdAccountId && createdAccountId == accountId;

@@ -25,6 +25,7 @@ type RegistrationConsentRequest = {
 
 type RegistrationRequest = {
   email: string;
+  password: string;
   consents: RegistrationConsentRequest[];
 };
 
@@ -80,11 +81,14 @@ function isUsableCatalog(
 export function PersonalAccountRegistrationPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
   const consentInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const pendingOperationRef = useRef<PendingOperation | null>(null);
   const activeRequestRef = useRef<AbortController | null>(null);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string>();
+  const [passwordError, setPasswordError] = useState<string>();
   const [consentError, setConsentError] = useState<string>();
   const [consentCatalog, setConsentCatalog] = useState<ConsentCatalogState>({
     phase: 'loading',
@@ -137,6 +141,15 @@ export function PersonalAccountRegistrationPage() {
       return;
     }
 
+    const normalizedPassword = password.normalize('NFC');
+    const passwordLength = Array.from(normalizedPassword).length;
+    if (passwordLength < 15 || passwordLength > 128) {
+      setPasswordError('Usa una contraseña de 15 a 128 caracteres.');
+      setSubmission({ phase: 'idle' });
+      passwordInputRef.current?.focus();
+      return;
+    }
+
     if (consentCatalog.phase !== 'ready') {
       setSubmission({ phase: 'idle' });
       return;
@@ -173,6 +186,7 @@ export function PersonalAccountRegistrationPage() {
     const controller = new AbortController();
     activeRequestRef.current = controller;
     setEmailError(undefined);
+    setPasswordError(undefined);
     setConsentError(undefined);
     setSubmission({ phase: 'saving' });
 
@@ -180,6 +194,7 @@ export function PersonalAccountRegistrationPage() {
       '/auth/register',
       {
         email: submittedEmail,
+        password: normalizedPassword,
         consents: consentCatalog.notices.map((notice) => ({
           purposeCode: notice.purposeCode,
           noticeVersion: notice.noticeVersion,
@@ -200,6 +215,7 @@ export function PersonalAccountRegistrationPage() {
     if (result.ok) {
       pendingOperationRef.current = null;
       setEmail('');
+      setPassword('');
       setConsentSelections(emptyConsentSelections(consentCatalog.notices));
       setSubmission({ phase: 'accepted', message: result.data.message });
       return;
@@ -208,6 +224,11 @@ export function PersonalAccountRegistrationPage() {
     if (result.problem.fieldErrors.some((fieldError) => fieldError.field === 'email')) {
       setEmailError('Escribe una dirección de correo válida de hasta 254 caracteres.');
       requestAnimationFrame(() => emailInputRef.current?.focus());
+    }
+
+    if (result.problem.fieldErrors.some((fieldError) => fieldError.field === 'password')) {
+      setPasswordError('Usa de 15 a 128 caracteres y evita valores comunes o comprometidos.');
+      requestAnimationFrame(() => passwordInputRef.current?.focus());
     }
 
     if (result.problem.fieldErrors.some((fieldError) => fieldError.field === 'consents')) {
@@ -236,8 +257,8 @@ export function PersonalAccountRegistrationPage() {
           Crea tu cuenta personal
         </h1>
         <p>
-          Comienza con tu correo y acepta las condiciones vigentes. La respuesta será la misma
-          aunque ya exista una solicitud, para proteger la privacidad de cada cuenta.
+          Comienza con tu correo, una contraseña larga y las condiciones vigentes. La respuesta será
+          la misma aunque ya exista una solicitud, para proteger la privacidad de cada cuenta.
         </p>
       </div>
 
@@ -267,6 +288,25 @@ export function PersonalAccountRegistrationPage() {
           type="email"
           value={email}
           {...(emailError ? { error: emailError } : {})}
+        />
+
+        <Field
+          autoComplete="new-password"
+          helpText="Usa al menos 15 caracteres. Se permiten espacios, Unicode, pegado y gestores de contraseñas."
+          id="registration-password"
+          label="Contraseña"
+          minLength={15}
+          name="password"
+          onChange={(event) => {
+            pendingOperationRef.current = null;
+            setPassword(event.currentTarget.value);
+            setPasswordError(undefined);
+          }}
+          ref={passwordInputRef}
+          required
+          type="password"
+          value={password}
+          {...(passwordError ? { error: passwordError } : {})}
         />
 
         {consentCatalog.phase === 'loading' ? (

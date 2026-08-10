@@ -7,6 +7,7 @@ public sealed record PersonalAccountRegistrationConsentRequest(
 
 public sealed record PersonalAccountRegistrationRequest(
     string? Email,
+    string? Password,
     IReadOnlyList<PersonalAccountRegistrationConsentRequest>? Consents);
 
 public sealed record RegistrationConsentNoticeResponse(

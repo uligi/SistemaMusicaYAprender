@@ -53,6 +53,7 @@ services:
       - identity_email_lookup_key
       - identity_email_encryption_key
       - identity_verification_token_key
+      - identity_password_fingerprint_key
     ports:
       - '${API_PORT:-5080}:8080'
     depends_on:
@@ -101,6 +102,7 @@ services:
       - identity_email_lookup_key
       - identity_email_encryption_key
       - identity_verification_token_key
+      - identity_password_fingerprint_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -221,3 +223,5 @@ secrets:
     file: ./secrets/local/identity_email_encryption_key
   identity_verification_token_key:
     file: ./secrets/local/identity_verification_token_key
+  identity_password_fingerprint_key:
+    file: ./secrets/local/identity_password_fingerprint_key

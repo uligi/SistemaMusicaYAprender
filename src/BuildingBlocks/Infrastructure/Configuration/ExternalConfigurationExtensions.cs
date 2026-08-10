@@ -14,6 +14,8 @@ public static class ExternalConfigurationExtensions
     private const string IdentityEmailLookupKeySecret = "identity_email_lookup_key";
     private const string IdentityEmailEncryptionKeySecret = "identity_email_encryption_key";
     private const string IdentityVerificationTokenKeySecret = "identity_verification_token_key";
+    private const string IdentityPasswordFingerprintKeySecret =
+        "identity_password_fingerprint_key";
 
     public static ConfigurationManager AddMusicaAprenderExternalConfiguration(
         this ConfigurationManager configuration)
@@ -70,18 +72,23 @@ public static class ExternalConfigurationExtensions
             secretDirectory,
             IdentityVerificationTokenKeySecret,
             minimumLength: 64);
+        var identityPasswordFingerprintKey = TryReadSecret(
+            secretDirectory,
+            IdentityPasswordFingerprintKeySecret,
+            minimumLength: 64);
 
         var identitySecretCount = new[]
         {
             identityEmailLookupKey,
             identityEmailEncryptionKey,
-            identityVerificationTokenKey
+            identityVerificationTokenKey,
+            identityPasswordFingerprintKey
         }.Count(static value => value is not null);
 
-        if (identitySecretCount is > 0 and < 3)
+        if (identitySecretCount is > 0 and < 4)
         {
             throw new InvalidOperationException(
-                "Las claves de correo y verificacion deben estar disponibles juntas.");
+                "Las claves de identidad, verificacion y huella deben estar disponibles juntas.");
         }
 
         var databaseHost = RequireNonSecret(configuration, "Database:Host");
@@ -110,7 +117,8 @@ public static class ExternalConfigurationExtensions
 
         if (identityEmailLookupKey is not null
             && identityEmailEncryptionKey is not null
-            && identityVerificationTokenKey is not null)
+            && identityVerificationTokenKey is not null
+            && identityPasswordFingerprintKey is not null)
         {
             protectedConfiguration["IdentityProtection:EmailLookupKey"] =
                 identityEmailLookupKey;
@@ -118,6 +126,8 @@ public static class ExternalConfigurationExtensions
                 identityEmailEncryptionKey;
             protectedConfiguration["IdentityProtection:VerificationTokenKey"] =
                 identityVerificationTokenKey;
+            protectedConfiguration["IdentityProtection:PasswordFingerprintKey"] =
+                identityPasswordFingerprintKey;
         }
 
         configuration.AddInMemoryCollection(protectedConfiguration);

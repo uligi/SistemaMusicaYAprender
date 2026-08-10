@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\BuildingBlocks\Domain\MusicaAprender.BuildingBlocks.Domain.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\Application\MusicaAprender.BuildingBlocks.Application.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\Contracts\MusicaAprender.BuildingBlocks.Contracts.csproj" />

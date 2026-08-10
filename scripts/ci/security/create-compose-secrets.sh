@@ -15,5 +15,6 @@ openssl rand -hex 32 > secrets/local/object_store_encryption_key
 openssl rand -hex 32 > secrets/local/identity_email_lookup_key
 openssl rand -hex 32 > secrets/local/identity_email_encryption_key
 openssl rand -hex 32 > secrets/local/identity_verification_token_key
+openssl rand -hex 32 > secrets/local/identity_password_fingerprint_key
 
-echo "OK: secretos efimeros de CI preparados para identidades separadas y Docker Compose."
+echo "OK: secretos efimeros de CI preparados para identidades, credenciales y Docker Compose."

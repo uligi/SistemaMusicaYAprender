@@ -160,12 +160,13 @@ async function mockRegistrationConsentCatalog(page: Page): Promise<void> {
   });
 }
 
-test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados', () => {
+test.describe('BL-MVP-028 · registro con credencial larga y Argon2id', () => {
   test('completa el formulario con teclado y conserva una respuesta genérica', async ({
     page,
   }, testInfo) => {
     const requests: Array<{
       email: string;
+      passwordLength: number;
       consents: Array<{ purposeCode: string; noticeVersion: string; decision: boolean }>;
       idempotencyKey: string;
     }> = [];
@@ -176,10 +177,12 @@ test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados
       const request = route.request();
       const payload = request.postDataJSON() as {
         email: string;
+        password: string;
         consents: Array<{ purposeCode: string; noticeVersion: string; decision: boolean }>;
       };
       requests.push({
         email: payload.email,
+        passwordLength: Array.from(payload.password.normalize('NFC')).length,
         consents: payload.consents,
         idempotencyKey: request.headers()['idempotency-key'] ?? '',
       });
@@ -203,7 +206,9 @@ test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados
       page.getByRole('heading', { level: 1, name: 'Crea tu cuenta personal' }),
     ).toBeFocused();
     await expect(page.getByLabel('Correo electrónico')).toHaveAttribute('autocomplete', 'email');
-    await expect(page.getByLabel(/contraseña/i)).toHaveCount(0);
+    const password = page.getByLabel('Contraseña');
+    await expect(password).toHaveAttribute('autocomplete', 'new-password');
+    await expect(password).toHaveAttribute('type', 'password');
     const terms = page.locator('#registration-consent-terms_of_use');
     const privacy = page.locator('#registration-consent-privacy_policy');
     await expect(terms).toBeVisible();
@@ -217,6 +222,14 @@ test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados
     const email = page.getByLabel('Correo electrónico');
     await assertFocusVisible(email);
     await email.fill('persona@example.com');
+    await page.keyboard.press('Tab');
+    await assertFocusVisible(password);
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], {
+      origin: new URL(page.url()).origin,
+    });
+    await page.evaluate(async () => navigator.clipboard.writeText('Brisa 日本語 segura 2026'));
+    await page.keyboard.press('ControlOrMeta+V');
+    await expect(password).toHaveValue('Brisa 日本語 segura 2026');
     await page.keyboard.press('Tab');
     await assertFocusVisible(terms);
     await page.keyboard.press('Space');
@@ -232,12 +245,14 @@ test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados
       page.getByText('El resultado no confirma si el correo ya estaba registrado.'),
     ).toBeVisible();
     await expect(email).toHaveValue('');
+    await expect(password).toHaveValue('');
     await expect(terms).not.toBeChecked();
     await expect(privacy).not.toBeChecked();
     await auditAccessibility(page, testInfo, 'registration-accepted-320');
     await captureState(page, testInfo, 'registration-accepted-320');
 
     await email.fill('persona@example.com');
+    await password.fill('Brisa 日本語 segura 2026');
     await terms.check();
     await privacy.check();
     await page.getByRole('button', { name: 'Continuar registro' }).click();
@@ -245,6 +260,8 @@ test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados
 
     expect(requests).toHaveLength(2);
     expect(requests[0]?.email).toBe(requests[1]?.email);
+    expect(requests[0]?.passwordLength).toBe(21);
+    expect(requests[1]?.passwordLength).toBe(requests[0]?.passwordLength);
     expect(requests[0]?.consents).toEqual([
       { purposeCode: 'TERMS_OF_USE', noticeVersion: '2026-08-10', decision: true },
       { purposeCode: 'PRIVACY_POLICY', noticeVersion: '2026-08-10', decision: true },
@@ -268,6 +285,7 @@ test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados
     await page.goto('/registro');
     const email = page.getByLabel('Correo electrónico');
     await email.fill('correo-invalido');
+    await page.getByLabel('Contraseña').fill('Brisa 日本語 segura 2026');
     await page.getByRole('button', { name: 'Continuar registro' }).click();
 
     await expect(email).toBeFocused();
@@ -275,6 +293,31 @@ test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados
     await expect(page.getByText('Escribe una dirección de correo válida')).toBeVisible();
     expect(requestCount).toBe(0);
     await auditAccessibility(page, testInfo, 'registration-invalid-320');
+  });
+
+  test('asocia la longitud inválida con contraseña y conserva el correo', async ({
+    page,
+  }, testInfo) => {
+    let requestCount = 0;
+    await mockRegistrationConsentCatalog(page);
+    await page.route('**/api/v1/auth/register', async (route) => {
+      requestCount += 1;
+      await route.abort();
+    });
+
+    await page.goto('/registro');
+    const email = page.getByLabel('Correo electrónico');
+    const password = page.getByLabel('Contraseña');
+    await email.fill('persona@example.com');
+    await password.fill('muy-corta');
+    await page.getByRole('button', { name: 'Continuar registro' }).click();
+
+    await expect(password).toBeFocused();
+    await expect(password).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByText('Usa una contraseña de 15 a 128 caracteres.')).toBeVisible();
+    await expect(email).toHaveValue('persona@example.com');
+    expect(requestCount).toBe(0);
+    await auditAccessibility(page, testInfo, 'registration-password-invalid-320');
   });
 
   test('bloquea localmente una aceptación ausente y conserva los datos', async ({
@@ -291,6 +334,7 @@ test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados
     const email = page.getByLabel('Correo electrónico');
     const terms = page.getByRole('checkbox', { name: /Acepto términos de uso/i });
     await email.fill('persona@example.com');
+    await page.getByLabel('Contraseña').fill('Brisa 日本語 segura 2026');
     await page.getByRole('button', { name: 'Continuar registro' }).click();
 
     await expect(terms).toBeFocused();
