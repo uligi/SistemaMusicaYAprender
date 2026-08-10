@@ -133,17 +133,54 @@ test.describe('BL-MVP-022 · navegación base, teclado, axe y evidencia visual',
   });
 });
 
-test.describe('BL-MVP-023 · registro personal no enumerativo', () => {
+async function mockRegistrationConsentCatalog(page: Page): Promise<void> {
+  await page.route('**/api/v1/auth/registration-consents', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        notices: [
+          {
+            purposeCode: 'TERMS_OF_USE',
+            title: 'Términos de uso',
+            noticeVersion: '2026-08-10',
+            effectiveFromUtc: '2026-08-10T00:00:00+00:00',
+            required: true,
+          },
+          {
+            purposeCode: 'PRIVACY_POLICY',
+            title: 'Política de privacidad',
+            noticeVersion: '2026-08-10',
+            effectiveFromUtc: '2026-08-10T00:00:00+00:00',
+            required: true,
+          },
+        ],
+      }),
+    });
+  });
+}
+
+test.describe('BL-MVP-024 · registro con consentimientos vigentes y versionados', () => {
   test('completa el formulario con teclado y conserva una respuesta genérica', async ({
     page,
   }, testInfo) => {
-    const requests: Array<{ email: string; idempotencyKey: string }> = [];
+    const requests: Array<{
+      email: string;
+      consents: Array<{ purposeCode: string; noticeVersion: string; decision: boolean }>;
+      idempotencyKey: string;
+    }> = [];
+
+    await mockRegistrationConsentCatalog(page);
 
     await page.route('**/api/v1/auth/register', async (route) => {
       const request = route.request();
-      const payload = request.postDataJSON() as { email: string };
+      const payload = request.postDataJSON() as {
+        email: string;
+        consents: Array<{ purposeCode: string; noticeVersion: string; decision: boolean }>;
+      };
       requests.push({
         email: payload.email,
+        consents: payload.consents,
         idempotencyKey: request.headers()['idempotency-key'] ?? '',
       });
 
@@ -167,6 +204,12 @@ test.describe('BL-MVP-023 · registro personal no enumerativo', () => {
     ).toBeFocused();
     await expect(page.getByLabel('Correo electrónico')).toHaveAttribute('autocomplete', 'email');
     await expect(page.getByLabel(/contraseña/i)).toHaveCount(0);
+    const terms = page.locator('#registration-consent-terms_of_use');
+    const privacy = page.locator('#registration-consent-privacy_policy');
+    await expect(terms).toBeVisible();
+    await expect(privacy).toBeVisible();
+    await expect(terms).toHaveAccessibleName(/Acepto términos de uso.*2026-08-10/i);
+    await expect(privacy).toHaveAccessibleName(/Acepto política de privacidad.*2026-08-10/i);
     await assertNoHorizontalPageOverflow(page);
     await auditAccessibility(page, testInfo, 'registration-empty-320');
 
@@ -174,6 +217,12 @@ test.describe('BL-MVP-023 · registro personal no enumerativo', () => {
     const email = page.getByLabel('Correo electrónico');
     await assertFocusVisible(email);
     await email.fill('persona@example.com');
+    await page.keyboard.press('Tab');
+    await assertFocusVisible(terms);
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Tab');
+    await assertFocusVisible(privacy);
+    await page.keyboard.press('Space');
     await page.keyboard.press('Tab');
     await assertFocusVisible(page.getByRole('button', { name: 'Continuar registro' }));
     await page.keyboard.press('Enter');
@@ -183,15 +232,24 @@ test.describe('BL-MVP-023 · registro personal no enumerativo', () => {
       page.getByText('El resultado no confirma si el correo ya estaba registrado.'),
     ).toBeVisible();
     await expect(email).toHaveValue('');
+    await expect(terms).not.toBeChecked();
+    await expect(privacy).not.toBeChecked();
     await auditAccessibility(page, testInfo, 'registration-accepted-320');
     await captureState(page, testInfo, 'registration-accepted-320');
 
     await email.fill('persona@example.com');
+    await terms.check();
+    await privacy.check();
     await page.getByRole('button', { name: 'Continuar registro' }).click();
     await expect(page.locator('[data-state="UI-EST-12"]')).toBeVisible();
 
     expect(requests).toHaveLength(2);
     expect(requests[0]?.email).toBe(requests[1]?.email);
+    expect(requests[0]?.consents).toEqual([
+      { purposeCode: 'TERMS_OF_USE', noticeVersion: '2026-08-10', decision: true },
+      { purposeCode: 'PRIVACY_POLICY', noticeVersion: '2026-08-10', decision: true },
+    ]);
+    expect(requests[1]?.consents).toEqual(requests[0]?.consents);
     expect(requests[0]?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
     expect(requests[1]?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
     expect(requests[0]?.idempotencyKey).not.toBe(requests[1]?.idempotencyKey);
@@ -201,6 +259,7 @@ test.describe('BL-MVP-023 · registro personal no enumerativo', () => {
     page,
   }, testInfo) => {
     let requestCount = 0;
+    await mockRegistrationConsentCatalog(page);
     await page.route('**/api/v1/auth/register', async (route) => {
       requestCount += 1;
       await route.abort();
@@ -216,5 +275,28 @@ test.describe('BL-MVP-023 · registro personal no enumerativo', () => {
     await expect(page.getByText('Escribe una dirección de correo válida')).toBeVisible();
     expect(requestCount).toBe(0);
     await auditAccessibility(page, testInfo, 'registration-invalid-320');
+  });
+
+  test('bloquea localmente una aceptación ausente y conserva los datos', async ({
+    page,
+  }, testInfo) => {
+    let requestCount = 0;
+    await mockRegistrationConsentCatalog(page);
+    await page.route('**/api/v1/auth/register', async (route) => {
+      requestCount += 1;
+      await route.abort();
+    });
+
+    await page.goto('/registro');
+    const email = page.getByLabel('Correo electrónico');
+    const terms = page.getByRole('checkbox', { name: /Acepto términos de uso/i });
+    await email.fill('persona@example.com');
+    await page.getByRole('button', { name: 'Continuar registro' }).click();
+
+    await expect(terms).toBeFocused();
+    await expect(page.getByText('Acepta las versiones vigentes')).toBeVisible();
+    await expect(email).toHaveValue('persona@example.com');
+    expect(requestCount).toBe(0);
+    await auditAccessibility(page, testInfo, 'registration-consent-required-320');
   });
 });

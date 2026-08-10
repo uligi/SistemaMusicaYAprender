@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.Idempotency;
+using MusicaAprender.Modules.Identity.Application.Consent;
 using Npgsql;
 
 namespace MusicaAprender.Api.Endpoints.Identity;
@@ -11,6 +12,14 @@ public static partial class PersonalAccountRegistrationEndpoint
     public static IEndpointRouteBuilder MapPersonalAccountRegistration(
         this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapGet(
+                "/api/v1/auth/registration-consents",
+                GetCurrentConsents)
+            .AllowAnonymous()
+            .Produces<RegistrationConsentCatalogResponse>(StatusCodes.Status200OK)
+            .WithName("GetRegistrationConsents")
+            .WithTags("Identity");
+
         endpoints.MapPost(
                 "/api/v1/auth/register",
                 HandleAsync)
@@ -24,6 +33,21 @@ public static partial class PersonalAccountRegistrationEndpoint
             .WithTags("Identity");
 
         return endpoints;
+    }
+
+    private static IResult GetCurrentConsents()
+    {
+        var notices = RequiredRegistrationConsentPolicy
+            .GetCurrentNotices(DateTimeOffset.UtcNow)
+            .Select(static notice => new RegistrationConsentNoticeResponse(
+                notice.PurposeCode,
+                notice.Title,
+                notice.NoticeVersion,
+                notice.EffectiveFromUtc,
+                notice.Required))
+            .ToArray();
+
+        return Results.Ok(new RegistrationConsentCatalogResponse(notices));
     }
 
     private static async Task<IResult> HandleAsync(
@@ -45,15 +69,24 @@ public static partial class PersonalAccountRegistrationEndpoint
         {
             var response = await registrationService.RegisterAsync(
                 request.Email,
+                request.Consents,
                 idempotencyKey,
                 httpContext.TraceIdentifier,
                 cancellationToken);
 
-            return response is null
-                ? ValidationProblem(
+            return response.Kind switch
+            {
+                PersonalAccountRegistrationResultKind.InvalidEmail => ValidationProblem(
                     "email",
-                    "Escribe una dirección de correo válida de hasta 254 caracteres.")
-                : Results.Json(response, statusCode: StatusCodes.Status202Accepted);
+                    "Escribe una dirección de correo válida de hasta 254 caracteres."),
+                PersonalAccountRegistrationResultKind.InvalidConsents => ValidationProblem(
+                    "consents",
+                    "Acepta las versiones vigentes de los términos de uso y la política de privacidad."),
+                PersonalAccountRegistrationResultKind.Accepted when response.Response is not null =>
+                    Results.Json(response.Response, statusCode: StatusCodes.Status202Accepted),
+                _ => throw new InvalidOperationException(
+                    "El resultado del registro no contiene un estado reconocido.")
+            };
         }
         catch (ArgumentException exception)
             when (exception.ParamName is "idempotencyKey")

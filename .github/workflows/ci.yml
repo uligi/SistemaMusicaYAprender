@@ -251,7 +251,7 @@ jobs:
           PGDATABASE: musica_aprender_ci
         run: bash scripts/ci/database/verify-reliability.sh
 
-      - name: Verify personal account registration
+      - name: Verify personal account registration and versioned consents
         shell: bash
         env:
           PGHOST: 127.0.0.1

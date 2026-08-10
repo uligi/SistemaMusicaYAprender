@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MusicaAprender.BuildingBlocks.Infrastructure.Database;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.Idempotency;
+using MusicaAprender.Modules.Identity.Application.Consent;
 using MusicaAprender.Modules.Identity.Infrastructure.Registration;
 using MusicaAprender.Modules.Security.Infrastructure.Registration;
 
@@ -19,8 +20,9 @@ public sealed class PersonalAccountRegistrationService(
         "RECEIVED",
         "La solicitud fue recibida. El resultado no confirma si el correo ya estaba registrado.");
 
-    public async Task<PersonalAccountRegistrationResponse?> RegisterAsync(
+    public async Task<PersonalAccountRegistrationResult> RegisterAsync(
         string? email,
+        IReadOnlyList<PersonalAccountRegistrationConsentRequest>? consents,
         string idempotencyKey,
         string correlationId,
         CancellationToken cancellationToken = default)
@@ -28,7 +30,20 @@ public sealed class PersonalAccountRegistrationService(
         if (!emailProtector.TryProtect(email, out var protectedEmail)
             || protectedEmail is null)
         {
-            return null;
+            return PersonalAccountRegistrationResult.InvalidEmail();
+        }
+
+        var validation = RequiredRegistrationConsentPolicy.Validate(
+            consents?.Select(static consent => new RegistrationConsentSubmission(
+                    consent.PurposeCode,
+                    consent.NoticeVersion,
+                    consent.Decision))
+                .ToArray(),
+            DateTimeOffset.UtcNow);
+
+        if (!validation.IsValid)
+        {
+            return PersonalAccountRegistrationResult.InvalidConsents(validation.Error);
         }
 
         var proposedAccountId = Guid.CreateVersion7();
@@ -39,7 +54,7 @@ public sealed class PersonalAccountRegistrationService(
         var reliableRequest = ReliableOperationRequest.Create(
             OperationCode,
             idempotencyKey,
-            protectedEmail.LookupHash.Span,
+            CreateCanonicalRequest(protectedEmail, validation.AcceptedConsents),
             IdempotencyRetention);
         var responseJson = JsonSerializer.Serialize(AcceptedResponse, ResponseJsonOptions);
 
@@ -62,6 +77,13 @@ public sealed class PersonalAccountRegistrationService(
                         transaction,
                         proposedAccountId,
                         token);
+
+                    await IdentityConsentRegistrationWriter.CreateAcceptedAsync(
+                        connection,
+                        transaction,
+                        proposedAccountId,
+                        validation.AcceptedConsents,
+                        token);
                 }
 
                 return ReliableOperationResult.Create(
@@ -70,10 +92,67 @@ public sealed class PersonalAccountRegistrationService(
             },
             cancellationToken);
 
-        return JsonSerializer.Deserialize<PersonalAccountRegistrationResponse>(
-                   outcome.ResponseReferenceJson,
-                   ResponseJsonOptions)
-               ?? throw new InvalidOperationException(
-                   "La respuesta idempotente de registro no contiene un contrato valido.");
+        var response = JsonSerializer.Deserialize<PersonalAccountRegistrationResponse>(
+                           outcome.ResponseReferenceJson,
+                           ResponseJsonOptions)
+                       ?? throw new InvalidOperationException(
+                           "La respuesta idempotente de registro no contiene un contrato valido.");
+
+        return PersonalAccountRegistrationResult.Accepted(response);
     }
+
+    private static byte[] CreateCanonicalRequest(
+        ProtectedEmail protectedEmail,
+        IReadOnlyList<AcceptedRegistrationConsent> consents) =>
+        JsonSerializer.SerializeToUtf8Bytes(
+            new CanonicalRegistrationRequest(
+                Convert.ToHexString(protectedEmail.LookupHash.Span),
+                consents.Select(static consent => new CanonicalRegistrationConsent(
+                        consent.PurposeCode,
+                        consent.NoticeVersion,
+                        consent.Decision))
+                    .ToArray()),
+            ResponseJsonOptions);
+
+    private sealed record CanonicalRegistrationRequest(
+        string EmailLookupHash,
+        IReadOnlyList<CanonicalRegistrationConsent> Consents);
+
+    private sealed record CanonicalRegistrationConsent(
+        string PurposeCode,
+        string NoticeVersion,
+        bool Decision);
+}
+
+public enum PersonalAccountRegistrationResultKind
+{
+    Accepted,
+    InvalidEmail,
+    InvalidConsents
+}
+
+public sealed record PersonalAccountRegistrationResult(
+    PersonalAccountRegistrationResultKind Kind,
+    PersonalAccountRegistrationResponse? Response,
+    RegistrationConsentValidationError ConsentError)
+{
+    public static PersonalAccountRegistrationResult Accepted(
+        PersonalAccountRegistrationResponse response) =>
+        new(
+            PersonalAccountRegistrationResultKind.Accepted,
+            response,
+            RegistrationConsentValidationError.None);
+
+    public static PersonalAccountRegistrationResult InvalidEmail() =>
+        new(
+            PersonalAccountRegistrationResultKind.InvalidEmail,
+            Response: null,
+            RegistrationConsentValidationError.None);
+
+    public static PersonalAccountRegistrationResult InvalidConsents(
+        RegistrationConsentValidationError error) =>
+        new(
+            PersonalAccountRegistrationResultKind.InvalidConsents,
+            Response: null,
+            error);
 }

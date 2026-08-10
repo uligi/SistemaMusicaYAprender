@@ -12,6 +12,50 @@
   max-width: 32rem;
 }
 
+.registration__consents {
+  display: grid;
+  gap: var(--ma-space-3);
+  min-inline-size: 0;
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+}
+
+.registration__consents legend {
+  padding-inline: var(--ma-space-1);
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.registration__consents-help {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.registration__consent {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--ma-space-2);
+  align-items: start;
+  min-block-size: 2.75rem;
+  padding: var(--ma-space-2);
+  border-radius: var(--ma-radius-control);
+  cursor: pointer;
+}
+
+.registration__consent:hover {
+  background: var(--ma-color-surface);
+}
+
+.registration__consent input {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  margin-block-start: 0.125rem;
+}
+
+.registration__consent small {
+  color: var(--ma-color-muted);
+}
+
 .registration__form .ma-button {
   justify-self: start;
 }
