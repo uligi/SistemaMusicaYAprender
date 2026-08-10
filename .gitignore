@@ -38,6 +38,9 @@ volumes/
 .DS_Store
 Thumbs.db
 
+# Office temporary files
+~$*.docx
+
 # Logs and test artifacts
 *.log
 TestResults/
