@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using MusicaAprender.Api.Endpoints.Identity;
 using MusicaAprender.Api.Health;
 using MusicaAprender.Api.Observability;
@@ -11,6 +13,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjec
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
 using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
+using MusicaAprender.Modules.Security.Infrastructure.Authentication;
 using MusicaAprender.Modules.Security.Infrastructure.Authorization;
 using MusicaAprender.Modules.Security.Infrastructure.Credentials;
 using MusicaAprender.Modules.Security.Infrastructure.Registration;
@@ -23,6 +26,47 @@ builder.Configuration.AddMusicaAprenderExternalConfiguration();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IHttpDatabaseSessionContextFactory, HttpDatabaseSessionContextFactory>();
 builder.Services.AddSingleton<IRlsTransactionExecutor, RlsTransactionExecutor>();
+builder.Services.AddSingleton<SecuritySessionPersistence>();
+builder.Services.AddSingleton<SecuritySessionTicketStore>();
+builder.Services.AddSingleton<
+    IPostConfigureOptions<CookieAuthenticationOptions>,
+    SecuritySessionCookiePostConfigure>();
+builder.Services
+    .AddAuthentication(SessionAuthenticationDefaults.Scheme)
+    .AddCookie(
+        SessionAuthenticationDefaults.Scheme,
+        options =>
+        {
+            options.Cookie.Name = SessionAuthenticationDefaults.CookieName;
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+            options.Cookie.Path = "/";
+            options.Cookie.SameSite = SameSiteMode.Strict;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.ExpireTimeSpan = SecuritySessionPolicy.AbsoluteLifetime;
+            options.SlidingExpiration = false;
+            options.Events.OnRedirectToLogin = context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            };
+        });
+builder.Services.AddAuthorization();
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.Name = SessionAuthenticationDefaults.AntiforgeryCookieName;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.Path = "/";
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.HeaderName = SessionAuthenticationDefaults.AntiforgeryHeaderName;
+});
 builder.Services.AddMusicaAprenderReliableOperations();
 builder.Services.AddMusicaAprenderEmailQueue();
 builder.Services.AddMusicaAprenderPrivateObjectStore(builder.Configuration);
@@ -36,6 +80,7 @@ builder.Services.AddSingleton(
     AccountVerificationTokenService.FromConfiguration(builder.Configuration));
 builder.Services.AddSingleton<PersonalAccountRegistrationService>();
 builder.Services.AddSingleton<PersonalAccountVerificationService>();
+builder.Services.AddSingleton<PersonalAccountLoginService>();
 builder.Services.AddSingleton<MinimumPublishedConfigurationReader>();
 builder.Services.AddSingleton<MinimumRoleCatalogReader>();
 
@@ -86,6 +131,9 @@ builder.Services
 var app = builder.Build();
 
 app.UseMiddleware<CorrelationMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseAntiforgery();
 
 using (var startupActivity = ApiTelemetry.ActivitySource.StartActivity("application.start"))
 {
@@ -113,6 +161,7 @@ app.MapHealthChecks(
 
 app.MapPersonalAccountRegistration();
 app.MapPersonalAccountVerification();
+app.MapPersonalAccountLogin();
 
 app.Run();
 

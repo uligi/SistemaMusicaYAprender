@@ -6,6 +6,8 @@ services:
       context: .
       dockerfile: infrastructure/containers/web/Dockerfile
     image: musica-aprender/web:local
+    volumes:
+      - ./infrastructure/containers/web/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - '${WEB_PORT:-5173}:8080'
     depends_on:
@@ -22,7 +24,9 @@ services:
     image: musica-aprender/api:local
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: http://+:8080;https://+:8443
+      Kestrel__Certificates__Default__Path: /run/secrets/aspnetcore_local_https_certificate
+      Kestrel__Certificates__Default__KeyPath: /run/secrets/aspnetcore_local_https_key
       Database__Host: postgres
       Database__Port: '5432'
       Database__Name: ${POSTGRES_DB:-musica_aprender}
@@ -54,6 +58,8 @@ services:
       - identity_email_encryption_key
       - identity_verification_token_key
       - identity_password_fingerprint_key
+      - aspnetcore_local_https_certificate
+      - aspnetcore_local_https_key
     ports:
       - '${API_PORT:-5080}:8080'
     depends_on:
@@ -225,3 +231,7 @@ secrets:
     file: ./secrets/local/identity_verification_token_key
   identity_password_fingerprint_key:
     file: ./secrets/local/identity_password_fingerprint_key
+  aspnetcore_local_https_certificate:
+    file: ./secrets/local/aspnetcore_local_https.pem
+  aspnetcore_local_https_key:
+    file: ./secrets/local/aspnetcore_local_https.key

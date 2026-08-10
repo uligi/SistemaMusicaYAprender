@@ -46,6 +46,44 @@ function Ensure-Secret(
     Write-Host "Creado secreto local: $Name"
 }
 
+function Ensure-LocalHttpsCertificate {
+    $certificatePath = Join-Path $SecretDirectory "aspnetcore_local_https.pem"
+    $keyPath = Join-Path $SecretDirectory "aspnetcore_local_https.key"
+
+    if ((Test-Path $certificatePath -PathType Leaf) -and
+        (Test-Path $keyPath -PathType Leaf) -and
+        (Get-Item $certificatePath).Length -ge 256 -and
+        (Get-Item $keyPath).Length -ge 256) {
+        return
+    }
+
+    $temporaryBase = "aspnetcore_local_https.$([Guid]::NewGuid().ToString('N'))"
+    $temporaryCertificatePath = Join-Path $SecretDirectory "$temporaryBase.pem"
+    $temporaryKeyPath = Join-Path $SecretDirectory "$temporaryBase.key"
+
+    try {
+        & dotnet dev-certs https `
+            --export-path $temporaryCertificatePath `
+            --format PEM `
+            --no-password `
+            --quiet
+
+        if ($LASTEXITCODE -ne 0 -or
+            -not (Test-Path $temporaryCertificatePath -PathType Leaf) -or
+            -not (Test-Path $temporaryKeyPath -PathType Leaf)) {
+            throw "No se pudo exportar el certificado HTTPS local para Docker Compose."
+        }
+
+        Move-Item -Force $temporaryCertificatePath $certificatePath
+        Move-Item -Force $temporaryKeyPath $keyPath
+        Write-Host "Creado certificado HTTPS local para el salto web-API."
+    }
+    finally {
+        Remove-Item -Force -ErrorAction SilentlyContinue $temporaryCertificatePath
+        Remove-Item -Force -ErrorAction SilentlyContinue $temporaryKeyPath
+    }
+}
+
 Ensure-Secret "postgres_password" 32
 Ensure-Secret "postgres_migrator_password" 32
 Ensure-Secret "postgres_api_password" 32
@@ -59,5 +97,6 @@ Ensure-Secret "identity_email_lookup_key" 32
 Ensure-Secret "identity_email_encryption_key" 32
 Ensure-Secret "identity_verification_token_key" 32
 Ensure-Secret "identity_password_fingerprint_key" 32
+Ensure-LocalHttpsCertificate
 
 Write-Host "OK: secret store local preparado fuera del repositorio."

@@ -54,6 +54,16 @@ export function AccessBoundary({ access, children, route }: AccessBoundaryProps)
     return children;
   }
 
+  if (access.source === 'anonymous-bootstrap') {
+    return (
+      <StateMessage
+        state="UI-EST-01"
+        title="Comprobando sesión"
+        description="Validamos la cookie con el servidor antes de mostrar una ruta protegida."
+      />
+    );
+  }
+
   if (decision.reason === 'session-required') {
     return (
       <StateMessage

@@ -133,6 +133,180 @@ test.describe('BL-MVP-022 · navegación base, teclado, axe y evidencia visual',
   });
 });
 
+async function mockAnonymousSession(page: Page): Promise<void> {
+  await page.route('**/api/v1/auth/session', async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/problem+json',
+      body: JSON.stringify({
+        status: 401,
+        title: 'Sesión requerida',
+        code: 'identity.session.required',
+      }),
+    });
+  });
+}
+
+test.describe('BL-MVP-026 · acceso con cookie segura y CSRF', () => {
+  test('inicia sesión con teclado, gestor y token antifalsificación efímero', async ({
+    page,
+  }, testInfo) => {
+    const requests: Array<{
+      email: string;
+      password: string;
+      csrf: string;
+    }> = [];
+
+    await mockAnonymousSession(page);
+    await page.route('**/api/v1/auth/csrf', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          requestToken: 'csrf-e2e-token',
+          headerName: 'X-CSRF-TOKEN',
+        }),
+      });
+    });
+    await page.route('**/api/v1/auth/login', async (route) => {
+      const request = route.request();
+      const payload = request.postDataJSON() as { email: string; password: string };
+      requests.push({
+        email: payload.email,
+        password: payload.password,
+        csrf: request.headers()['x-csrf-token'] ?? '',
+      });
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'AUTHENTICATED',
+          role: 'STUDENT',
+          message: 'La sesión se inició de forma segura.',
+        }),
+      });
+    });
+
+    await page.goto('/acceso');
+
+    await expect(page.locator('[data-route-id="UI-MVP-007"]')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Inicia sesión' })).toBeFocused();
+    const email = page.getByLabel('Correo electrónico');
+    const password = page.getByLabel('Contraseña');
+    await expect(email).toHaveAttribute('autocomplete', 'username');
+    await expect(password).toHaveAttribute('autocomplete', 'current-password');
+    await expect(password).toHaveAttribute('type', 'password');
+    await assertNoHorizontalPageOverflow(page);
+    await auditAccessibility(page, testInfo, 'login-empty-320');
+
+    await page.keyboard.press('Tab');
+    await assertFocusVisible(email);
+    await email.fill('persona@example.com');
+    await page.keyboard.press('Tab');
+    await assertFocusVisible(password);
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], {
+      origin: new URL(page.url()).origin,
+    });
+    await page.evaluate(async () => navigator.clipboard.writeText('Brisa 日本語 segura 2026'));
+    await page.keyboard.press('ControlOrMeta+V');
+    await page.keyboard.press('Tab');
+    await assertFocusVisible(page.getByRole('button', { name: 'Iniciar sesión' }));
+    await page.keyboard.press('Enter');
+
+    await expect(page.locator('[data-state="UI-EST-12"]')).toBeVisible();
+    await expect(page.getByText('La sesión se inició de forma segura.')).toBeVisible();
+    await expect(email).toHaveValue('persona@example.com');
+    await expect(password).toHaveValue('');
+    await auditAccessibility(page, testInfo, 'login-authenticated-320');
+    await captureState(page, testInfo, 'login-authenticated-320');
+
+    expect(requests).toEqual([
+      {
+        email: 'persona@example.com',
+        password: 'Brisa 日本語 segura 2026',
+        csrf: 'csrf-e2e-token',
+      },
+    ]);
+    expect(page.url()).not.toContain('persona@example.com');
+    expect(page.url()).not.toContain('csrf-e2e-token');
+    expect(
+      await page.evaluate(() => ({
+        local: Object.keys(localStorage),
+        session: Object.keys(sessionStorage),
+      })),
+    ).toEqual({ local: [], session: [] });
+  });
+
+  test('mantiene una respuesta no enumerativa y asocia la corrección al acceso', async ({
+    page,
+  }, testInfo) => {
+    await mockAnonymousSession(page);
+    await page.route('**/api/v1/auth/csrf', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          requestToken: 'csrf-invalid-token',
+          headerName: 'X-CSRF-TOKEN',
+        }),
+      });
+    });
+    await page.route('**/api/v1/auth/login', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          status: 401,
+          title: 'No se pudo iniciar sesión',
+          code: 'identity.login.failed',
+        }),
+      });
+    });
+
+    await page.goto('/acceso');
+    const email = page.getByLabel('Correo electrónico');
+    const password = page.getByLabel('Contraseña');
+    await email.fill('desconocida@example.com');
+    await password.fill('Credencial desconocida 2026');
+    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+
+    await expect(page.locator('[data-state="UI-EST-09"]')).toBeVisible();
+    await expect(page.getByText('No se pudo iniciar sesión')).toBeVisible();
+    await expect(page.getByText('Revisa el correo y la contraseña')).toBeVisible();
+    await expect(email).toHaveValue('desconocida@example.com');
+    await expect(password).toHaveValue('');
+    await expect(password).toBeFocused();
+    await auditAccessibility(page, testInfo, 'login-rejected-320');
+  });
+
+  test('bloquea localmente un correo inválido sin enviar credenciales', async ({ page }) => {
+    let csrfRequests = 0;
+    let loginRequests = 0;
+    await mockAnonymousSession(page);
+    await page.route('**/api/v1/auth/csrf', async (route) => {
+      csrfRequests += 1;
+      await route.abort();
+    });
+    await page.route('**/api/v1/auth/login', async (route) => {
+      loginRequests += 1;
+      await route.abort();
+    });
+
+    await page.goto('/acceso');
+    const email = page.getByLabel('Correo electrónico');
+    await email.fill('correo-invalido');
+    await page.getByLabel('Contraseña').fill('Brisa 日本語 segura 2026');
+    await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+
+    await expect(email).toBeFocused();
+    await expect(email).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByText('Escribe una dirección de correo válida.')).toBeVisible();
+    expect(csrfRequests).toBe(0);
+    expect(loginRequests).toBe(0);
+  });
+});
+
 async function mockRegistrationConsentCatalog(page: Page): Promise<void> {
   await page.route('**/api/v1/auth/registration-consents', async (route) => {
     await route.fulfill({
