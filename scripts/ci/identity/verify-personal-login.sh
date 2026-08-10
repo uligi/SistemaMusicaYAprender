@@ -242,6 +242,7 @@ if [[ "${BL026_USE_RUNNING_API:-false}" != "true" ]]; then
   Kestrel__Certificates__Default__KeyPath="$ROOT/secrets/local/aspnetcore_local_https.key" \
   ASPNETCORE_URLS="$api_url" \
   dotnet run \
+    --no-launch-profile \
     --project apps/api/MusicaAprender.Api.csproj \
     --configuration Release \
     --no-build \
