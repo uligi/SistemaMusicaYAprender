@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using MusicaAprender.BuildingBlocks.Contracts.ObjectStorage;
 using MusicaAprender.BuildingBlocks.Infrastructure.Database;
+using MusicaAprender.Modules.Security.Infrastructure.Audit;
 using MusicaAprender.Modules.Security.Infrastructure.Authentication;
 using MusicaAprender.Modules.Security.Infrastructure.Credentials;
 using Npgsql;
@@ -122,17 +123,29 @@ public sealed class PrivilegedMfaService(
                         throw MfaAdministrationException.InvalidReauthentication();
                     }
 
-                    return await InsertChallengeAsync(
+                    var challengeExpiresAt =
+                        await InsertChallengeAsync(
+                            connection,
+                            transaction,
+                            accountId,
+                            sessionId,
+                            EnrollmentOperation,
+                            challengeId,
+                            digest,
+                            "ENROLL_TOTP",
+                            EnrollmentChallengeLifetime,
+                            token);
+
+                    await PrimaryAuditWriter.WriteSecurityEventAsync(
                         connection,
                         transaction,
                         accountId,
-                        sessionId,
-                        EnrollmentOperation,
-                        challengeId,
-                        digest,
-                        "ENROLL_TOTP",
-                        EnrollmentChallengeLifetime,
-                        token);
+                        "MFA_ENROLLMENT_CHALLENGE",
+                        "ISSUED",
+                        correlationId,
+                        cancellationToken: token);
+
+                    return challengeExpiresAt;
                 },
                 cancellationToken);
 
@@ -215,6 +228,15 @@ public sealed class PrivilegedMfaService(
                             challenge,
                             token);
 
+                        await PrimaryAuditWriter.WriteSecurityEventAsync(
+                            connection,
+                            transaction,
+                            accountId,
+                            "MFA_ENROLLMENT_CONFIRM",
+                            failure.Exhausted ? "THROTTLED" : "REJECTED",
+                            correlationId,
+                            cancellationToken: token);
+
                         return ConfirmationOutcome<MfaStatus>.FromError(
                             MfaAdministrationException.InvalidCode(failure.Exhausted));
                     }
@@ -229,6 +251,15 @@ public sealed class PrivilegedMfaService(
                             transaction,
                             challenge,
                             token);
+
+                        await PrimaryAuditWriter.WriteSecurityEventAsync(
+                            connection,
+                            transaction,
+                            accountId,
+                            "MFA_ENROLLMENT_CONFIRM",
+                            failure.Exhausted ? "THROTTLED" : "REJECTED",
+                            correlationId,
+                            cancellationToken: token);
 
                         return ConfirmationOutcome<MfaStatus>.FromError(
                             MfaAdministrationException.InvalidCode(failure.Exhausted));
@@ -333,6 +364,15 @@ public sealed class PrivilegedMfaService(
                         challenge.IdempotencyId,
                         token);
 
+                    await PrimaryAuditWriter.WriteSecurityEventAsync(
+                        connection,
+                        transaction,
+                        accountId,
+                        "MFA_ENROLLMENT_CONFIRM",
+                        "SUCCEEDED",
+                        correlationId,
+                        cancellationToken: token);
+
                     return ConfirmationOutcome<MfaStatus>.FromValue(
                         new MfaStatus(
                             true,
@@ -406,17 +446,29 @@ public sealed class PrivilegedMfaService(
                             "La cuenta debe confirmar primero un segundo factor.");
                     }
 
-                    return await InsertChallengeAsync(
+                    var challengeExpiresAt =
+                        await InsertChallengeAsync(
+                            connection,
+                            transaction,
+                            accountId,
+                            sessionId,
+                            StepUpOperation,
+                            challengeId,
+                            randomDigest,
+                            "PRIVILEGED",
+                            StepUpChallengeLifetime,
+                            token);
+
+                    await PrimaryAuditWriter.WriteSecurityEventAsync(
                         connection,
                         transaction,
                         accountId,
-                        sessionId,
-                        StepUpOperation,
-                        challengeId,
-                        randomDigest,
-                        "PRIVILEGED",
-                        StepUpChallengeLifetime,
-                        token);
+                        "MFA_STEP_UP_CHALLENGE",
+                        "ISSUED",
+                        correlationId,
+                        cancellationToken: token);
+
+                    return challengeExpiresAt;
                 },
                 cancellationToken);
 
@@ -527,6 +579,15 @@ public sealed class PrivilegedMfaService(
                             challenge,
                             token);
 
+                        await PrimaryAuditWriter.WriteSecurityEventAsync(
+                            connection,
+                            transaction,
+                            accountId,
+                            "MFA_STEP_UP_CONFIRM",
+                            failure.Exhausted ? "THROTTLED" : "REJECTED",
+                            correlationId,
+                            cancellationToken: token);
+
                         return ConfirmationOutcome<MfaStatus>.FromError(
                             MfaAdministrationException.InvalidCode(failure.Exhausted));
                     }
@@ -557,6 +618,15 @@ public sealed class PrivilegedMfaService(
                         accountId,
                         sessionId,
                         token);
+
+                    await PrimaryAuditWriter.WriteSecurityEventAsync(
+                        connection,
+                        transaction,
+                        accountId,
+                        "MFA_STEP_UP_CONFIRM",
+                        "SUCCEEDED",
+                        correlationId,
+                        cancellationToken: token);
 
                     return ConfirmationOutcome<MfaStatus>.FromValue(
                         new MfaStatus(

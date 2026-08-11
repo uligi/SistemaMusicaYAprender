@@ -1,4 +1,6 @@
+using System.Security.Cryptography;
 using MusicaAprender.BuildingBlocks.Infrastructure.Database;
+using MusicaAprender.Modules.Security.Infrastructure.Audit;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -87,6 +89,15 @@ public sealed class SecuritySessionPersistence(IRlsTransactionExecutor transacti
                     throw new InvalidOperationException(
                         "No se pudo crear exactamente una sesion de seguridad.");
                 }
+
+                await PrimaryAuditWriter.WriteSecurityEventAsync(
+                    connection,
+                    transaction,
+                    accountId,
+                    "SESSION_CREATED",
+                    "SUCCEEDED",
+                    correlationId,
+                    cancellationToken: token);
             },
             cancellationToken);
     }
@@ -137,7 +148,32 @@ public sealed class SecuritySessionPersistence(IRlsTransactionExecutor transacti
                     "session_hash",
                     NpgsqlDbType.Bytea,
                     sessionHash.ToArray());
-                await command.ExecuteScalarAsync(token);
+
+                var revoked =
+                    await command.ExecuteScalarAsync(token) is true;
+
+                if (revoked)
+                {
+                    var fingerprint =
+                        SHA256.HashData(sessionHash.Span);
+
+                    try
+                    {
+                        await PrimaryAuditWriter.WriteSecurityEventAsync(
+                            connection,
+                            transaction,
+                            accountId: null,
+                            eventType: "SESSION_REVOKED",
+                            resultCode: "SUCCEEDED",
+                            correlationId: correlationId,
+                            clientFingerprint: fingerprint,
+                            cancellationToken: token);
+                    }
+                    finally
+                    {
+                        CryptographicOperations.ZeroMemory(fingerprint);
+                    }
+                }
             },
             cancellationToken);
     }

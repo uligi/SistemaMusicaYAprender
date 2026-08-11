@@ -34,6 +34,7 @@ builder.Services.AddSingleton<IPrivilegedSecurityTransactionExecutor>(
     static services =>
         services.GetRequiredService<BackofficeSecurityTransactionExecutor>());
 builder.Services.AddSingleton<RoleAssignmentAdministrationService>();
+builder.Services.AddSingleton<PrimaryAuditRecorder>();
 builder.Services.AddSingleton<PrivilegedMfaService>();
 builder.Services.AddSingleton<SecuritySessionPersistence>();
 builder.Services.AddSingleton<SecuritySessionTicketStore>();

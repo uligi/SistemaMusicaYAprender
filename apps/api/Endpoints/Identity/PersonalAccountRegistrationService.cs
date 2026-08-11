@@ -6,6 +6,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Email.Queue;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.Idempotency;
 using MusicaAprender.Modules.Identity.Application.Consent;
 using MusicaAprender.Modules.Identity.Infrastructure.Registration;
+using MusicaAprender.Modules.Security.Infrastructure.Audit;
 using MusicaAprender.Modules.Security.Infrastructure.Credentials;
 using MusicaAprender.Modules.Security.Infrastructure.Registration;
 using MusicaAprender.Modules.Security.Infrastructure.Verification;
@@ -131,6 +132,27 @@ public sealed class PersonalAccountRegistrationService(
                             AccountVerificationEmailTemplate.Language,
                             correlationGuid),
                         token);
+
+                    await PrimaryAuditWriter.WriteSecurityEventAsync(
+                        connection,
+                        transaction,
+                        proposedAccountId,
+                        "ACCOUNT_REGISTRATION",
+                        "SUCCEEDED",
+                        correlationId,
+                        cancellationToken: token);
+                }
+                else
+                {
+                    await PrimaryAuditWriter.WriteSecurityEventAsync(
+                        connection,
+                        transaction,
+                        accountId: null,
+                        eventType: "ACCOUNT_REGISTRATION",
+                        resultCode: "RECEIVED_OR_EXISTING",
+                        correlationId: correlationId,
+                        clientFingerprint: protectedEmail.LookupHash,
+                        cancellationToken: token);
                 }
 
                 return ReliableOperationResult.Create(

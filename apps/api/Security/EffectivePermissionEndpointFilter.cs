@@ -46,6 +46,18 @@ internal sealed class EffectivePermissionEndpointFilter(
                 httpContext.TraceIdentifier,
                 httpContext.RequestAborted);
 
+            var audit =
+                httpContext.RequestServices
+                    .GetRequiredService<PrimaryAuditRecorder>();
+
+            await audit.RecordAuthorizationDecisionAsync(
+                accountId,
+                permissionCode,
+                requiredScope,
+                decision,
+                httpContext.TraceIdentifier,
+                httpContext.RequestAborted);
+
             if (!decision.Allowed)
             {
                 return AuthorizationDenied();
@@ -55,16 +67,11 @@ internal sealed class EffectivePermissionEndpointFilter(
         }
         catch (NpgsqlException)
         {
-            return Results.Problem(
-                statusCode: StatusCodes.Status503ServiceUnavailable,
-                title: "Autorización temporalmente no disponible",
-                detail:
-                    "La operación protegida se cerró de forma segura. "
-                    + "Vuelve a intentarlo más tarde.",
-                extensions: new Dictionary<string, object?>
-                {
-                    ["code"] = "security.authorization.unavailable"
-                });
+            return AuthorizationUnavailable();
+        }
+        catch (InvalidOperationException)
+        {
+            return AuthorizationUnavailable();
         }
     }
 
@@ -96,6 +103,18 @@ internal sealed class EffectivePermissionEndpointFilter(
             ? AuthorizationScope.Global
             : AuthorizationScope.ForModule(moduleCode);
     }
+
+    private static IResult AuthorizationUnavailable() =>
+        Results.Problem(
+            statusCode: StatusCodes.Status503ServiceUnavailable,
+            title: "Autorización temporalmente no disponible",
+            detail:
+                "La operación protegida se cerró de forma segura. "
+                + "Vuelve a intentarlo más tarde.",
+            extensions: new Dictionary<string, object?>
+            {
+                ["code"] = "security.authorization.unavailable"
+            });
 
     private static IResult AuthorizationDenied() =>
         Results.Problem(

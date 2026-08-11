@@ -37,6 +37,17 @@ internal sealed class PrivilegedAssuranceEndpointFilter : IEndpointFilter
                     httpContext.TraceIdentifier,
                     httpContext.RequestAborted);
 
+            var audit =
+                httpContext.RequestServices
+                    .GetRequiredService<PrimaryAuditRecorder>();
+
+            await audit.RecordPrivilegedAssuranceDecisionAsync(
+                accountId,
+                sessionId,
+                allowed,
+                httpContext.TraceIdentifier,
+                httpContext.RequestAborted);
+
             if (!allowed)
             {
                 return StepUpRequired();
