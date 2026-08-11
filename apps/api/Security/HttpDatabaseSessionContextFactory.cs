@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using MusicaAprender.BuildingBlocks.Infrastructure.Database;
+using MusicaAprender.Modules.Security.Infrastructure.Authentication;
 
 namespace MusicaAprender.Api.Security;
 
@@ -56,13 +57,19 @@ internal sealed class HttpDatabaseSessionContextFactory : IHttpDatabaseSessionCo
                 ClaimTypes.Role,
                 RoleClaim);
 
-            if (fallbackRoles.Count != 1)
+            if (fallbackRoles.Count > 1)
             {
                 throw new InvalidOperationException(
-                    "La identidad autenticada debe resolver exactamente un rol activo.");
+                    "La identidad autenticada contiene mas de un rol de respaldo.");
             }
 
-            roleCode = fallbackRoles[0];
+            // BL-MVP-030: el ticket de sesión prueba identidad, no autoridad,
+            // y por diseño no reconstruye claims de rol. SafeRoleCode solo
+            // etiqueta el contexto RLS; permisos/roles efectivos se recalculan
+            // por operación contra PostgreSQL.
+            roleCode = fallbackRoles.Count == 1
+                ? fallbackRoles[0]
+                : SecuritySessionPolicy.SafeRoleCode;
         }
 
         return DatabaseSessionContext.Create(

@@ -1,0 +1,102 @@
+.preferences {
+  display: grid;
+  gap: var(--ma-space-6);
+  font-size: calc(1rem * var(--user-font-scale, 1));
+}
+
+.preferences__intro {
+  display: grid;
+  gap: var(--ma-space-3);
+}
+
+.preferences__profile {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ma-space-3);
+  margin: 0;
+}
+
+.preferences__profile div {
+  padding: var(--ma-space-3);
+  border: 1px solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+}
+
+.preferences__profile dt {
+  font-weight: 700;
+}
+
+.preferences__profile dd {
+  margin: var(--ma-space-1) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.preferences__form {
+  display: grid;
+  gap: var(--ma-space-5);
+  max-width: 48rem;
+}
+
+.preferences__form fieldset {
+  display: grid;
+  gap: var(--ma-space-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--ma-space-4);
+  border: 1px solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+}
+
+.preferences__form legend {
+  padding-inline: var(--ma-space-2);
+  font-weight: 800;
+}
+
+.preferences__form select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--ma-space-2) var(--ma-space-3);
+  font: inherit;
+}
+
+.preferences__check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ma-space-2);
+}
+
+.preferences__check input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.1rem;
+  flex: 0 0 auto;
+}
+
+.preferences__help {
+  margin: 0;
+  color: var(--ma-color-muted);
+}
+
+:root[data-user-motion='reduced'] *,
+:root[data-user-motion='reduced'] *::before,
+:root[data-user-motion='reduced'] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+:root[data-user-contrast='high'] .preferences__form fieldset,
+:root[data-user-contrast='high'] .preferences__profile div {
+  border-width: 2px;
+}
+
+@media (max-width: 40rem) {
+  .preferences__profile {
+    grid-template-columns: 1fr;
+  }
+
+  .preferences__form fieldset {
+    padding: var(--ma-space-3);
+  }
+}

@@ -5,6 +5,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Database;
 using MusicaAprender.BuildingBlocks.Infrastructure.Email.Queue;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.Idempotency;
 using MusicaAprender.Modules.Identity.Application.Consent;
+using MusicaAprender.Modules.Identity.Infrastructure.Preferences;
 using MusicaAprender.Modules.Identity.Infrastructure.Registration;
 using MusicaAprender.Modules.Security.Infrastructure.Audit;
 using MusicaAprender.Modules.Security.Infrastructure.Credentials;
@@ -99,6 +100,19 @@ public sealed class PersonalAccountRegistrationService(
                         transaction,
                         proposedAccountId,
                         token);
+
+                    var preferencesCreated =
+                        await PersonalPreferenceService.TryCreateInitialAsync(
+                            connection,
+                            transaction,
+                            proposedAccountId,
+                            token);
+
+                    if (!preferencesCreated)
+                    {
+                        throw new InvalidOperationException(
+                            "La cuenta nueva ya contiene una cabeza de preferencias inesperada.");
+                    }
 
                     await IdentityConsentRegistrationWriter.CreateAcceptedAsync(
                         connection,

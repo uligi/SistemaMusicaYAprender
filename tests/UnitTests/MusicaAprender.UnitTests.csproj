@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BuildingBlocks\Domain\MusicaAprender.BuildingBlocks.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\MusicaAprender.Modules.Identity.csproj" />
     <ProjectReference Include="..\..\src\Modules\Security\MusicaAprender.Modules.Security.csproj" />
   </ItemGroup>
 </Project>

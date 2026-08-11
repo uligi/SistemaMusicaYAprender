@@ -14,6 +14,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjec
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
 using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
+using MusicaAprender.Modules.Identity.Infrastructure.Preferences;
 using MusicaAprender.Modules.Security.Infrastructure.Administration;
 using MusicaAprender.Modules.Security.Infrastructure.Authentication;
 using MusicaAprender.Modules.Security.Infrastructure.Authorization;
@@ -94,6 +95,7 @@ builder.Services.AddSingleton(LoginAbusePolicy.FromConfiguration(builder.Configu
 builder.Services.AddSingleton(
     LoginAbuseFingerprintService.FromConfiguration(builder.Configuration));
 builder.Services.AddSingleton<PersonalAccountLoginService>();
+builder.Services.AddSingleton<PersonalPreferenceService>();
 builder.Services.AddSingleton<MinimumPublishedConfigurationReader>();
 builder.Services.AddSingleton<MinimumRoleCatalogReader>();
 builder.Services.AddSingleton<EffectiveAuthorizationService>();
@@ -177,6 +179,7 @@ app.MapPersonalAccountRegistration();
 app.MapPersonalAccountVerification();
 app.MapPersonalAccountLogin();
 app.MapPersonalAccountLogout();
+app.MapPersonalPreferences();
 app.MapAuthorizationCatalog();
 app.MapRoleAssignments();
 app.MapPrivilegedMfa();
