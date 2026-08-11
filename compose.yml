@@ -55,6 +55,7 @@ services:
       Security__LoginAbuse__TrustClientAddressHeader: 'true'
     secrets:
       - postgres_api_password
+      - postgres_backoffice_password
       - object_store_access_key
       - object_store_secret_key
       - object_store_encryption_key

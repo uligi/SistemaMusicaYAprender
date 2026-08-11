@@ -1,0 +1,101 @@
+.role-management {
+  display: grid;
+  gap: var(--ma-space-5);
+}
+
+.role-management__header {
+  display: grid;
+  max-width: 52rem;
+  gap: var(--ma-space-2);
+}
+
+.role-management__header h1,
+.role-management__header p {
+  margin: 0;
+}
+
+.role-management__eyebrow {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.role-management__success {
+  max-width: 52rem;
+  margin: 0;
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-surface);
+}
+
+.role-management__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ma-space-5);
+  align-items: start;
+}
+
+.role-management__panel {
+  display: grid;
+  gap: var(--ma-space-4);
+  min-width: 0;
+  padding: var(--ma-space-5);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.role-management__panel h2 {
+  margin: 0;
+}
+
+.role-management__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-3);
+}
+
+.role-management__assignments {
+  display: grid;
+  gap: var(--ma-space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.role-management__assignments li {
+  display: flex;
+  gap: var(--ma-space-3);
+  align-items: start;
+  justify-content: space-between;
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+}
+
+.role-management__assignments li > div {
+  display: grid;
+  min-width: 0;
+  gap: var(--ma-space-1);
+}
+
+.role-management__assignments span,
+.role-management__assignments small,
+.role-management__empty {
+  color: var(--ma-color-muted);
+}
+
+.role-management__assignments small {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 48rem) {
+  .role-management__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .role-management__assignments li {
+    flex-direction: column;
+  }
+}

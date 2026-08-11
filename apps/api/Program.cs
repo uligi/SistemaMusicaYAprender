@@ -14,6 +14,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjec
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
 using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
+using MusicaAprender.Modules.Security.Infrastructure.Administration;
 using MusicaAprender.Modules.Security.Infrastructure.Authentication;
 using MusicaAprender.Modules.Security.Infrastructure.Authorization;
 using MusicaAprender.Modules.Security.Infrastructure.Credentials;
@@ -27,6 +28,11 @@ builder.Configuration.AddMusicaAprenderExternalConfiguration();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IHttpDatabaseSessionContextFactory, HttpDatabaseSessionContextFactory>();
 builder.Services.AddSingleton<IRlsTransactionExecutor, RlsTransactionExecutor>();
+builder.Services.AddSingleton<BackofficeSecurityTransactionExecutor>();
+builder.Services.AddSingleton<IPrivilegedSecurityTransactionExecutor>(
+    static services =>
+        services.GetRequiredService<BackofficeSecurityTransactionExecutor>());
+builder.Services.AddSingleton<RoleAssignmentAdministrationService>();
 builder.Services.AddSingleton<SecuritySessionPersistence>();
 builder.Services.AddSingleton<SecuritySessionTicketStore>();
 builder.Services.AddSingleton<
@@ -169,6 +175,7 @@ app.MapPersonalAccountVerification();
 app.MapPersonalAccountLogin();
 app.MapPersonalAccountLogout();
 app.MapAuthorizationCatalog();
+app.MapRoleAssignments();
 
 app.Run();
 

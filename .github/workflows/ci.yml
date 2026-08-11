@@ -313,6 +313,18 @@ jobs:
           BL030_API_URL: https://localhost:5446
         run: bash scripts/ci/security/verify-effective-authorization.sh
 
+      - name: Verify audited role assignment administration
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL031_USE_DOCKER_PSQL: 'false'
+          BL031_API_URL: https://localhost:5447
+        run: bash scripts/ci/security/verify-role-assignments.sh
+
       - name: Start private development object store
         shell: bash
         run: |
