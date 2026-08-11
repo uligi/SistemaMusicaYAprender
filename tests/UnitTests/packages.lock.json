@@ -477,6 +477,15 @@
           "OpenTelemetry.Instrumentation.Runtime": "[1.17.0, )"
         }
       },
+      "musicaaprender.modules.identity": {
+        "type": "Project",
+        "dependencies": {
+          "MusicaAprender.BuildingBlocks.Application": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Contracts": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Domain": "[1.0.0, )",
+          "MusicaAprender.BuildingBlocks.Infrastructure": "[1.0.0, )"
+        }
+      },
       "musicaaprender.modules.security": {
         "type": "Project",
         "dependencies": {

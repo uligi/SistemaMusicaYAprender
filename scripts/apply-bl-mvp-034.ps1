@@ -471,8 +471,34 @@ Write-Host "OK: contexto RLS autenticado alineado con tickets BL-MVP-030 sin cla
 
 Write-Host "Actualizando lockfile de UnitTests por la nueva referencia a Identity..."
 & dotnet restore `
-    "tests/UnitTests/MusicaAprender.UnitTests.csproj"
+    "tests/UnitTests/MusicaAprender.UnitTests.csproj" `
+    --force-evaluate `
+    -p:RestoreLockedMode=false
 Assert-LastExitCode "Restore UnitTests y packages.lock BL-MVP-034"
+
+# `dotnet restore` recorre el grafo de ProjectReference y, con force-evaluate,
+# puede reescribir lockfiles de proyectos referenciados aunque su contenido
+# publicado siga siendo válido. BL034 solo necesita versionar el lockfile de
+# UnitTests, cuyo grafo cambió al añadir Identity.
+$unitTestsLock = "tests/UnitTests/packages.lock.json"
+$collateralLockChanges = @(
+    git status --porcelain=v1 --untracked-files=no |
+        ForEach-Object {
+            if ($_.Length -ge 4) {
+                $_.Substring(3).Trim('"').Replace("\", "/")
+            }
+        } |
+        Where-Object {
+            $_ -like "*/packages.lock.json" -and
+            $_ -ne $unitTestsLock
+        }
+)
+
+foreach ($lockPath in $collateralLockChanges) {
+    git restore --source=$ExpectedBase --worktree -- $lockPath
+    Assert-LastExitCode "Restauracion lockfile colateral $lockPath"
+    Write-Host "Restaurado lockfile colateral: $lockPath"
+}
 
 Write-Host "Ejecutando preflight de compilacion BL-MVP-034..."
 & dotnet build `
