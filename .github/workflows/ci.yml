@@ -374,6 +374,18 @@ jobs:
           BL034_API_URL: https://localhost:5450
         run: bash scripts/ci/identity/verify-personal-preferences.sh
 
+      - name: Verify versioned catalog and parameter administration
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL036_USE_DOCKER_PSQL: 'false'
+          BL036_API_URL: https://localhost:5451
+        run: bash scripts/ci/configuration/verify-versioned-configuration-administration.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:
