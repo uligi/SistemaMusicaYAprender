@@ -47,3 +47,15 @@ TestResults/
 playwright-report/
 test-results/
 artifacts/
+# Repository hygiene
+*.tsbuildinfo
+*.pem
+*.crt
+*.cer
+*.dump
+*.backup
+*.bak
+*.db
+*.sqlite
+*.sqlite3
+*.zip
