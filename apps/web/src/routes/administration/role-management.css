@@ -99,3 +99,43 @@
     flex-direction: column;
   }
 }
+
+.role-management__assurance {
+  display: grid;
+  gap: var(--ma-space-4);
+  max-width: 52rem;
+  padding: var(--ma-space-5);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.role-management__assurance h2,
+.role-management__assurance p,
+.role-management__locked {
+  margin: 0;
+}
+
+.role-management__assurance-form {
+  display: grid;
+  gap: var(--ma-space-3);
+  max-width: 36rem;
+}
+
+.role-management__assurance-ok {
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.role-management__totp-secret {
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.role-management__locked {
+  max-width: 52rem;
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  color: var(--ma-color-muted);
+  background: var(--ma-color-surface);
+}

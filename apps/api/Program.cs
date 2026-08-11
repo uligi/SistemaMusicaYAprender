@@ -18,6 +18,7 @@ using MusicaAprender.Modules.Security.Infrastructure.Administration;
 using MusicaAprender.Modules.Security.Infrastructure.Authentication;
 using MusicaAprender.Modules.Security.Infrastructure.Authorization;
 using MusicaAprender.Modules.Security.Infrastructure.Credentials;
+using MusicaAprender.Modules.Security.Infrastructure.Mfa;
 using MusicaAprender.Modules.Security.Infrastructure.Registration;
 using MusicaAprender.Modules.Security.Infrastructure.Verification;
 
@@ -33,6 +34,7 @@ builder.Services.AddSingleton<IPrivilegedSecurityTransactionExecutor>(
     static services =>
         services.GetRequiredService<BackofficeSecurityTransactionExecutor>());
 builder.Services.AddSingleton<RoleAssignmentAdministrationService>();
+builder.Services.AddSingleton<PrivilegedMfaService>();
 builder.Services.AddSingleton<SecuritySessionPersistence>();
 builder.Services.AddSingleton<SecuritySessionTicketStore>();
 builder.Services.AddSingleton<
@@ -176,6 +178,7 @@ app.MapPersonalAccountLogin();
 app.MapPersonalAccountLogout();
 app.MapAuthorizationCatalog();
 app.MapRoleAssignments();
+app.MapPrivilegedMfa();
 
 app.Run();
 

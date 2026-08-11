@@ -20,6 +20,18 @@ test.describe('BL-MVP-031 · gestión de asignaciones de roles', () => {
       });
     });
 
+    await page.route('**/api/v1/security/mfa/status', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          enrolled: true,
+          recentAssurance: true,
+          methodType: 'TOTP',
+          assuranceExpiresAt: '2099-08-11T15:00:00Z',
+        }),
+      });
+    });
     await page.route('**/api/v1/auth/csrf', async (route) => {
       await route.fulfill({
         status: 200,

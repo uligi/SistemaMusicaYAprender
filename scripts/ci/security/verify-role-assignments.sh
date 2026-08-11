@@ -269,6 +269,92 @@ login_status="$(
 )"
 assert_equal "login admin sintético" "$login_status" "200"
 
+# BL-MVP-032 prerequisito MFA sintetico.
+# El smoke BL031 sigue probando exclusivamente administración de roles.
+session_id="$(
+  "${psql_base[@]}" --command="
+SELECT session_id
+FROM security.session
+WHERE account_id = '$admin_account_id'::uuid
+  AND revoked_at IS NULL
+ORDER BY created_at DESC
+LIMIT 1;
+" | tr -d '[:space:]'
+)"
+
+[[ "$session_id" =~ ^[0-9a-f-]{36}$ ]] \
+  || fail_check "No se resolvió la sesión sintética para assurance."
+
+session_key="${session_id//-/}"
+
+"${psql_base[@]}" --command="
+INSERT INTO security.mfa_method (
+    account_id,
+    method_type,
+    secret_ref,
+    enrolled_at,
+    disabled_at
+)
+VALUES (
+    '$admin_account_id'::uuid,
+    'TOTP',
+    'BL031-SYNTHETIC-MFA-NOT-USED',
+    CURRENT_TIMESTAMP,
+    NULL
+);
+
+UPDATE security.session
+SET
+    assurance_level = 'MFA',
+    idle_expires_at = LEAST(
+        idle_expires_at,
+        CURRENT_TIMESTAMP + INTERVAL '15 minutes',
+        absolute_expires_at,
+        created_at + INTERVAL '8 hours'
+    ),
+    absolute_expires_at = LEAST(
+        absolute_expires_at,
+        created_at + INTERVAL '8 hours'
+    )
+WHERE session_id = '$session_id'::uuid
+  AND account_id = '$admin_account_id'::uuid;
+
+INSERT INTO ops.idempotency_record (
+    account_id,
+    operation_code,
+    idempotency_key,
+    request_digest,
+    response_code,
+    response_ref,
+    created_at,
+    expires_at
+)
+VALUES (
+    '$admin_account_id'::uuid,
+    'SECURITY.MFA.ASSURANCE',
+    '$session_key',
+    decode(repeat('a1', 32), 'hex'),
+    200,
+    jsonb_build_object(
+        'assurance', 'MFA',
+        'purpose', 'PRIVILEGED',
+        'source', 'BL031-regression'
+    ),
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP + INTERVAL '15 minutes'
+)
+ON CONFLICT (
+    account_id,
+    operation_code,
+    idempotency_key
+)
+DO UPDATE SET
+    response_code = 200,
+    response_ref = EXCLUDED.response_ref,
+    created_at = CURRENT_TIMESTAMP,
+    expires_at = CURRENT_TIMESTAMP + INTERVAL '15 minutes';
+" >/dev/null
+
 refresh_authenticated_csrf() {
   local phase="$1"
   local response_file="$work_dir/csrf-authenticated-$phase.json"

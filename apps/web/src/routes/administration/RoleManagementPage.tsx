@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Button, Field, SelectField, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
+import { PrivilegedAssurancePanel } from './PrivilegedAssurancePanel';
 import './role-management.css';
 
 type Scope = {
@@ -87,8 +88,14 @@ export function RoleManagementPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [privilegedReady, setPrivilegedReady] = useState(false);
 
   useEffect(() => {
+    if (!privilegedReady) {
+      setCatalog(null);
+      return;
+    }
+
     let active = true;
 
     void (async () => {
@@ -111,7 +118,7 @@ export function RoleManagementPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [privilegedReady]);
 
   const targetValid = useMemo(
     () => /^[0-9a-fA-F-]{36}$/.test(targetAccount.trim()),
@@ -273,6 +280,8 @@ export function RoleManagementPage() {
         </p>
       </header>
 
+      <PrivilegedAssurancePanel onReadyChange={setPrivilegedReady} />
+
       {error ? (
         <StateMessage state="UI-EST-04" title="No se aplicó el cambio" description={error} />
       ) : null}
@@ -282,126 +291,133 @@ export function RoleManagementPage() {
         </p>
       ) : null}
 
-      <div className="role-management__grid">
-        <form className="role-management__panel" onSubmit={grant}>
-          <h2>Nueva asignación</h2>
+      {privilegedReady ? (
+        <div className="role-management__grid">
+          <form className="role-management__panel" onSubmit={grant}>
+            <h2>Nueva asignación</h2>
 
-          <Field
-            id="role-target-account"
-            label="Cuenta objetivo"
-            helpText="UUID de la cuenta. Este flujo no busca ni expone correos."
-            value={targetAccount}
-            onChange={(event) => setTargetAccount(event.target.value)}
-            required
-          />
+            <Field
+              id="role-target-account"
+              label="Cuenta objetivo"
+              helpText="UUID de la cuenta. Este flujo no busca ni expone correos."
+              value={targetAccount}
+              onChange={(event) => setTargetAccount(event.target.value)}
+              required
+            />
 
-          <SelectField
-            id="role-code"
-            label="Rol"
-            value={roleCode}
-            onChange={(event) => setRoleCode(event.target.value)}
-            required
-          >
-            {(catalog?.roles ?? []).map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </SelectField>
-
-          <SelectField
-            id="role-scope"
-            label="Alcance"
-            helpText="Global usa la asignación sin scope_id. Los demás alcances provienen del catálogo."
-            value={scopeId}
-            onChange={(event) => setScopeId(event.target.value)}
-          >
-            <option value="">Global</option>
-            {(catalog?.scopes ?? []).map((scope) => (
-              <option key={scope.scopeId} value={scope.scopeId}>
-                {scopeLabel(scope)}
-              </option>
-            ))}
-          </SelectField>
-
-          <Field
-            id="role-valid-until"
-            label="Vigente hasta"
-            helpText="Opcional. Si se omite, la asignación permanece vigente hasta ser retirada."
-            type="datetime-local"
-            value={validUntil}
-            onChange={(event) => setValidUntil(event.target.value)}
-          />
-
-          <Field
-            id="role-reason"
-            label="Motivo"
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            maxLength={1000}
-            required
-          />
-
-          <div className="role-management__actions">
-            <Button type="submit" disabled={busy || !catalog}>
-              Asignar rol
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => void loadAssignments()}
+            <SelectField
+              id="role-code"
+              label="Rol"
+              value={roleCode}
+              onChange={(event) => setRoleCode(event.target.value)}
+              required
             >
-              Consultar asignaciones
-            </Button>
-          </div>
-        </form>
-
-        <section className="role-management__panel" aria-labelledby="current-assignments-title">
-          <h2 id="current-assignments-title">Asignaciones de la cuenta</h2>
-
-          <Field
-            id="role-revoke-reason"
-            label="Motivo para retirar"
-            helpText="Se conserva en la auditoría de la revocación."
-            value={revokeReason}
-            onChange={(event) => setRevokeReason(event.target.value)}
-            maxLength={1000}
-          />
-
-          {assignments.length === 0 ? (
-            <p className="role-management__empty">
-              Consulta una cuenta para ver sus asignaciones, o no existen asignaciones registradas.
-            </p>
-          ) : (
-            <ul className="role-management__assignments">
-              {assignments.map((assignment) => (
-                <li key={assignment.assignmentId}>
-                  <div>
-                    <strong>{assignment.roleCode}</strong>
-                    <span>{assignment.scope ? scopeLabel(assignment.scope) : 'Global'}</span>
-                    <span>Estado: {assignment.state}</span>
-                    <span>
-                      Desde {new Date(assignment.validFrom).toLocaleString('es-CR')}
-                      {assignment.validTo
-                        ? ` hasta ${new Date(assignment.validTo).toLocaleString('es-CR')}`
-                        : ' · sin vencimiento'}
-                    </span>
-                    <small>Motivo de asignación: {assignment.reason}</small>
-                  </div>
-                  <Button
-                    variant="danger"
-                    disabled={busy || assignment.state !== 'ACTIVE'}
-                    onClick={() => void revoke(assignment.assignmentId)}
-                  >
-                    Retirar
-                  </Button>
-                </li>
+              {(catalog?.roles ?? []).map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
               ))}
-            </ul>
-          )}
-        </section>
-      </div>
+            </SelectField>
+
+            <SelectField
+              id="role-scope"
+              label="Alcance"
+              helpText="Global usa la asignación sin scope_id. Los demás alcances provienen del catálogo."
+              value={scopeId}
+              onChange={(event) => setScopeId(event.target.value)}
+            >
+              <option value="">Global</option>
+              {(catalog?.scopes ?? []).map((scope) => (
+                <option key={scope.scopeId} value={scope.scopeId}>
+                  {scopeLabel(scope)}
+                </option>
+              ))}
+            </SelectField>
+
+            <Field
+              id="role-valid-until"
+              label="Vigente hasta"
+              helpText="Opcional. Si se omite, la asignación permanece vigente hasta ser retirada."
+              type="datetime-local"
+              value={validUntil}
+              onChange={(event) => setValidUntil(event.target.value)}
+            />
+
+            <Field
+              id="role-reason"
+              label="Motivo"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              maxLength={1000}
+              required
+            />
+
+            <div className="role-management__actions">
+              <Button type="submit" disabled={busy || !catalog}>
+                Asignar rol
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => void loadAssignments()}
+              >
+                Consultar asignaciones
+              </Button>
+            </div>
+          </form>
+
+          <section className="role-management__panel" aria-labelledby="current-assignments-title">
+            <h2 id="current-assignments-title">Asignaciones de la cuenta</h2>
+
+            <Field
+              id="role-revoke-reason"
+              label="Motivo para retirar"
+              helpText="Se conserva en la auditoría de la revocación."
+              value={revokeReason}
+              onChange={(event) => setRevokeReason(event.target.value)}
+              maxLength={1000}
+            />
+
+            {assignments.length === 0 ? (
+              <p className="role-management__empty">
+                Consulta una cuenta para ver sus asignaciones, o no existen asignaciones
+                registradas.
+              </p>
+            ) : (
+              <ul className="role-management__assignments">
+                {assignments.map((assignment) => (
+                  <li key={assignment.assignmentId}>
+                    <div>
+                      <strong>{assignment.roleCode}</strong>
+                      <span>{assignment.scope ? scopeLabel(assignment.scope) : 'Global'}</span>
+                      <span>Estado: {assignment.state}</span>
+                      <span>
+                        Desde {new Date(assignment.validFrom).toLocaleString('es-CR')}
+                        {assignment.validTo
+                          ? ` hasta ${new Date(assignment.validTo).toLocaleString('es-CR')}`
+                          : ' · sin vencimiento'}
+                      </span>
+                      <small>Motivo de asignación: {assignment.reason}</small>
+                    </div>
+                    <Button
+                      variant="danger"
+                      disabled={busy || assignment.state !== 'ACTIVE'}
+                      onClick={() => void revoke(assignment.assignmentId)}
+                    >
+                      Retirar
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      ) : (
+        <p className="role-management__locked">
+          Confirma la verificación reforzada para consultar o modificar asignaciones.
+        </p>
+      )}
     </section>
   );
 }

@@ -260,7 +260,8 @@ internal static class ObjectStoreChecks
             .WithBucket(options.Bucket)
             .WithObject(descriptor.StorageKey)
             .WithCallbackStream(
-                stream => stream.CopyToAsync(raw));
+                (stream, cancellationToken) =>
+                    stream.CopyToAsync(raw, cancellationToken));
 
         await minioClient.GetObjectAsync(args);
 
@@ -287,24 +288,32 @@ internal static class ObjectStoreChecks
         StoredObjectDescriptor descriptor,
         byte[] plaintext)
     {
-        await using var destination = new MemoryStream();
-
-        await objectStore.ReadAsync(
-            descriptor,
-            new ObjectStoreAccessContext(
-                OwnerModule,
-                PurposeCode),
-            destination);
-
-        var restored = destination.ToArray();
-
-        if (!restored.AsSpan().SequenceEqual(plaintext))
+        for (var attempt = 1; attempt <= 2; attempt++)
         {
-            throw new InvalidOperationException(
-                "El round-trip autorizado no devolvio exactamente el plaintext original.");
-        }
+            await using var destination = new MemoryStream();
 
-        CryptographicOperations.ZeroMemory(restored);
+            await objectStore.ReadAsync(
+                descriptor,
+                new ObjectStoreAccessContext(
+                    OwnerModule,
+                    PurposeCode),
+                destination);
+
+            var restored = destination.ToArray();
+
+            try
+            {
+                if (!restored.AsSpan().SequenceEqual(plaintext))
+                {
+                    throw new InvalidOperationException(
+                        $"La lectura autorizada repetida {attempt} no devolvio exactamente el plaintext original.");
+                }
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(restored);
+            }
+        }
     }
 
     private static async Task InsertStoredObjectAsync(

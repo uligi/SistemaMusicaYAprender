@@ -120,7 +120,7 @@ BEGIN
                     ON account.account_id = session.account_id
                 WHERE octet_length(p_session_hash) = 32
                   AND session.session_hash = p_session_hash
-                  AND session.assurance_level = 'PASSWORD'
+                  AND session.assurance_level IN ('PASSWORD', 'MFA')
                   AND session.revoked_at IS NULL
                   AND session.idle_expires_at > CURRENT_TIMESTAMP
                   AND session.absolute_expires_at > CURRENT_TIMESTAMP
@@ -169,6 +169,18 @@ BEGIN
 END;
 $personal_session_access$;
 
+
+-- BL-MVP-032. El runtime administra solamente su propio método MFA.
+-- security.mfa_method conserva RLS forzado por account_id.
+DO $mfa_runtime_access$
+BEGIN
+    IF to_regclass('security.mfa_method') IS NOT NULL THEN
+        GRANT SELECT, INSERT, UPDATE
+            ON TABLE security.mfa_method
+            TO jp_app;
+    END IF;
+END;
+$mfa_runtime_access$;
 -- EF Core mantiene __EFMigrationsHistory en public. Solo el rol de migracion
 -- puede crear/gestionar esa tabla; los roles runtime no reciben CREATE.
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;

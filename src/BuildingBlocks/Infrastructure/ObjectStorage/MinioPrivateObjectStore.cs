@@ -166,7 +166,7 @@ public sealed class MinioPrivateObjectStore : IObjectStore
                 .WithBucket(_options.Bucket)
                 .WithObject(descriptor.StorageKey)
                 .WithCallbackStream(
-                    async source =>
+                    async (source, callbackToken) =>
                     {
                         await using var file = new FileStream(
                             encryptedPath,
@@ -176,8 +176,8 @@ public sealed class MinioPrivateObjectStore : IObjectStore
                             81920,
                             FileOptions.Asynchronous | FileOptions.SequentialScan);
 
-                        await source.CopyToAsync(file, cancellationToken);
-                        await file.FlushAsync(cancellationToken);
+                        await source.CopyToAsync(file, callbackToken);
+                        await file.FlushAsync(callbackToken);
                     });
 
             await _minioClient.GetObjectAsync(

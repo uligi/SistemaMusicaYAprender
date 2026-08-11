@@ -25,6 +25,7 @@ public static class RoleAssignmentEndpoints
                 "/api/v1/security/role-assignments/catalog",
                 ReadCatalogAsync)
             .RequireEffectivePermission("SECURITY.MANAGE_ROLES")
+            .RequireRecentPrivilegedAssurance()
             .WithName("ReadRoleAssignmentCatalog")
             .WithTags("Security");
 
@@ -32,6 +33,7 @@ public static class RoleAssignmentEndpoints
                 "/api/v1/security/role-assignments/{accountId:guid}",
                 ListAsync)
             .RequireEffectivePermission("SECURITY.MANAGE_ROLES")
+            .RequireRecentPrivilegedAssurance()
             .WithName("ListRoleAssignments")
             .WithTags("Security");
 
@@ -39,6 +41,7 @@ public static class RoleAssignmentEndpoints
                 "/api/v1/security/role-assignments",
                 GrantAsync)
             .RequireEffectivePermission("SECURITY.MANAGE_ROLES")
+            .RequireRecentPrivilegedAssurance()
             .WithName("GrantRoleAssignment")
             .WithTags("Security");
 
@@ -46,6 +49,7 @@ public static class RoleAssignmentEndpoints
                 "/api/v1/security/role-assignments/{assignmentId:guid}/revoke",
                 RevokeAsync)
             .RequireEffectivePermission("SECURITY.MANAGE_ROLES")
+            .RequireRecentPrivilegedAssurance()
             .WithName("RevokeRoleAssignment")
             .WithTags("Security");
 
