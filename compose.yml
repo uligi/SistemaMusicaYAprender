@@ -49,6 +49,10 @@ services:
       Dependencies__SmtpHost: smtp-sink
       Dependencies__SmtpPort: '1025'
       Dependencies__OpenTelemetryHealthUrl: http://otel-collector:13133/
+      Security__LoginAbuse__AccountFailureLimit: ${LOGIN_ABUSE_ACCOUNT_FAILURE_LIMIT:-5}
+      Security__LoginAbuse__ClientFailureLimit: ${LOGIN_ABUSE_CLIENT_FAILURE_LIMIT:-20}
+      Security__LoginAbuse__WindowSeconds: ${LOGIN_ABUSE_WINDOW_SECONDS:-900}
+      Security__LoginAbuse__TrustClientAddressHeader: 'true'
     secrets:
       - postgres_api_password
       - object_store_access_key
@@ -58,6 +62,7 @@ services:
       - identity_email_encryption_key
       - identity_verification_token_key
       - identity_password_fingerprint_key
+      - identity_login_abuse_key
       - aspnetcore_local_https_certificate
       - aspnetcore_local_https_key
     ports:
@@ -231,6 +236,8 @@ secrets:
     file: ./secrets/local/identity_verification_token_key
   identity_password_fingerprint_key:
     file: ./secrets/local/identity_password_fingerprint_key
+  identity_login_abuse_key:
+    file: ./secrets/local/identity_login_abuse_key
   aspnetcore_local_https_certificate:
     file: ./secrets/local/aspnetcore_local_https.pem
   aspnetcore_local_https_key:

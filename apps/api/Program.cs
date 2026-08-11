@@ -80,6 +80,9 @@ builder.Services.AddSingleton(
     AccountVerificationTokenService.FromConfiguration(builder.Configuration));
 builder.Services.AddSingleton<PersonalAccountRegistrationService>();
 builder.Services.AddSingleton<PersonalAccountVerificationService>();
+builder.Services.AddSingleton(LoginAbusePolicy.FromConfiguration(builder.Configuration));
+builder.Services.AddSingleton(
+    LoginAbuseFingerprintService.FromConfiguration(builder.Configuration));
 builder.Services.AddSingleton<PersonalAccountLoginService>();
 builder.Services.AddSingleton<MinimumPublishedConfigurationReader>();
 builder.Services.AddSingleton<MinimumRoleCatalogReader>();

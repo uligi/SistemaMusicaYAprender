@@ -291,6 +291,16 @@ jobs:
           PGDATABASE: musica_aprender_ci
         run: bash scripts/ci/identity/verify-personal-logout.sh
 
+      - name: Verify login abuse limits and session bounds
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/ci/identity/verify-login-abuse.sh
+
       - name: Start private development object store
         shell: bash
         run: |

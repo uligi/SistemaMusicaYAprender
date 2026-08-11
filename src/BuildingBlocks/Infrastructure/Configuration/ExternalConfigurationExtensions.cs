@@ -16,6 +16,7 @@ public static class ExternalConfigurationExtensions
     private const string IdentityVerificationTokenKeySecret = "identity_verification_token_key";
     private const string IdentityPasswordFingerprintKeySecret =
         "identity_password_fingerprint_key";
+    private const string IdentityLoginAbuseKeySecret = "identity_login_abuse_key";
 
     public static ConfigurationManager AddMusicaAprenderExternalConfiguration(
         this ConfigurationManager configuration)
@@ -76,6 +77,10 @@ public static class ExternalConfigurationExtensions
             secretDirectory,
             IdentityPasswordFingerprintKeySecret,
             minimumLength: 64);
+        var identityLoginAbuseKey = TryReadSecret(
+            secretDirectory,
+            IdentityLoginAbuseKeySecret,
+            minimumLength: 64);
 
         var identitySecretCount = new[]
         {
@@ -128,6 +133,12 @@ public static class ExternalConfigurationExtensions
                 identityVerificationTokenKey;
             protectedConfiguration["IdentityProtection:PasswordFingerprintKey"] =
                 identityPasswordFingerprintKey;
+        }
+
+        if (identityLoginAbuseKey is not null)
+        {
+            protectedConfiguration["IdentityProtection:LoginAbuseKey"] =
+                identityLoginAbuseKey;
         }
 
         configuration.AddInMemoryCollection(protectedConfiguration);

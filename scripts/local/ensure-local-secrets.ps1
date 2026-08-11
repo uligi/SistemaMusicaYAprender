@@ -97,6 +97,7 @@ Ensure-Secret "identity_email_lookup_key" 32
 Ensure-Secret "identity_email_encryption_key" 32
 Ensure-Secret "identity_verification_token_key" 32
 Ensure-Secret "identity_password_fingerprint_key" 32
+Ensure-Secret "identity_login_abuse_key" 32
 Ensure-LocalHttpsCertificate
 
 Write-Host "OK: secret store local preparado fuera del repositorio."
