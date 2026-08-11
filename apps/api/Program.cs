@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using MusicaAprender.Api.Endpoints.Identity;
+using MusicaAprender.Api.Endpoints.Security;
 using MusicaAprender.Api.Health;
 using MusicaAprender.Api.Observability;
 using MusicaAprender.Api.Security;
@@ -86,6 +87,7 @@ builder.Services.AddSingleton(
 builder.Services.AddSingleton<PersonalAccountLoginService>();
 builder.Services.AddSingleton<MinimumPublishedConfigurationReader>();
 builder.Services.AddSingleton<MinimumRoleCatalogReader>();
+builder.Services.AddSingleton<EffectiveAuthorizationService>();
 
 builder.Services.AddMusicaAprenderOpenTelemetry(
     builder.Configuration,
@@ -166,6 +168,7 @@ app.MapPersonalAccountRegistration();
 app.MapPersonalAccountVerification();
 app.MapPersonalAccountLogin();
 app.MapPersonalAccountLogout();
+app.MapAuthorizationCatalog();
 
 app.Run();
 

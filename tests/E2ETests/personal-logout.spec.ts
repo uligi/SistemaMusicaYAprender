@@ -16,7 +16,12 @@ test.describe('BL-MVP-027 · cierre de sesión accesible y revocable', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ status: 'AUTHENTICATED', role: 'STUDENT' }),
+          body: JSON.stringify({
+            status: 'AUTHENTICATED',
+            role: 'STUDENT',
+            roles: ['STUDENT'],
+            capabilities: ['PROFILE.READ', 'CONTENT.READ', 'LEARNING.START'],
+          }),
         });
         return;
       }

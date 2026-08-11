@@ -156,7 +156,13 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/editorial',
     access: 'capability',
     accessLabel: 'Interno',
-    requiredCapabilities: ['editorial:access'],
+    requiredCapabilities: [
+      'EDITORIAL.DRAFT',
+      'EDITORIAL.REVIEW',
+      'EDITORIAL.PUBLISH',
+      'EDITORIAL.CORRECT',
+    ],
+    capabilityMode: 'any',
   },
   {
     id: 'UI-MVP-018',
@@ -165,7 +171,7 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/editorial/canciones/nueva',
     access: 'capability',
     accessLabel: 'Editor',
-    requiredCapabilities: ['catalog:edit'],
+    requiredCapabilities: ['EDITORIAL.DRAFT'],
   },
   {
     id: 'UI-MVP-019',
@@ -174,7 +180,13 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/editorial/canciones/{id}',
     access: 'capability',
     accessLabel: 'Interno por alcance',
-    requiredCapabilities: ['editorial:access'],
+    requiredCapabilities: [
+      'EDITORIAL.DRAFT',
+      'EDITORIAL.REVIEW',
+      'EDITORIAL.PUBLISH',
+      'EDITORIAL.CORRECT',
+    ],
+    capabilityMode: 'any',
   },
   {
     id: 'UI-MVP-020',
@@ -183,7 +195,8 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/editorial/canciones/{id}/derechos',
     access: 'capability',
     accessLabel: 'Editor/revisor',
-    requiredCapabilities: ['rights:edit', 'rights:review'],
+    requiredCapabilities: ['EDITORIAL.DRAFT', 'EDITORIAL.REVIEW'],
+    capabilityMode: 'any',
   },
   {
     id: 'UI-MVP-021',
@@ -192,7 +205,7 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/editorial/canciones/{id}/letra',
     access: 'capability',
     accessLabel: 'Editor',
-    requiredCapabilities: ['lyrics:edit'],
+    requiredCapabilities: ['EDITORIAL.DRAFT'],
   },
   {
     id: 'UI-MVP-022',
@@ -201,7 +214,7 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/editorial/canciones/{id}/sincronizacion',
     access: 'capability',
     accessLabel: 'Editor',
-    requiredCapabilities: ['timing:edit'],
+    requiredCapabilities: ['EDITORIAL.DRAFT'],
   },
   {
     id: 'UI-MVP-023',
@@ -210,7 +223,8 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/editorial/canciones/{id}/traduccion',
     access: 'capability',
     accessLabel: 'Traductor/revisor',
-    requiredCapabilities: ['translation:edit', 'translation:review'],
+    requiredCapabilities: ['EDITORIAL.DRAFT', 'EDITORIAL.REVIEW'],
+    capabilityMode: 'any',
   },
   {
     id: 'UI-MVP-024',
@@ -219,7 +233,8 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/editorial/canciones/{id}/analisis',
     access: 'capability',
     accessLabel: 'Editor/revisor',
-    requiredCapabilities: ['analysis:edit', 'analysis:review'],
+    requiredCapabilities: ['EDITORIAL.DRAFT', 'EDITORIAL.REVIEW'],
+    capabilityMode: 'any',
   },
   {
     id: 'UI-MVP-025',
@@ -228,7 +243,7 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/editorial/canciones/{id}/ejercicios',
     access: 'capability',
     accessLabel: 'Editor',
-    requiredCapabilities: ['exercise:edit'],
+    requiredCapabilities: ['EDITORIAL.DRAFT'],
   },
   {
     id: 'UI-MVP-026',
@@ -237,7 +252,8 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/editorial/paquetes/{id}',
     access: 'capability',
     accessLabel: 'Editor/revisor',
-    requiredCapabilities: ['package:edit', 'package:review'],
+    requiredCapabilities: ['EDITORIAL.SUBMIT', 'EDITORIAL.REVIEW'],
+    capabilityMode: 'any',
   },
   {
     id: 'UI-MVP-027',
@@ -246,7 +262,7 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/administracion/publicaciones/{id}',
     access: 'capability',
     accessLabel: 'Administrador',
-    requiredCapabilities: ['publication:review'],
+    requiredCapabilities: ['EDITORIAL.PUBLISH'],
   },
   {
     id: 'UI-MVP-028',
@@ -255,7 +271,7 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/administracion/correcciones/{id}',
     access: 'capability',
     accessLabel: 'Administrador',
-    requiredCapabilities: ['publication:correct'],
+    requiredCapabilities: ['EDITORIAL.CORRECT'],
   },
   {
     id: 'UI-MVP-029',
@@ -264,7 +280,7 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/administracion/roles',
     access: 'capability',
     accessLabel: 'Administrador',
-    requiredCapabilities: ['security:roles'],
+    requiredCapabilities: ['SECURITY.MANAGE_ROLES'],
   },
   {
     id: 'UI-MVP-030',
@@ -273,7 +289,7 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/administracion/configuracion',
     access: 'capability',
     accessLabel: 'Administrador',
-    requiredCapabilities: ['configuration:manage'],
+    requiredCapabilities: ['CONFIG.MANAGE'],
   },
   {
     id: 'UI-MVP-031',
@@ -282,7 +298,7 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/administracion/auditoria',
     access: 'capability',
     accessLabel: 'Administrador',
-    requiredCapabilities: ['audit:read'],
+    requiredCapabilities: ['SECURITY.READ_AUDIT'],
   },
   {
     id: 'UI-MVP-032',
@@ -291,6 +307,6 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/administracion/auditoria/{evento}',
     access: 'capability',
     accessLabel: 'Administrador',
-    requiredCapabilities: ['audit:read'],
+    requiredCapabilities: ['SECURITY.READ_AUDIT'],
   },
 ] as const;

@@ -6,13 +6,15 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using MusicaAprender.Api.Security;
 using MusicaAprender.Modules.Security.Infrastructure.Authentication;
+using MusicaAprender.Modules.Security.Infrastructure.Authorization;
 using Npgsql;
 
 namespace MusicaAprender.Api.Endpoints.Identity;
 
 public static partial class PersonalAccountLoginEndpoint
 {
-    private const string TrustedClientAddressHeader = "X-Musica-Client-Address";
+    private const string TrustedClientAddressHeader =
+        "X-Musica-Client-Address";
 
     public static IEndpointRouteBuilder MapPersonalAccountLogin(
         this IEndpointRouteBuilder endpoints)
@@ -21,7 +23,8 @@ public static partial class PersonalAccountLoginEndpoint
                 "/api/v1/auth/csrf",
                 GetAntiforgeryToken)
             .AllowAnonymous()
-            .Produces<AntiforgeryTokenResponse>(StatusCodes.Status200OK)
+            .Produces<AntiforgeryTokenResponse>(
+                StatusCodes.Status200OK)
             .WithName("GetLoginAntiforgeryToken")
             .WithTags("Identity");
 
@@ -30,7 +33,8 @@ public static partial class PersonalAccountLoginEndpoint
                 HandleAsync)
             .AllowAnonymous()
             .Accepts<PersonalAccountLoginRequest>("application/json")
-            .Produces<PersonalAccountLoginResponse>(StatusCodes.Status200OK)
+            .Produces<PersonalAccountLoginResponse>(
+                StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
@@ -40,10 +44,12 @@ public static partial class PersonalAccountLoginEndpoint
 
         endpoints.MapGet(
                 "/api/v1/auth/session",
-                GetCurrentSession)
+                GetCurrentSessionAsync)
             .RequireAuthorization()
-            .Produces<PersonalSessionResponse>(StatusCodes.Status200OK)
+            .Produces<PersonalSessionResponse>(
+                StatusCodes.Status200OK)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
             .WithName("GetPersonalSession")
             .WithTags("Identity");
 
@@ -86,7 +92,8 @@ public static partial class PersonalAccountLoginEndpoint
                 httpContext.TraceIdentifier,
                 cancellationToken);
 
-            if (result.Kind == PersonalAccountLoginResultKind.RateLimited)
+            if (result.Kind
+                == PersonalAccountLoginResultKind.RateLimited)
             {
                 LogLoginRateLimited(
                     logger,
@@ -98,19 +105,25 @@ public static partial class PersonalAccountLoginEndpoint
                     result.RetryAfterSeconds);
             }
 
-            if (result.Kind != PersonalAccountLoginResultKind.Authenticated)
+            if (result.Kind
+                != PersonalAccountLoginResultKind.Authenticated)
             {
                 return LoginRejected();
             }
 
+            // BL-MVP-030: la cookie prueba identidad/sesion, no autoridad.
+            // Roles y permisos efectivos se recalculan contra PostgreSQL.
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, result.AccountId.ToString("D")),
-                new Claim("sub", result.AccountId.ToString("D")),
-                new Claim("account_id", result.AccountId.ToString("D")),
-                new Claim(ClaimTypes.Role, SecuritySessionPolicy.SafeRoleCode),
-                new Claim("role", SecuritySessionPolicy.SafeRoleCode),
-                new Claim("active_role", SecuritySessionPolicy.SafeRoleCode)
+                new Claim(
+                    ClaimTypes.NameIdentifier,
+                    result.AccountId.ToString("D")),
+                new Claim(
+                    "sub",
+                    result.AccountId.ToString("D")),
+                new Claim(
+                    "account_id",
+                    result.AccountId.ToString("D"))
             };
             var identity = new ClaimsIdentity(
                 claims,
@@ -128,7 +141,9 @@ public static partial class PersonalAccountLoginEndpoint
                     AllowRefresh = false,
                     IsPersistent = true,
                     IssuedUtc = issuedAt,
-                    ExpiresUtc = issuedAt + SecuritySessionPolicy.AbsoluteLifetime
+                    ExpiresUtc =
+                        issuedAt
+                        + SecuritySessionPolicy.AbsoluteLifetime
                 });
 
             httpContext.Response.Headers.CacheControl = "no-store";
@@ -143,12 +158,17 @@ public static partial class PersonalAccountLoginEndpoint
         }
         catch (NpgsqlException exception)
         {
-            LogLoginUnavailable(logger, httpContext.TraceIdentifier, exception);
+            LogLoginUnavailable(
+                logger,
+                httpContext.TraceIdentifier,
+                exception);
 
             return Results.Problem(
-                statusCode: StatusCodes.Status503ServiceUnavailable,
+                statusCode:
+                    StatusCodes.Status503ServiceUnavailable,
                 title: "Acceso temporalmente no disponible",
-                detail: "Conserva los datos y vuelve a intentarlo más tarde.",
+                detail:
+                    "Conserva los datos y vuelve a intentarlo más tarde.",
                 extensions: new Dictionary<string, object?>
                 {
                     ["code"] = "identity.login.unavailable"
@@ -156,25 +176,58 @@ public static partial class PersonalAccountLoginEndpoint
         }
     }
 
-    private static IResult GetCurrentSession(
+    private static async Task<IResult> GetCurrentSessionAsync(
         ClaimsPrincipal user,
-        HttpContext httpContext)
+        HttpContext httpContext,
+        EffectiveAuthorizationService authorization,
+        CancellationToken cancellationToken)
     {
-        httpContext.Response.Headers.CacheControl = "no-store";
+        var accountValue = user.FindFirstValue("account_id");
+        if (!Guid.TryParse(accountValue, out var accountId)
+            || accountId == Guid.Empty)
+        {
+            return Results.Unauthorized();
+        }
 
-        var role = user.FindFirstValue("active_role")
-                   ?? SecuritySessionPolicy.SafeRoleCode;
+        try
+        {
+            var snapshot =
+                await authorization.ResolveSnapshotAsync(
+                    accountId,
+                    httpContext.TraceIdentifier,
+                    cancellationToken);
 
-        return Results.Ok(new PersonalSessionResponse(
-            "AUTHENTICATED",
-            role));
+            httpContext.Response.Headers.CacheControl = "no-store";
+
+            return Results.Ok(new PersonalSessionResponse(
+                "AUTHENTICATED",
+                SecuritySessionPolicy.SafeRoleCode,
+                snapshot.Roles,
+                snapshot.Permissions));
+        }
+        catch (NpgsqlException)
+        {
+            return Results.Problem(
+                statusCode:
+                    StatusCodes.Status503ServiceUnavailable,
+                title: "Autorización temporalmente no disponible",
+                detail:
+                    "La sesión permanece cerrada a operaciones "
+                    + "protegidas hasta poder recalcular sus permisos.",
+                extensions: new Dictionary<string, object?>
+                {
+                    ["code"] = "security.authorization.unavailable"
+                });
+        }
     }
 
     private static IResult LoginRejected() =>
         Results.Problem(
             statusCode: StatusCodes.Status401Unauthorized,
             title: "No se pudo iniciar sesión",
-            detail: "Revisa el correo y la contraseña e inténtalo nuevamente.",
+            detail:
+                "Revisa el correo y la contraseña "
+                + "e inténtalo nuevamente.",
             extensions: new Dictionary<string, object?>
             {
                 ["code"] = "identity.login.failed"
@@ -185,7 +238,8 @@ public static partial class PersonalAccountLoginEndpoint
         int retryAfterSeconds)
     {
         httpContext.Response.Headers["Retry-After"] =
-            retryAfterSeconds.ToString(CultureInfo.InvariantCulture);
+            retryAfterSeconds.ToString(
+                CultureInfo.InvariantCulture);
         httpContext.Response.Headers.CacheControl = "no-store";
 
         return Results.Problem(
@@ -216,12 +270,15 @@ public static partial class PersonalAccountLoginEndpoint
             && httpContext.Request.Headers.TryGetValue(
                 TrustedClientAddressHeader,
                 out var headerValues)
-            && IPAddress.TryParse(headerValues.ToString(), out var trustedAddress))
+            && IPAddress.TryParse(
+                headerValues.ToString(),
+                out var trustedAddress))
         {
             return NormalizeAddress(trustedAddress);
         }
 
-        return httpContext.Connection.RemoteIpAddress is { } remoteAddress
+        return httpContext.Connection.RemoteIpAddress
+            is { } remoteAddress
             ? NormalizeAddress(remoteAddress)
             : "unavailable";
     }
@@ -239,7 +296,9 @@ public static partial class PersonalAccountLoginEndpoint
     [LoggerMessage(
         EventId = 2601,
         Level = LogLevel.Warning,
-        Message = "Personal account login is temporarily unavailable. CorrelationId={CorrelationId}")]
+        Message =
+            "Personal account login is temporarily unavailable. "
+            + "CorrelationId={CorrelationId}")]
     private static partial void LogLoginUnavailable(
         ILogger logger,
         string correlationId,
@@ -248,7 +307,10 @@ public static partial class PersonalAccountLoginEndpoint
     [LoggerMessage(
         EventId = 2602,
         Level = LogLevel.Warning,
-        Message = "Personal account login was rate limited. CorrelationId={CorrelationId} RetryAfterSeconds={RetryAfterSeconds}")]
+        Message =
+            "Personal account login was rate limited. "
+            + "CorrelationId={CorrelationId} "
+            + "RetryAfterSeconds={RetryAfterSeconds}")]
     private static partial void LogLoginRateLimited(
         ILogger logger,
         string correlationId,

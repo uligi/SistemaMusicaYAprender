@@ -40,12 +40,28 @@ const httpClient = createHttpClient();
 type SessionResponse = {
   status: 'AUTHENTICATED';
   role: string;
+  roles: readonly string[];
+  capabilities: readonly string[];
 };
 
 export type AccessProviderProps = {
   children: ReactNode;
   value?: VisibleAccessSnapshot;
 };
+
+function snapshotFromSession(
+  result: Awaited<ReturnType<typeof httpClient.get<SessionResponse>>>,
+): VisibleAccessSnapshot {
+  if (!result.ok || result.data.status !== 'AUTHENTICATED') {
+    return signedOutAccess;
+  }
+
+  return {
+    isAuthenticated: true,
+    capabilities: [...result.data.capabilities],
+    source: 'server-session',
+  };
+}
 
 export function AccessProvider({ children, value = anonymousAccess }: AccessProviderProps) {
   const [sessionAccess, setSessionAccess] = useState<VisibleAccessSnapshot>(value);
@@ -56,14 +72,10 @@ export function AccessProvider({ children, value = anonymousAccess }: AccessProv
       retry: 'never',
     });
 
-    const authenticated = result.ok && result.data.status === 'AUTHENTICATED';
-    setSessionAccess({
-      isAuthenticated: authenticated,
-      capabilities: [],
-      source: 'server-session',
-    });
+    const snapshot = snapshotFromSession(result);
+    setSessionAccess(snapshot);
 
-    return authenticated;
+    return snapshot.isAuthenticated;
   }, []);
 
   const clearSession = useCallback(() => {
@@ -89,11 +101,7 @@ export function AccessProvider({ children, value = anonymousAccess }: AccessProv
 
       if (!active || result.kind === 'cancelled') return;
 
-      setSessionAccess({
-        isAuthenticated: result.ok && result.data.status === 'AUTHENTICATED',
-        capabilities: [],
-        source: 'server-session',
-      });
+      setSessionAccess(snapshotFromSession(result));
     };
 
     void loadSession();

@@ -7,7 +7,9 @@ public sealed record PersonalAccountLoginResponse(
 
 public sealed record PersonalSessionResponse(
     string Status,
-    string Role);
+    string Role,
+    IReadOnlyList<string> Roles,
+    IReadOnlyList<string> Capabilities);
 
 public sealed record AntiforgeryTokenResponse(
     string RequestToken,

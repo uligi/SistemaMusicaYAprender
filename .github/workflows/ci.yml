@@ -301,6 +301,18 @@ jobs:
           PGDATABASE: musica_aprender_ci
         run: bash scripts/ci/identity/verify-login-abuse.sh
 
+      - name: Verify effective permissions, scope and current validity
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL030_USE_DOCKER_PSQL: 'false'
+          BL030_API_URL: https://localhost:5446
+        run: bash scripts/ci/security/verify-effective-authorization.sh
+
       - name: Start private development object store
         shell: bash
         run: |
