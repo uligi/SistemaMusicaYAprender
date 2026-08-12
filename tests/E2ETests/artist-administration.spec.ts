@@ -88,9 +88,10 @@ test.describe('BL-MVP-037 · identidad estable de artista', () => {
 
     await page.goto('/editorial/canciones/nueva');
 
+    await expect(page.getByRole('heading', { level: 1, name: 'Nueva canción' })).toBeVisible();
     await expect(
       page.getByRole('heading', {
-        level: 1,
+        level: 2,
         name: 'Artista canónico para una nueva canción',
       }),
     ).toBeVisible();

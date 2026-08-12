@@ -481,6 +481,10 @@ jobs:
           BL044_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/editorial/verify-editorial-inbox.sh
 
+      - name: Verify new-song editorial assistant
+        shell: bash
+        run: bash scripts/ci/editorial/verify-new-song-assistant.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

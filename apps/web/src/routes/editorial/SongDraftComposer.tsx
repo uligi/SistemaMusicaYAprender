@@ -282,7 +282,7 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
   return (
     <section className="song-draft" aria-labelledby="song-draft-title">
       <header className="song-draft__header">
-        <p className="song-draft__eyebrow">BL-MVP-038 · Obra, grabación y fuente</p>
+        <p className="song-draft__eyebrow">Paso 2 de 3 · Obra, grabación y fuente</p>
         <h2 id="song-draft-title">Completar el borrador de canción</h2>
         <p>
           Artista seleccionado: <strong>{artist.canonicalName}</strong>{' '}
@@ -450,6 +450,7 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
 
         {created ? (
           <section className="song-draft__created" aria-label="Borrador de canción confirmado">
+            <p className="song-draft__eyebrow">Paso 3 de 3 · Borrador guardado</p>
             <h3>{created.canonicalTitle}</h3>
             <dl>
               <div>
@@ -480,6 +481,13 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
             <a className="ma-link" href={`/editorial/canciones/${created.recordingId}`}>
               Abrir expediente de la canción
             </a>
+            <a className="ma-link" href={`/editorial/canciones/${created.recordingId}/derechos`}>
+              Continuar con derechos y procedencia
+            </a>
+            <p>
+              El borrador sigue sin publicar. Revisión, paquete y publicación se completan en sus
+              etapas editoriales correspondientes.
+            </p>
           </section>
         ) : null}
 

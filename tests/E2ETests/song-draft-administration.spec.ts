@@ -99,6 +99,11 @@ test.describe('BL-MVP-038 · obra, grabación y fuente de YouTube', () => {
 
     await page.goto('/editorial/canciones/nueva');
 
+    await expect(page.locator('[data-route-id="UI-MVP-018"]')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Nueva canción' })).toBeFocused();
+    await expect(page.getByText('1. Artista canónico', { exact: true })).toBeVisible();
+    await expect(page.getByText('Paso 1 de 3 · Artista canónico', { exact: true })).toBeVisible();
+
     await page.locator('#artist-search-query').fill('Sakanaction');
     await page.getByRole('button', { name: 'Buscar artista' }).click();
     await page.getByRole('button', { name: 'Usar サカナクション' }).click();
@@ -107,6 +112,9 @@ test.describe('BL-MVP-038 · obra, grabación y fuente de YouTube', () => {
       page.getByRole('heading', {
         name: 'Completar el borrador de canción',
       }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('Paso 2 de 3 · Obra, grabación y fuente', { exact: true }),
     ).toBeVisible();
 
     await page.locator('#song-work-title').fill('怪獣');
@@ -137,6 +145,31 @@ test.describe('BL-MVP-038 · obra, grabación y fuente de YouTube', () => {
     await expect(
       page.getByRole('link', { name: 'Abrir expediente de la canción' }),
     ).toHaveAttribute('href', `/editorial/canciones/${recordingId}`);
+    await expect(page.getByText('Paso 3 de 3 · Borrador guardado', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Continuar con derechos y procedencia' }),
+    ).toHaveAttribute('href', `/editorial/canciones/${recordingId}/derechos`);
+    await expect(page.getByRole('button', { name: 'Publicar' })).toHaveCount(0);
+
+    const accessibility = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze();
+    expect(accessibility.violations).toEqual([]);
+  });
+
+  test('BL-MVP-045 presenta el asistente completo a 320px sin desbordamiento', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 1000 });
+    await page.goto('/editorial/canciones/nueva');
+
+    await expect(page.locator('[data-route-id="UI-MVP-018"]')).toBeVisible();
+    await expect(page.getByText('1. Artista canónico', { exact: true })).toBeVisible();
+    await expect(page.getByText('2. Obra, grabación y fuente', { exact: true })).toBeVisible();
+    await expect(page.getByText('3. Borrador guardado', { exact: true })).toBeVisible();
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
 
     const accessibility = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])

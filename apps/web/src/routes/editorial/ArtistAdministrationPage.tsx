@@ -290,8 +290,8 @@ export function ArtistAdministrationPage() {
   return (
     <section className="artist-administration" aria-labelledby="artist-administration-title">
       <header className="artist-administration__header">
-        <p className="artist-administration__eyebrow">F2 · Catálogo musical · M02</p>
-        <h1 id="artist-administration-title">Artista canónico para una nueva canción</h1>
+        <p className="artist-administration__eyebrow">Paso 1 de 3 · Artista canónico</p>
+        <h2 id="artist-administration-title">Artista canónico para una nueva canción</h2>
         <p>
           Registra o localiza primero la identidad estable del artista. Los nombres sirven para
           mostrar y buscar; nunca sustituyen al identificador interno.

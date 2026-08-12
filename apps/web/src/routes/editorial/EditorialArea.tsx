@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { RouteMatch } from '../../app/router/match-route';
 import { RoutePlaceholder } from '../shared/RoutePlaceholder';
-import { ArtistAdministrationPage } from './ArtistAdministrationPage';
+import { NewSongAssistantPage } from './NewSongAssistantPage';
 import { EditorialInboxPage } from './EditorialInboxPage';
 import { RightsProvenancePage } from './RightsProvenancePage';
 import { SongContextNavigation } from './SongContextNavigation';
@@ -28,7 +28,7 @@ export default function EditorialArea({ match }: EditorialAreaProps) {
   }
 
   if (match.route.id === 'UI-MVP-018') {
-    return <ArtistAdministrationPage />;
+    return <NewSongAssistantPage />;
   }
 
   if (match.route.id === 'UI-MVP-019') {
