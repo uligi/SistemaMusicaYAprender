@@ -9,7 +9,8 @@ public sealed class CatalogAdministrationTransactionExecutor(
     : IArtistAdministrationTransactionExecutor,
       ISongDraftAdministrationTransactionExecutor,
       ICreditProvenanceAdministrationTransactionExecutor,
-      IEditorialInboxTransactionExecutor
+      IEditorialInboxTransactionExecutor,
+      ISongEditorialDossierTransactionExecutor
 {
     public Task<TResult> ExecuteAsync<TResult>(
         Guid actorAccountId,

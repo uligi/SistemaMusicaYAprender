@@ -177,48 +177,61 @@ test.describe('BL-MVP-038 · obra, grabación y fuente de YouTube', () => {
     expect(accessibility.violations).toEqual([]);
   });
 
-  test('abre UI-MVP-019 mostrando obra, grabación y fuente como objetos distintos', async ({
-    page,
-  }) => {
-    await page.route(`**/api/v1/editorial/song-drafts/${recordingId}`, async (route) => {
+  test('abre UI-MVP-019 como expediente agregado sin adelantar publicación', async ({ page }) => {
+    await page.route(`**/api/v1/editorial/song-dossiers/${recordingId}`, async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          workId,
-          recordingId,
-          sourceId,
-          artistId,
-          artistName: 'サカナクション',
           canonicalTitle: '怪獣',
-          languageTag: 'ja',
           recordingTitle: '怪獣',
-          recordingDurationMs: 241125,
+          artistName: 'サカナクション',
+          recordingStatusCode: 'DRAFT',
           providerCode: 'YOUTUBE',
           externalRef: 'a8dgNdJVluc',
-          sourceDurationMs: 245000,
-          offsetMs: 2500,
-          workStatusCode: 'DRAFT',
-          recordingStatusCode: 'DRAFT',
           sourceStatusCode: 'DRAFT',
+          components: [
+            {
+              code: 'CATALOG',
+              label: 'Catálogo',
+              revisionLabel: 'v1',
+              stateCode: 'DRAFT',
+              ownerLabel: 'Tú',
+              exists: true,
+              href: null,
+            },
+          ],
+          rights: {
+            totalRecords: 0,
+            activeRecords: 0,
+            provenanceRecords: 0,
+            ownerLabel: 'Sin responsable identificado',
+            stateCode: 'NOT_STARTED',
+          },
+          incidents: [],
+          allowedAccesses: [
+            {
+              code: 'DOSSIER',
+              label: 'Expediente',
+              href: `/editorial/canciones/${recordingId}`,
+            },
+          ],
         }),
       });
     });
 
     await page.goto(`/editorial/canciones/${recordingId}`);
 
+    await expect(page.locator('[data-route-id="UI-MVP-019"]')).toBeVisible();
     await expect(
       page.getByRole('heading', {
         level: 1,
-        name: 'Obra, grabación y fuente',
+        name: 'Expediente editorial de canción',
       }),
     ).toBeVisible();
-
-    await expect(page.getByText(workId)).toBeVisible();
-    await expect(page.getByText(recordingId)).toBeVisible();
-    await expect(page.getByText(sourceId)).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Fuente de YouTube' })).toBeVisible();
-    await expect(page.getByText('a8dgNdJVluc', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: '怪獣' })).toBeVisible();
+    await expect(page.getByText('Sin incidencias abiertas', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Publicar' })).toHaveCount(0);
 
     const accessibility = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])

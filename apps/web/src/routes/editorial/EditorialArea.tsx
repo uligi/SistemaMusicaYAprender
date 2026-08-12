@@ -5,7 +5,7 @@ import { NewSongAssistantPage } from './NewSongAssistantPage';
 import { EditorialInboxPage } from './EditorialInboxPage';
 import { RightsProvenancePage } from './RightsProvenancePage';
 import { SongContextNavigation } from './SongContextNavigation';
-import { SongDraftDetailPage } from './SongDraftDetailPage';
+import { SongEditorialDossierPage } from './SongEditorialDossierPage';
 
 export type EditorialAreaProps = {
   match: RouteMatch;
@@ -34,7 +34,7 @@ export default function EditorialArea({ match }: EditorialAreaProps) {
   if (match.route.id === 'UI-MVP-019') {
     return (
       <SongWorkspace match={match}>
-        <SongDraftDetailPage recordingId={match.params.id ?? ''} />
+        <SongEditorialDossierPage recordingId={match.params.id ?? ''} />
       </SongWorkspace>
     );
   }

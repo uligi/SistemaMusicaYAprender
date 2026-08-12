@@ -64,6 +64,10 @@ builder.Services.AddSingleton<IEditorialInboxTransactionExecutor>(
     static services =>
         new CatalogAdministrationTransactionExecutor(
             services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
+builder.Services.AddSingleton<ISongEditorialDossierTransactionExecutor>(
+    static services =>
+        new CatalogAdministrationTransactionExecutor(
+            services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
 builder.Services.AddSingleton<IRightsAdministrationTransactionExecutor>(
     static services =>
         new EditorialRightsAdministrationTransactionExecutor(
@@ -72,6 +76,7 @@ builder.Services.AddSingleton<ArtistAdministrationService>();
 builder.Services.AddSingleton<SongDraftAdministrationService>();
 builder.Services.AddSingleton<CreditProvenanceAdministrationService>();
 builder.Services.AddSingleton<EditorialInboxService>();
+builder.Services.AddSingleton<SongEditorialDossierService>();
 builder.Services.AddSingleton<RightsAdministrationService>();
 builder.Services.AddSingleton<PublicCatalogProjectionService>();
 builder.Services.AddSingleton<PublicCatalogSearchService>();
@@ -230,6 +235,7 @@ app.MapConfigurationAdministration();
 app.MapArtistAdministration();
 app.MapSongDraftAdministration();
 app.MapEditorialInbox();
+app.MapSongEditorialDossier();
 app.MapCreditProvenanceAdministration();
 app.MapRightsAdministration();
 app.MapPublicCatalogProjection();
