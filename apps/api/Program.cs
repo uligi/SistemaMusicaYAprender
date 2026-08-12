@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using MusicaAprender.Api.Catalog;
+using MusicaAprender.Api.Content;
 using MusicaAprender.Api.Editorial;
 using MusicaAprender.Api.Endpoints.Administration;
 using MusicaAprender.Api.Endpoints.Editorial;
@@ -22,6 +23,7 @@ using MusicaAprender.Modules.Catalog.Infrastructure.Administration;
 using MusicaAprender.Modules.Catalog.Infrastructure.Search;
 using MusicaAprender.Modules.Configuration.Infrastructure.Administration;
 using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
+using MusicaAprender.Modules.Content.Infrastructure.Administration;
 using MusicaAprender.Modules.Editorial.Infrastructure.Administration;
 using MusicaAprender.Modules.Editorial.Infrastructure.PublicCatalog;
 using MusicaAprender.Modules.Identity.Infrastructure.Preferences;
@@ -68,6 +70,10 @@ builder.Services.AddSingleton<ISongEditorialDossierTransactionExecutor>(
     static services =>
         new CatalogAdministrationTransactionExecutor(
             services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
+builder.Services.AddSingleton<ILyricsStructureAdministrationTransactionExecutor>(
+    static services =>
+        new ContentAdministrationTransactionExecutor(
+            services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
 builder.Services.AddSingleton<IRightsAdministrationTransactionExecutor>(
     static services =>
         new EditorialRightsAdministrationTransactionExecutor(
@@ -78,6 +84,7 @@ builder.Services.AddSingleton<CreditProvenanceAdministrationService>();
 builder.Services.AddSingleton<EditorialInboxService>();
 builder.Services.AddSingleton<SongEditorialDossierService>();
 builder.Services.AddSingleton<RecordingDraftAutosaveService>();
+builder.Services.AddSingleton<LyricsStructureAdministrationService>();
 builder.Services.AddSingleton<RightsAdministrationService>();
 builder.Services.AddSingleton<PublicCatalogProjectionService>();
 builder.Services.AddSingleton<PublicCatalogSearchService>();
@@ -238,6 +245,7 @@ app.MapSongDraftAdministration();
 app.MapEditorialInbox();
 app.MapSongEditorialDossier();
 app.MapRecordingDraftAutosave();
+app.MapLyricsStructureAdministration();
 app.MapCreditProvenanceAdministration();
 app.MapRightsAdministration();
 app.MapPublicCatalogProjection();

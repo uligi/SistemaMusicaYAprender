@@ -507,6 +507,17 @@ jobs:
           BL052_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/editorial/verify-editorial-autosave-conflicts.sh
 
+      - name: Verify lyrics revision structure
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL053_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/content/verify-lyrics-structure-model.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

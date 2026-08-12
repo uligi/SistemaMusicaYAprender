@@ -4,6 +4,7 @@ import { RoutePlaceholder } from '../shared/RoutePlaceholder';
 import { NewSongAssistantPage } from './NewSongAssistantPage';
 import { EditorialInboxPage } from './EditorialInboxPage';
 import { RightsProvenancePage } from './RightsProvenancePage';
+import { LyricsStructurePage } from './LyricsStructurePage';
 import { SongContextNavigation } from './SongContextNavigation';
 import { SongEditorialDossierPage } from './SongEditorialDossierPage';
 
@@ -47,8 +48,15 @@ export default function EditorialArea({ match }: EditorialAreaProps) {
     );
   }
 
+  if (match.route.id === 'UI-MVP-021') {
+    return (
+      <SongWorkspace match={match}>
+        <LyricsStructurePage recordingId={match.params.id ?? ''} />
+      </SongWorkspace>
+    );
+  }
+
   if (
-    match.route.id === 'UI-MVP-021' ||
     match.route.id === 'UI-MVP-022' ||
     match.route.id === 'UI-MVP-023' ||
     match.route.id === 'UI-MVP-024' ||
