@@ -1,0 +1,87 @@
+.recording-autosave {
+  display: grid;
+  gap: var(--ma-space-3);
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.recording-autosave > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--ma-space-3);
+}
+
+.recording-autosave h2,
+.recording-autosave h3,
+.recording-autosave h4,
+.recording-autosave p {
+  margin: 0;
+}
+
+.recording-autosave__status {
+  min-height: 1.5rem;
+}
+
+.recording-autosave__fields,
+.recording-autosave__compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ma-space-3);
+}
+
+.recording-autosave__conflict-actions,
+.recording-autosave__compare-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-2);
+}
+
+.recording-autosave__compare {
+  display: grid;
+  gap: var(--ma-space-3);
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+}
+
+.recording-autosave__compare dl {
+  display: grid;
+  gap: var(--ma-space-2);
+  margin: 0;
+}
+
+.recording-autosave__compare dl div {
+  min-width: 0;
+}
+
+.recording-autosave__compare dt {
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.recording-autosave__compare dd {
+  margin: var(--ma-space-1) 0 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 48rem) {
+  .recording-autosave__fields,
+  .recording-autosave__compare-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 24rem) {
+  .recording-autosave > header,
+  .recording-autosave__conflict-actions,
+  .recording-autosave__compare-actions {
+    display: grid;
+  }
+
+  .recording-autosave .ma-button {
+    width: 100%;
+  }
+}

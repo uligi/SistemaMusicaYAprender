@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { StateMessage } from '../../components/ui';
+import { RecordingAutosavePanel } from './RecordingAutosavePanel';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
 import './song-editorial-dossier.css';
@@ -157,6 +158,8 @@ export function SongEditorialDossierPage({ recordingId }: SongEditorialDossierPa
               </div>
             </dl>
           </section>
+
+          <RecordingAutosavePanel recordingId={recordingId} />
 
           <section aria-labelledby="song-dossier-components">
             <header className="song-dossier__section-heading">

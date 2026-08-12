@@ -496,6 +496,17 @@ jobs:
           BL046_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/editorial/verify-song-editorial-dossier.sh
 
+      - name: Verify editorial autosave and conflicts
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL052_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/editorial/verify-editorial-autosave-conflicts.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:
