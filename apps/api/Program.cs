@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
+using MusicaAprender.Api.Catalog;
 using MusicaAprender.Api.Endpoints.Administration;
+using MusicaAprender.Api.Endpoints.Editorial;
 using MusicaAprender.Api.Endpoints.Identity;
 using MusicaAprender.Api.Endpoints.Security;
 using MusicaAprender.Api.Health;
@@ -14,6 +16,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Email.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
+using MusicaAprender.Modules.Catalog.Infrastructure.Administration;
 using MusicaAprender.Modules.Configuration.Infrastructure.Administration;
 using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
 using MusicaAprender.Modules.Identity.Infrastructure.Preferences;
@@ -40,6 +43,11 @@ builder.Services.AddSingleton<IConfigurationAdministrationTransactionExecutor>(
     static services =>
         new ConfigurationAdministrationTransactionExecutor(
             services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
+builder.Services.AddSingleton<IArtistAdministrationTransactionExecutor>(
+    static services =>
+        new CatalogAdministrationTransactionExecutor(
+            services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
+builder.Services.AddSingleton<ArtistAdministrationService>();
 builder.Services.AddSingleton<ConfigurationAdministrationService>();
 builder.Services.AddSingleton<RoleAssignmentAdministrationService>();
 builder.Services.AddSingleton<PrimaryAuditRecorder>();
@@ -191,6 +199,7 @@ app.MapAuthorizationCatalog();
 app.MapRoleAssignments();
 app.MapPrivilegedMfa();
 app.MapConfigurationAdministration();
+app.MapArtistAdministration();
 
 app.Run();
 

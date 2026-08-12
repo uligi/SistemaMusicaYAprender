@@ -1,11 +1,16 @@
 import type { RouteMatch } from '../../app/router/match-route';
 import { RoutePlaceholder } from '../shared/RoutePlaceholder';
+import { ArtistAdministrationPage } from './ArtistAdministrationPage';
 
 export type EditorialAreaProps = {
   match: RouteMatch;
 };
 
 export default function EditorialArea({ match }: EditorialAreaProps) {
+  if (match.route.id === 'UI-MVP-018') {
+    return <ArtistAdministrationPage />;
+  }
+
   return (
     <RoutePlaceholder
       areaLabel="Área editorial"

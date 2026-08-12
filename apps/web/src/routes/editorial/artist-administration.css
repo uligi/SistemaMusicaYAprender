@@ -1,0 +1,113 @@
+.artist-administration {
+  display: grid;
+  gap: var(--ma-space-5);
+}
+
+.artist-administration__header {
+  display: grid;
+  max-width: 62rem;
+  gap: var(--ma-space-2);
+}
+
+.artist-administration__header h1,
+.artist-administration__header p,
+.artist-administration__panel h2,
+.artist-administration__panel h3,
+.artist-administration__panel p,
+.artist-administration__status {
+  margin: 0;
+}
+
+.artist-administration__eyebrow {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.artist-administration__status {
+  max-width: 62rem;
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-surface);
+}
+
+.artist-administration__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.8fr);
+  gap: var(--ma-space-5);
+  align-items: start;
+}
+
+.artist-administration__panel {
+  display: grid;
+  min-width: 0;
+  gap: var(--ma-space-4);
+  padding: var(--ma-space-5);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.artist-administration__two-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ma-space-4);
+}
+
+.artist-administration__duplicates,
+.artist-administration__created {
+  display: grid;
+  gap: var(--ma-space-3);
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+}
+
+.artist-administration__duplicates ul,
+.artist-administration__search-results {
+  display: grid;
+  gap: var(--ma-space-3);
+  margin: 0;
+  padding-inline-start: 1.25rem;
+}
+
+.artist-administration__duplicates li,
+.artist-administration__search-results li {
+  display: grid;
+  gap: var(--ma-space-1);
+}
+
+.artist-administration__duplicates code,
+.artist-administration__created code,
+.artist-administration__search-results code {
+  overflow-wrap: anywhere;
+}
+
+.artist-administration__confirmation {
+  display: flex;
+  gap: var(--ma-space-2);
+  align-items: flex-start;
+}
+
+.artist-administration__confirmation input {
+  margin-block-start: 0.2rem;
+}
+
+.artist-administration__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-3);
+}
+
+@media (max-width: 64rem) {
+  .artist-administration__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 36rem) {
+  .artist-administration__two-columns {
+    grid-template-columns: 1fr;
+  }
+}
