@@ -15,6 +15,7 @@ const requiredFiles = [
   'apps/web/src/app/shell/PublicHeader.tsx',
   'apps/web/src/app/shell/StudentNav.tsx',
   'apps/web/src/app/shell/BackofficeShell.tsx',
+  'apps/web/src/app/shell/BackofficeSidebar.tsx',
   'apps/web/src/app/shell/shell.css',
   'apps/web/src/routes/public/PublicArea.tsx',
   'apps/web/src/routes/student/StudentArea.tsx',
@@ -43,6 +44,7 @@ const boundary = read('apps/web/src/app/access/AccessBoundary.tsx');
 const appShell = read('apps/web/src/app/shell/AppShell.tsx');
 const studentNav = read('apps/web/src/app/shell/StudentNav.tsx');
 const backoffice = read('apps/web/src/app/shell/BackofficeShell.tsx');
+const backofficeSidebar = read('apps/web/src/app/shell/BackofficeSidebar.tsx');
 const navigation = read('apps/web/src/app/router/navigation.tsx');
 const matcher = read('apps/web/src/app/router/match-route.ts');
 const shellCss = read('apps/web/src/app/shell/shell.css');
@@ -157,7 +159,9 @@ for (const contract of [
   }
 }
 
-if (/roleName|currentRole|isAdmin|isEditor/.test(boundary + backoffice + manifest)) {
+if (
+  /roleName|currentRole|isAdmin|isEditor/.test(boundary + backoffice + backofficeSidebar + manifest)
+) {
   fail('la frontera visible debe decidir por capacidades, no por nombres de rol');
 }
 
@@ -167,7 +171,10 @@ for (const label of ['Explorar', 'Aprender', 'Progreso', 'Preferencias']) {
   }
 }
 
-if (!backoffice.includes('access.capabilities.includes')) {
+if (
+  !backoffice.includes('<BackofficeSidebar access={access} pathname={pathname} />') ||
+  !backofficeSidebar.includes('access.capabilities.includes')
+) {
   fail('BackofficeShell no calcula navegación desde capacidades');
 }
 
