@@ -265,6 +265,17 @@ BEGIN
     END IF;
 END;
 $rights_evidence_registration$;
+-- BL-MVP-041. La proyeccion publica es derivada y reconstruible. El worker
+-- puede retirar exclusivamente filas obsoletas de esta proyeccion; no recibe
+-- DELETE sobre publication, availability, catalogo ni evidencia canonica.
+DO $public_catalog_projection_access$
+BEGIN
+    IF to_regclass('editorial.published_package_projection') IS NOT NULL THEN
+        GRANT DELETE ON TABLE editorial.published_package_projection TO jp_worker;
+    END IF;
+END;
+$public_catalog_projection_access$;
+
 -- EF Core mantiene __EFMigrationsHistory en public. Solo el rol de migracion
 -- puede crear/gestionar esa tabla; los roles runtime no reciben CREATE.
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;

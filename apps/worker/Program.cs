@@ -6,6 +6,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Email.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjection;
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
+using MusicaAprender.Modules.Editorial.Infrastructure.PublicCatalog;
 using MusicaAprender.Modules.Security.Infrastructure.Registration;
 using MusicaAprender.Modules.Security.Infrastructure.Verification;
 using MusicaAprender.Worker.Observability;
@@ -40,6 +41,8 @@ builder.Services.AddSingleton<IVersionedEmailTemplate>(services =>
         services.GetRequiredService<PersonalEmailProtector>(),
         services.GetRequiredService<AccountVerificationTokenService>()));
 builder.Services.AddMusicaAprenderPrivateObjectStore(builder.Configuration);
+builder.Services.AddSingleton<PublicCatalogProjectionService>();
+builder.Services.AddHostedService<PublicCatalogProjectionWorker>();
 builder.Services.AddHostedService<HeartbeatWorker>();
 builder.Services.AddHostedService<OutboxDispatchWorker>();
 builder.Services.AddHostedService<EmailDeliveryWorker>();

@@ -62,7 +62,8 @@
       "USAGE: identity,security,catalog,content,learning,progress,editorial,configuration,ops",
       "SELECT: identity,security,catalog,content,learning,progress,editorial,configuration",
       "SELECT/INSERT/UPDATE/DELETE: ops",
-      "INSERT/UPDATE: selected projections"
+      "INSERT/UPDATE: selected projections",
+      "DELETE: editorial.published_package_projection only (reconstructible public catalog)"
     ],
     "jp_readonly": [
       "USAGE: catalog",

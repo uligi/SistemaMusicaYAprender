@@ -60,6 +60,12 @@ internal sealed class DatabaseAccessChecks
             "CREATE TABLE catalog.bl_mvp_012_probe(id integer);",
             "DROP TABLE IF EXISTS catalog.bl_mvp_012_probe;");
 
+        await ExpectPermissionDeniedAsync(
+            "API no DELETE proyeccion publica",
+            "jp_login_api",
+            "postgres_api_password",
+            "DELETE FROM editorial.published_package_projection WHERE false;");
+
         await ExpectSuccessAsync(
             "Backoffice UPDATE permitido",
             "jp_login_backoffice",
@@ -108,6 +114,12 @@ internal sealed class DatabaseAccessChecks
             "jp_login_worker",
             "postgres_worker_password",
             "DELETE FROM ops.idempotency_record WHERE false;");
+
+        await ExpectSuccessAsync(
+            "Worker DELETE proyeccion publica reconstruible",
+            "jp_login_worker",
+            "postgres_worker_password",
+            "DELETE FROM editorial.published_package_projection WHERE false;");
 
         await ExpectPermissionDeniedAsync(
             "Worker no SET ROLE owner",
