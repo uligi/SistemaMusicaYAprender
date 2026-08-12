@@ -12,15 +12,11 @@ public sealed record PublicCatalogSearchIndexRebuildResult(
     long Removed);
 
 public sealed record PublicCatalogSearchItem(
-    Guid PublicationId,
-    Guid RecordingId,
-    Guid WorkId,
+    string Slug,
     string CanonicalTitle,
     string? RecordingTitle,
-    Guid ArtistId,
     string ArtistName,
     string ProviderCode,
-    string ExternalRef,
     string TerritoryCode,
     string? LanguageTag,
     DateTime IndexedAt);
@@ -239,6 +235,10 @@ public sealed class PublicCatalogSearchService
                     availability.territory_code,
                     availability.language_tag,
                     document.indexed_at,
+                    substring(
+                        md5(recording.recording_id::text || ':public-song-v1')
+                        from 1 for 20
+                    ) AS slug_key,
                     CASE
                         WHEN @query = '' THEN 0
                         WHEN lower(work.canonical_title) = @query THEN 0
@@ -380,6 +380,7 @@ public sealed class PublicCatalogSearchService
                 territory_code,
                 language_tag,
                 indexed_at,
+                slug_key,
                 match_priority,
                 sort_title,
                 sort_artist,
@@ -491,22 +492,19 @@ public sealed class PublicCatalogSearchService
         {
             rows.Add(new SearchRow(
                 new PublicCatalogSearchItem(
-                    reader.GetGuid(0),
-                    reader.GetGuid(1),
-                    reader.GetGuid(2),
+                    PublicSongSlug.Compose(reader.GetString(3), reader.GetString(12)),
                     reader.GetString(3),
                     reader.IsDBNull(4) ? null : reader.GetString(4),
-                    reader.GetGuid(5),
                     reader.GetString(6),
                     reader.GetString(7),
-                    reader.GetString(8),
                     reader.GetString(9),
                     reader.IsDBNull(10) ? null : reader.GetString(10),
                     reader.GetDateTime(11)),
-                reader.GetInt32(12),
-                reader.GetString(13),
+                reader.GetGuid(1),
+                reader.GetInt32(13),
                 reader.GetString(14),
-                reader.GetString(15)));
+                reader.GetString(15),
+                reader.GetString(16)));
         }
 
         var hasMore = rows.Count > normalizedPageSize;
@@ -527,7 +525,7 @@ public sealed class PublicCatalogSearchService
                 last.Title,
                 last.Artist,
                 last.Recording,
-                last.Item.RecordingId));
+                last.RecordingId));
         }
 
         return new PublicCatalogSearchPage(
@@ -766,6 +764,7 @@ public sealed class PublicCatalogSearchService
 
     private sealed record SearchRow(
         PublicCatalogSearchItem Item,
+        Guid RecordingId,
         int Priority,
         string Title,
         string Artist,

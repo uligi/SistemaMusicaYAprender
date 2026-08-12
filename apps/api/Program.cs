@@ -70,6 +70,7 @@ builder.Services.AddSingleton<CreditProvenanceAdministrationService>();
 builder.Services.AddSingleton<RightsAdministrationService>();
 builder.Services.AddSingleton<PublicCatalogProjectionService>();
 builder.Services.AddSingleton<PublicCatalogSearchService>();
+builder.Services.AddSingleton<PublicSongDetailService>();
 builder.Services.AddSingleton<ConfigurationAdministrationService>();
 builder.Services.AddSingleton<RoleAssignmentAdministrationService>();
 builder.Services.AddSingleton<PrimaryAuditRecorder>();
@@ -227,6 +228,7 @@ app.MapCreditProvenanceAdministration();
 app.MapRightsAdministration();
 app.MapPublicCatalogProjection();
 app.MapPublicCatalogSearch();
+app.MapPublicSongDetail();
 
 app.Run();
 

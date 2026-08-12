@@ -4,6 +4,7 @@ import { PersonalAccountLoginPage } from './PersonalAccountLoginPage';
 import { PersonalAccountRegistrationPage } from './PersonalAccountRegistrationPage';
 import { PersonalAccountVerificationPage } from './PersonalAccountVerificationPage';
 import { PublicSongCatalogPage } from './PublicSongCatalogPage';
+import { PublicSongDetailPage } from './PublicSongDetailPage';
 import './public-area.css';
 
 export type PublicAreaProps = {
@@ -13,6 +14,10 @@ export type PublicAreaProps = {
 export default function PublicArea({ match }: PublicAreaProps) {
   if (match.route.id === 'UI-MVP-002' || match.route.id === 'UI-MVP-003') {
     return <PublicSongCatalogPage routeId={match.route.id} />;
+  }
+
+  if (match.route.id === 'UI-MVP-004') {
+    return <PublicSongDetailPage slug={match.params.slug ?? ''} />;
   }
 
   if (match.route.id === 'UI-MVP-005') {

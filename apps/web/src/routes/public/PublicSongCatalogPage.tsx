@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AppLink } from '../../app/router/navigation';
 import { Button, Field, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
@@ -10,15 +11,11 @@ const publicLanguage = 'es';
 const pageSize = 12;
 
 type PublicCatalogSearchItem = {
-  publicationId: string;
-  recordingId: string;
-  workId: string;
+  slug: string;
   canonicalTitle: string;
   recordingTitle: string | null;
-  artistId: string;
   artistName: string;
   providerCode: string;
-  externalRef: string;
   territoryCode: string;
   languageTag: string | null;
   indexedAt: string;
@@ -221,7 +218,7 @@ export function PublicSongCatalogPage({ routeId }: PublicSongCatalogPageProps) {
 
           <ul className="public-catalog__list">
             {state.data.items.map((item) => (
-              <li key={item.recordingId}>
+              <li key={item.slug}>
                 <article className="public-catalog__song">
                   <div>
                     <p className="public-catalog__artist">{item.artistName}</p>
@@ -241,6 +238,13 @@ export function PublicSongCatalogPage({ routeId }: PublicSongCatalogPageProps) {
                     Disponible · {item.territoryCode}
                     {item.languageTag ? ` · ${item.languageTag}` : ''}
                   </p>
+                  <AppLink
+                    className="public-catalog__open"
+                    href={`/canciones/${encodeURIComponent(item.slug)}`}
+                  >
+                    Abrir ficha de {item.canonicalTitle} ·{' '}
+                    {item.recordingTitle ?? 'Grabación principal'}
+                  </AppLink>
                 </article>
               </li>
             ))}
@@ -251,11 +255,6 @@ export function PublicSongCatalogPage({ routeId }: PublicSongCatalogPageProps) {
               {loadingMore ? 'Cargando más…' : 'Cargar más canciones'}
             </Button>
           ) : null}
-
-          <p className="public-catalog__handoff">
-            La apertura de la ficha pública UI-MVP-004 se completa en BL-MVP-043; esta pantalla no
-            inventa un slug ni expone identificadores internos.
-          </p>
         </section>
       ) : null}
     </article>

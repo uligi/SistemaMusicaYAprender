@@ -593,11 +593,13 @@ if (!page.hasMore || typeof page.nextCursor !== 'string' || page.nextCursor.leng
 const item = page.items[0];
 if (item.canonicalTitle !== '怪獣') process.exit(1);
 if (item.artistName !== 'サカナクション') process.exit(1);
-process.stdout.write(`${item.recordingId}\n${page.nextCursor}\n`);
+if (typeof item.slug !== 'string' || !/-[0-9a-f]{20}$/.test(item.slug)) process.exit(1);
+if (Object.keys(item).some((key) => /Id$/.test(key) || key === 'externalRef')) process.exit(1);
+process.stdout.write(`${item.slug}\n${page.nextCursor}\n`);
 NODE
 )
 
-first_recording="${first_values[0]}"
+first_slug="${first_values[0]}"
 cursor="${first_values[1]}"
 
 second_page="$work_dir/second.json"
@@ -610,17 +612,20 @@ curl_request --fail --get \
   "$api_url/api/v1/public/catalog/search" \
   >"$second_page"
 
-second_recording="$(
+second_slug="$(
   node - "$second_page" <<'NODE'
 const fs = require('node:fs');
 const page = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 if (!Array.isArray(page.items) || page.items.length !== 1) process.exit(1);
 if (page.hasMore || page.nextCursor !== null) process.exit(1);
-process.stdout.write(page.items[0].recordingId);
+const item = page.items[0];
+if (typeof item.slug !== 'string') process.exit(1);
+if (Object.keys(item).some((key) => /Id$/.test(key) || key === 'externalRef')) process.exit(1);
+process.stdout.write(item.slug);
 NODE
 )"
 
-if [[ "$first_recording" == "$second_recording" ]]; then
+if [[ "$first_slug" == "$second_slug" ]]; then
   fail_check "La paginacion estable repitio la misma grabacion."
 fi
 
