@@ -276,6 +276,16 @@ BEGIN
 END;
 $public_catalog_projection_access$;
 
+-- BL-MVP-042. song_search_document es una proyeccion derivada. El worker
+-- puede retirar exclusivamente documentos obsoletos; la API conserva lectura.
+DO $public_catalog_search_access$
+BEGIN
+    IF to_regclass('catalog.song_search_document') IS NOT NULL THEN
+        GRANT DELETE ON TABLE catalog.song_search_document TO jp_worker;
+    END IF;
+END;
+$public_catalog_search_access$;
+
 -- EF Core mantiene __EFMigrationsHistory en public. Solo el rol de migracion
 -- puede crear/gestionar esa tabla; los roles runtime no reciben CREATE.
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;

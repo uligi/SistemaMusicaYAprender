@@ -9,5 +9,6 @@
     <ProjectReference Include="..\..\src\BuildingBlocks\Infrastructure\MusicaAprender.BuildingBlocks.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\Security\MusicaAprender.Modules.Security.csproj" />
     <ProjectReference Include="..\..\src\Modules\Editorial\MusicaAprender.Modules.Editorial.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Catalog\MusicaAprender.Modules.Catalog.csproj" />
   </ItemGroup>
 </Project>

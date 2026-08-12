@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MusicaAprender.Modules.Catalog.Infrastructure.Search;
 using MusicaAprender.Modules.Editorial.Infrastructure.PublicCatalog;
 using Npgsql;
 
@@ -7,6 +8,7 @@ namespace MusicaAprender.Worker.Workers;
 
 internal sealed partial class PublicCatalogProjectionWorker(
     PublicCatalogProjectionService projectionService,
+    PublicCatalogSearchService searchService,
     ILogger<PublicCatalogProjectionWorker> logger) : BackgroundService
 {
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(15);
@@ -26,12 +28,21 @@ internal sealed partial class PublicCatalogProjectionWorker(
     {
         try
         {
-            var result = await projectionService.RebuildAsync(cancellationToken);
-            LogRebuilt(
+            var projection =
+                await projectionService.RebuildAsync(cancellationToken);
+            LogProjectionRebuilt(
                 logger,
-                result.EligiblePublications,
-                result.InsertedOrUpdated,
-                result.Removed);
+                projection.EligiblePublications,
+                projection.InsertedOrUpdated,
+                projection.Removed);
+
+            var search =
+                await searchService.RebuildIndexAsync(cancellationToken);
+            LogSearchIndexRebuilt(
+                logger,
+                search.EligibleDocuments,
+                search.InsertedOrUpdated,
+                search.Removed);
         }
         catch (NpgsqlException exception)
         {
@@ -47,7 +58,17 @@ internal sealed partial class PublicCatalogProjectionWorker(
         EventId = 4101,
         Level = LogLevel.Information,
         Message = "BL-MVP-041 public catalog projection rebuilt. Eligible={Eligible} Changed={Changed} Removed={Removed}")]
-    private static partial void LogRebuilt(
+    private static partial void LogProjectionRebuilt(
+        ILogger logger,
+        long eligible,
+        long changed,
+        long removed);
+
+    [LoggerMessage(
+        EventId = 4201,
+        Level = LogLevel.Information,
+        Message = "BL-MVP-042 public catalog search index rebuilt. Eligible={Eligible} Changed={Changed} Removed={Removed}")]
+    private static partial void LogSearchIndexRebuilt(
         ILogger logger,
         long eligible,
         long changed,
@@ -56,7 +77,7 @@ internal sealed partial class PublicCatalogProjectionWorker(
     [LoggerMessage(
         EventId = 4102,
         Level = LogLevel.Error,
-        Message = "BL-MVP-041 public catalog projection rebuild failed with {ErrorType}; the last confirmed projection is preserved.")]
+        Message = "Public catalog projection/search refresh failed with {ErrorType}; the last confirmed projections are preserved.")]
     private static partial void LogInfrastructureFailure(
         ILogger logger,
         string errorType);

@@ -19,6 +19,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.ObjectStorage.DependencyInjec
 using MusicaAprender.BuildingBlocks.Infrastructure.Observability;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjection;
 using MusicaAprender.Modules.Catalog.Infrastructure.Administration;
+using MusicaAprender.Modules.Catalog.Infrastructure.Search;
 using MusicaAprender.Modules.Configuration.Infrastructure.Administration;
 using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
 using MusicaAprender.Modules.Editorial.Infrastructure.Administration;
@@ -68,6 +69,7 @@ builder.Services.AddSingleton<SongDraftAdministrationService>();
 builder.Services.AddSingleton<CreditProvenanceAdministrationService>();
 builder.Services.AddSingleton<RightsAdministrationService>();
 builder.Services.AddSingleton<PublicCatalogProjectionService>();
+builder.Services.AddSingleton<PublicCatalogSearchService>();
 builder.Services.AddSingleton<ConfigurationAdministrationService>();
 builder.Services.AddSingleton<RoleAssignmentAdministrationService>();
 builder.Services.AddSingleton<PrimaryAuditRecorder>();
@@ -224,6 +226,7 @@ app.MapSongDraftAdministration();
 app.MapCreditProvenanceAdministration();
 app.MapRightsAdministration();
 app.MapPublicCatalogProjection();
+app.MapPublicCatalogSearch();
 
 app.Run();
 

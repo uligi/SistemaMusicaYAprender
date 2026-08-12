@@ -446,6 +446,18 @@ jobs:
           BL041_API_URL: https://localhost:5456
         run: bash scripts/ci/catalog/verify-public-catalog-projection.sh
 
+      - name: Verify internal PostgreSQL public catalog search
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL042_USE_DOCKER_PSQL: 'false'
+          BL042_API_URL: https://localhost:5457
+        run: bash scripts/ci/catalog/verify-public-catalog-search.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

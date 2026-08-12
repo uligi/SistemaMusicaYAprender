@@ -66,6 +66,12 @@ internal sealed class DatabaseAccessChecks
             "postgres_api_password",
             "DELETE FROM editorial.published_package_projection WHERE false;");
 
+        await ExpectPermissionDeniedAsync(
+            "API no DELETE indice busqueda publica",
+            "jp_login_api",
+            "postgres_api_password",
+            "DELETE FROM catalog.song_search_document WHERE false;");
+
         await ExpectSuccessAsync(
             "Backoffice UPDATE permitido",
             "jp_login_backoffice",
@@ -120,6 +126,12 @@ internal sealed class DatabaseAccessChecks
             "jp_login_worker",
             "postgres_worker_password",
             "DELETE FROM editorial.published_package_projection WHERE false;");
+
+        await ExpectSuccessAsync(
+            "Worker DELETE indice busqueda reconstruible",
+            "jp_login_worker",
+            "postgres_worker_password",
+            "DELETE FROM catalog.song_search_document WHERE false;");
 
         await ExpectPermissionDeniedAsync(
             "Worker no SET ROLE owner",

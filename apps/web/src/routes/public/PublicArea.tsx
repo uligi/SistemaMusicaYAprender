@@ -3,6 +3,7 @@ import { RoutePlaceholder } from '../shared/RoutePlaceholder';
 import { PersonalAccountLoginPage } from './PersonalAccountLoginPage';
 import { PersonalAccountRegistrationPage } from './PersonalAccountRegistrationPage';
 import { PersonalAccountVerificationPage } from './PersonalAccountVerificationPage';
+import { PublicSongCatalogPage } from './PublicSongCatalogPage';
 import './public-area.css';
 
 export type PublicAreaProps = {
@@ -10,6 +11,10 @@ export type PublicAreaProps = {
 };
 
 export default function PublicArea({ match }: PublicAreaProps) {
+  if (match.route.id === 'UI-MVP-002' || match.route.id === 'UI-MVP-003') {
+    return <PublicSongCatalogPage routeId={match.route.id} />;
+  }
+
   if (match.route.id === 'UI-MVP-005') {
     return <PersonalAccountRegistrationPage />;
   }
