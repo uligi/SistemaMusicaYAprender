@@ -47,7 +47,12 @@ builder.Services.AddSingleton<IArtistAdministrationTransactionExecutor>(
     static services =>
         new CatalogAdministrationTransactionExecutor(
             services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
+builder.Services.AddSingleton<ISongDraftAdministrationTransactionExecutor>(
+    static services =>
+        new CatalogAdministrationTransactionExecutor(
+            services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
 builder.Services.AddSingleton<ArtistAdministrationService>();
+builder.Services.AddSingleton<SongDraftAdministrationService>();
 builder.Services.AddSingleton<ConfigurationAdministrationService>();
 builder.Services.AddSingleton<RoleAssignmentAdministrationService>();
 builder.Services.AddSingleton<PrimaryAuditRecorder>();
@@ -200,6 +205,7 @@ app.MapRoleAssignments();
 app.MapPrivilegedMfa();
 app.MapConfigurationAdministration();
 app.MapArtistAdministration();
+app.MapSongDraftAdministration();
 
 app.Run();
 

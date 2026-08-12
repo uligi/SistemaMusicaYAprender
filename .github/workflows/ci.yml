@@ -398,6 +398,18 @@ jobs:
           BL037_API_URL: https://localhost:5452
         run: bash scripts/ci/catalog/verify-artist-administration.sh
 
+      - name: Verify work, recording and exact YouTube source administration
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL038_USE_DOCKER_PSQL: 'false'
+          BL038_API_URL: https://localhost:5453
+        run: bash scripts/ci/catalog/verify-song-draft-administration.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

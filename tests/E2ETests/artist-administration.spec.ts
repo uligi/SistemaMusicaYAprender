@@ -124,7 +124,9 @@ test.describe('BL-MVP-037 · identidad estable de artista', () => {
     await expect(createButton).toBeEnabled();
     await createButton.click();
 
-    await expect(page.getByText('22222222-2222-4222-8222-222222222222')).toBeVisible();
+    await expect(
+      page.getByLabel('Artista confirmado').getByText('22222222-2222-4222-8222-222222222222'),
+    ).toBeVisible();
     await expect(
       page.getByText(
         'Identidad de artista creada. El identificador estable, y no el nombre, será la referencia interna.',
@@ -160,7 +162,7 @@ test.describe('BL-MVP-037 · identidad estable de artista', () => {
     await page.locator('#artist-search-query').fill('Sakana Name');
     await page.getByRole('button', { name: 'Buscar artista' }).click();
 
-    await expect(page.getByText('魚の名前')).toBeVisible();
+    await expect(page.getByText('魚の名前', { exact: true })).toBeVisible();
     await expect(page.getByText('33333333-3333-4333-8333-333333333333')).toBeVisible();
 
     const accessibility = await new AxeBuilder({ page })

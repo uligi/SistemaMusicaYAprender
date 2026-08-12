@@ -1,7 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Button, Field, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
+import { SongDraftComposer, type SelectedArtist } from './SongDraftComposer';
 import './artist-administration.css';
+import './song-draft-administration.css';
 
 type ArtistAliasDraft = {
   aliasText: string;
@@ -104,6 +106,7 @@ export function ArtistAdministrationPage() {
   const [created, setCreated] = useState<ArtistCreatedResult | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ArtistSearchResult[]>([]);
+  const [selectedArtist, setSelectedArtist] = useState<SelectedArtist | null>(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -244,6 +247,10 @@ export function ArtistAdministrationPage() {
     }
 
     setCreated(result.data);
+    setSelectedArtist({
+      artistId: result.data.artistId,
+      canonicalName: result.data.canonicalName,
+    });
     setMessage(
       result.data.alreadyApplied
         ? 'Esta misma alta ya estaba confirmada; no se creó otra identidad.'
@@ -524,12 +531,26 @@ export function ArtistAdministrationPage() {
                     {artist.artistType} · coincidencia «{artist.matchedText}»
                   </span>
                   <code>{artist.artistId}</code>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() =>
+                      setSelectedArtist({
+                        artistId: artist.artistId,
+                        canonicalName: artist.canonicalName,
+                      })
+                    }
+                  >
+                    Usar {artist.canonicalName}
+                  </Button>
                 </li>
               ))}
             </ul>
           ) : null}
         </form>
       </div>
+
+      {selectedArtist ? <SongDraftComposer artist={selectedArtist} /> : null}
     </section>
   );
 }
