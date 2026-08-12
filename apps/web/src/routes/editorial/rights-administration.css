@@ -1,0 +1,152 @@
+.rights-admin {
+  display: grid;
+  gap: var(--ma-space-6);
+  margin-top: var(--ma-space-8);
+  padding-top: var(--ma-space-8);
+  border-top: 1px solid var(--ma-color-border);
+}
+
+.rights-admin__header,
+.rights-admin__panel,
+.rights-admin__form,
+.rights-admin__records,
+.rights-admin__scopes {
+  display: grid;
+}
+
+.rights-admin__header,
+.rights-admin__panel {
+  gap: var(--ma-space-4);
+}
+
+.rights-admin__header h2,
+.rights-admin__panel h3,
+.rights-admin__header p,
+.rights-admin__eyebrow,
+.rights-admin__status {
+  margin: 0;
+}
+
+.rights-admin__header p {
+  max-width: 78ch;
+}
+
+.rights-admin__eyebrow {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.rights-admin__status,
+.rights-admin__evaluation {
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+}
+
+.rights-admin__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+  gap: var(--ma-space-5);
+  align-items: start;
+}
+
+.rights-admin__panel {
+  min-width: 0;
+  padding: var(--ma-space-5);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-surface);
+}
+
+.rights-admin__records,
+.rights-admin__scopes,
+.rights-admin__form {
+  gap: var(--ma-space-3);
+}
+
+.rights-admin__records,
+.rights-admin__scopes {
+  margin: 0;
+  padding-left: var(--ma-space-5);
+}
+
+.rights-admin__record {
+  min-width: 0;
+}
+
+.rights-admin__record-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-2);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.rights-admin__record dl {
+  display: grid;
+  gap: var(--ma-space-2);
+  margin: var(--ma-space-3) 0 0;
+}
+
+.rights-admin__record dl > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.35fr) minmax(0, 1fr);
+  gap: var(--ma-space-3);
+}
+
+.rights-admin__record dt,
+.rights-admin__file-field label {
+  font-weight: 700;
+}
+
+.rights-admin__record dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.rights-admin__form--grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rights-admin__file-field,
+.rights-admin__actions {
+  grid-column: 1 / -1;
+}
+
+.rights-admin__file-field,
+.rights-admin__evaluation {
+  display: grid;
+  gap: var(--ma-space-2);
+}
+
+.rights-admin__file-field p,
+.rights-admin__evaluation p {
+  margin: 0;
+}
+
+.rights-admin__file-field p {
+  color: var(--ma-color-muted);
+}
+
+.rights-admin__file-field input {
+  max-width: 100%;
+}
+
+.rights-admin__evaluation[data-allowed='true'] {
+  border-width: 2px;
+}
+
+@media (max-width: 900px) {
+  .rights-admin__layout,
+  .rights-admin__form--grid {
+    grid-template-columns: 1fr;
+  }
+
+  .rights-admin__record dl > div {
+    grid-template-columns: 1fr;
+    gap: var(--ma-space-1);
+  }
+}

@@ -181,6 +181,90 @@ BEGIN
     END IF;
 END;
 $mfa_runtime_access$;
+-- BL-MVP-040. El pool backoffice no recibe INSERT directo sobre ops.stored_object.
+-- Solo puede registrar metadata de evidencia M15 por esta funcion acotada.
+DO $rights_evidence_registration$
+BEGIN
+    IF to_regclass('ops.stored_object') IS NOT NULL THEN
+        EXECUTE $function$
+            CREATE OR REPLACE FUNCTION ops.register_rights_evidence_object(
+                p_object_id uuid,
+                p_storage_key text,
+                p_media_type text,
+                p_size_bytes bigint,
+                p_checksum bytea,
+                p_encryption_key_ref text,
+                p_created_at timestamptz,
+                p_retention_until timestamptz,
+                p_status_code text
+            )
+            RETURNS void
+            LANGUAGE plpgsql
+            VOLATILE
+            SECURITY DEFINER
+            SET search_path = pg_catalog
+            AS $body$
+            BEGIN
+                IF p_object_id IS NULL
+                   OR p_object_id = '00000000-0000-0000-0000-000000000000'::uuid
+                   OR p_storage_key !~ '^objects/[0-9a-f]{32}[.]mae1$'
+                   OR p_media_type NOT IN (
+                       'application/pdf',
+                       'text/plain',
+                       'image/png',
+                       'image/jpeg'
+                   )
+                   OR p_size_bytes <= 0
+                   OR p_size_bytes > 2097152
+                   OR octet_length(p_checksum) <> 32
+                   OR p_encryption_key_ref IS NULL
+                   OR length(p_encryption_key_ref) = 0
+                   OR p_created_at IS NULL
+                   OR p_status_code IS DISTINCT FROM 'ACTIVE' THEN
+                    RAISE EXCEPTION 'Descriptor de evidencia M15 no valido.'
+                        USING ERRCODE = '22023';
+                END IF;
+
+                INSERT INTO ops.stored_object (
+                    object_id,
+                    owner_module,
+                    purpose_code,
+                    storage_key,
+                    media_type,
+                    size_bytes,
+                    checksum,
+                    encryption_key_ref,
+                    created_at,
+                    retention_until,
+                    status_code
+                )
+                VALUES (
+                    p_object_id,
+                    'M15',
+                    'RIGHTS_EVIDENCE',
+                    p_storage_key,
+                    p_media_type,
+                    p_size_bytes,
+                    p_checksum,
+                    p_encryption_key_ref,
+                    p_created_at,
+                    p_retention_until,
+                    p_status_code
+                );
+            END
+            $body$
+        $function$;
+
+        REVOKE ALL ON FUNCTION ops.register_rights_evidence_object(
+            uuid, text, text, bigint, bytea, text, timestamptz, timestamptz, text
+        ) FROM PUBLIC;
+
+        GRANT EXECUTE ON FUNCTION ops.register_rights_evidence_object(
+            uuid, text, text, bigint, bytea, text, timestamptz, timestamptz, text
+        ) TO jp_backoffice;
+    END IF;
+END;
+$rights_evidence_registration$;
 -- EF Core mantiene __EFMigrationsHistory en public. Solo el rol de migracion
 -- puede crear/gestionar esa tabla; los roles runtime no reciben CREATE.
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;

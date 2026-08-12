@@ -15,7 +15,7 @@ const allCapabilities = [
   'SECURITY.READ_AUDIT',
 ];
 
-test.describe('BL-MVP-039 · menú lateral editorial y administración', () => {
+test.describe('BL-MVP-039/040 · navegación global y opciones de canción', () => {
   test.beforeEach(async ({ page }) => {
     await page.route('**/api/v1/auth/session', async (route) => {
       await route.fulfill({
@@ -54,48 +54,52 @@ test.describe('BL-MVP-039 · menú lateral editorial y administración', () => {
         }),
       });
     });
-
-    await page.route('**/api/v1/administration/configuration', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ parameters: [], catalogs: [] }),
-      });
-    });
-
-    await page.route('**/api/v1/security/mfa/status', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          enrolled: true,
-          recentAssurance: true,
-          methodType: 'TOTP',
-          assuranceExpiresAt: '2099-08-12T00:00:00Z',
-        }),
-      });
-    });
   });
 
-  test('muestra grupos reales y enlaces contextuales sin IDs de ejemplo', async ({ page }) => {
+  test('mantiene el sidebar global y mueve las acciones a la canción seleccionada', async ({
+    page,
+  }) => {
     await page.goto(`/editorial/canciones/${recordingId}`);
 
     const sidebar = page.getByLabel('Panel lateral del backoffice');
-    await expect(sidebar.getByRole('heading', { name: 'Editorial' })).toBeVisible();
-    await expect(sidebar.getByRole('heading', { name: 'Administración' })).toBeVisible();
-    await expect(sidebar.getByRole('link', { name: 'Nueva canción' })).toHaveAttribute(
+    await expect(sidebar.getByRole('link', { name: 'Nueva canción' })).toBeVisible();
+    await expect(sidebar.getByRole('link', { name: 'Expediente' })).toHaveCount(0);
+    await expect(sidebar.getByRole('link', { name: 'Derechos y procedencia' })).toHaveCount(0);
+
+    const songNavigation = page.getByRole('navigation', { name: 'Opciones de la canción' });
+    await expect(songNavigation).toBeVisible();
+    await expect(songNavigation.getByRole('link', { name: 'Expediente' })).toHaveAttribute(
       'href',
-      '/editorial/canciones/nueva',
+      `/editorial/canciones/${recordingId}`,
     );
-    await expect(sidebar.getByRole('link', { name: 'Créditos y procedencia' })).toHaveAttribute(
-      'href',
-      `/editorial/canciones/${recordingId}/derechos`,
-    );
-    await expect(sidebar.getByRole('link', { name: 'Roles y accesos' })).toHaveAttribute(
-      'href',
-      '/administracion/roles',
-    );
-    await expect(sidebar.locator('a[href*="ejemplo"]')).toHaveCount(0);
+    await expect(
+      songNavigation.getByRole('link', { name: 'Derechos y procedencia' }),
+    ).toHaveAttribute('href', `/editorial/canciones/${recordingId}/derechos`);
+    await expect(songNavigation.getByRole('link', { name: 'Letra' })).toBeVisible();
+
+    const songLinks = songNavigation.getByRole('link');
+    const firstBox = await songLinks.nth(0).boundingBox();
+    const secondBox = await songLinks.nth(1).boundingBox();
+    expect(firstBox).not.toBeNull();
+    expect(secondBox).not.toBeNull();
+
+    if (firstBox && secondBox) {
+      const horizontalGap = secondBox.x - (firstBox.x + firstBox.width);
+      const verticalGap = secondBox.y - (firstBox.y + firstBox.height);
+
+      expect(horizontalGap > 0 || verticalGap > 0).toBe(true);
+    }
+
+    const firstStyles = await songLinks.nth(0).evaluate((element) => {
+      const styles = getComputedStyle(element);
+      return {
+        minHeight: Number.parseFloat(styles.minHeight),
+        paddingInlineStart: Number.parseFloat(styles.paddingInlineStart),
+      };
+    });
+
+    expect(firstStyles.minHeight).toBeGreaterThanOrEqual(40);
+    expect(firstStyles.paddingInlineStart).toBeGreaterThan(0);
 
     const accessibility = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
@@ -103,11 +107,11 @@ test.describe('BL-MVP-039 · menú lateral editorial y administración', () => {
     expect(accessibility.violations).toEqual([]);
   });
 
-  test('a 320px conserva el menú lateral sin scroll horizontal', async ({ page }) => {
-    await page.setViewportSize({ width: 320, height: 900 });
-    await page.goto('/administracion/configuracion');
+  test('a 320px conserva la navegación de canción sin scroll horizontal', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 1000 });
+    await page.goto(`/editorial/canciones/${recordingId}`);
 
-    await expect(page.getByLabel('Panel lateral del backoffice')).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Opciones de la canción' })).toBeVisible();
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -115,7 +119,7 @@ test.describe('BL-MVP-039 · menú lateral editorial y administración', () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
-  test('oculta funciones para las que no existe capability visible', async ({ page }) => {
+  test('filtra las opciones de canción por capability visible', async ({ page }) => {
     await page.route('**/api/v1/auth/session', async (route) => {
       await route.fulfill({
         status: 200,
@@ -130,10 +134,10 @@ test.describe('BL-MVP-039 · menú lateral editorial y administración', () => {
     });
 
     await page.goto(`/editorial/canciones/${recordingId}`);
-    const sidebar = page.getByLabel('Panel lateral del backoffice');
+    const songNavigation = page.getByRole('navigation', { name: 'Opciones de la canción' });
 
-    await expect(sidebar.getByRole('heading', { name: 'Editorial' })).toBeVisible();
-    await expect(sidebar.getByRole('heading', { name: 'Administración' })).toHaveCount(0);
-    await expect(sidebar.getByRole('link', { name: 'Nueva canción' })).toBeVisible();
+    await expect(songNavigation.getByRole('link', { name: 'Expediente' })).toBeVisible();
+    await expect(songNavigation.getByRole('link', { name: 'Letra' })).toBeVisible();
+    await expect(songNavigation.getByRole('link', { name: 'Ejercicios' })).toBeVisible();
   });
 });

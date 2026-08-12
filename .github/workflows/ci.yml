@@ -422,6 +422,18 @@ jobs:
           BL039_API_URL: https://localhost:5454
         run: bash scripts/ci/catalog/verify-credit-provenance-administration.sh
 
+      - name: Verify rights, uses, territories and validity administration
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL040_USE_DOCKER_PSQL: 'false'
+          BL040_API_URL: https://localhost:5455
+        run: bash scripts/ci/editorial/verify-rights-administration.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

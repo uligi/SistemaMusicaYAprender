@@ -66,6 +66,37 @@ internal sealed class DatabaseAccessChecks
             "postgres_backoffice_password",
             "UPDATE catalog.artist SET artist_id = artist_id WHERE false;");
 
+        await ExpectSuccessAsync(
+            "Backoffice registra evidencia M15 por funcion restringida",
+            "jp_login_backoffice",
+            "postgres_backoffice_password",
+            """
+            BEGIN;
+            SELECT ops.register_rights_evidence_object(
+                '04000000-0000-4000-8000-000000000040'::uuid,
+                'objects/04000000000040008000000000000040.mae1',
+                'text/plain',
+                1,
+                decode(repeat('00', 32), 'hex'),
+                'local-secret://bl040-probe/v1',
+                CURRENT_TIMESTAMP,
+                NULL,
+                'ACTIVE'
+            );
+            ROLLBACK;
+            """);
+
+        await ExpectPermissionDeniedAsync(
+            "Backoffice no INSERT directo stored_object",
+            "jp_login_backoffice",
+            "postgres_backoffice_password",
+            "INSERT INTO ops.stored_object SELECT * FROM ops.stored_object WHERE false;");
+
+        await ExpectPermissionDeniedAsync(
+            "Backoffice no UPDATE directo stored_object",
+            "jp_login_backoffice",
+            "postgres_backoffice_password",
+            "UPDATE ops.stored_object SET status_code = status_code WHERE false;");
         await ExpectPermissionDeniedAsync(
             "Backoffice DELETE denegado",
             "jp_login_backoffice",

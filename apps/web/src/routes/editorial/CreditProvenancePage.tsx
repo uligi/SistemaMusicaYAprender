@@ -275,7 +275,7 @@ export function CreditProvenancePage({ recordingId }: CreditProvenancePageProps)
         <h1 id="credit-provenance-title">Créditos, participantes y procedencia</h1>
         <p>
           Registra quién participa, en qué orden se acredita y de dónde proviene la información. Los
-          derechos, territorios, usos y vigencias se completarán en BL-MVP-040.
+          Los derechos, territorios, usos y vigencias se administran en esta misma pantalla.
         </p>
         <p>
           Grabación: <code>{recordingId}</code>
@@ -535,14 +535,6 @@ export function CreditProvenancePage({ recordingId }: CreditProvenancePageProps)
           </section>
         )}
       </div>
-
-      <section className="credit-provenance__rights-note" aria-labelledby="credit-rights-title">
-        <h2 id="credit-rights-title">Derechos y disponibilidad</h2>
-        <p>
-          Pendiente de BL-MVP-040. Este incremento no declara usos autorizados, territorios,
-          vigencias ni elegibilidad de publicación.
-        </p>
-      </section>
     </section>
   );
 }

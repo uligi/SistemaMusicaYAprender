@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using MusicaAprender.Api.Catalog;
+using MusicaAprender.Api.Editorial;
 using MusicaAprender.Api.Endpoints.Administration;
 using MusicaAprender.Api.Endpoints.Editorial;
 using MusicaAprender.Api.Endpoints.Identity;
@@ -19,6 +20,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.DependencyInjecti
 using MusicaAprender.Modules.Catalog.Infrastructure.Administration;
 using MusicaAprender.Modules.Configuration.Infrastructure.Administration;
 using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
+using MusicaAprender.Modules.Editorial.Infrastructure.Administration;
 using MusicaAprender.Modules.Identity.Infrastructure.Preferences;
 using MusicaAprender.Modules.Security.Infrastructure.Administration;
 using MusicaAprender.Modules.Security.Infrastructure.Authentication;
@@ -55,9 +57,14 @@ builder.Services.AddSingleton<ICreditProvenanceAdministrationTransactionExecutor
     static services =>
         new CatalogAdministrationTransactionExecutor(
             services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
+builder.Services.AddSingleton<IRightsAdministrationTransactionExecutor>(
+    static services =>
+        new EditorialRightsAdministrationTransactionExecutor(
+            services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
 builder.Services.AddSingleton<ArtistAdministrationService>();
 builder.Services.AddSingleton<SongDraftAdministrationService>();
 builder.Services.AddSingleton<CreditProvenanceAdministrationService>();
+builder.Services.AddSingleton<RightsAdministrationService>();
 builder.Services.AddSingleton<ConfigurationAdministrationService>();
 builder.Services.AddSingleton<RoleAssignmentAdministrationService>();
 builder.Services.AddSingleton<PrimaryAuditRecorder>();
@@ -212,6 +219,7 @@ app.MapConfigurationAdministration();
 app.MapArtistAdministration();
 app.MapSongDraftAdministration();
 app.MapCreditProvenanceAdministration();
+app.MapRightsAdministration();
 
 app.Run();
 

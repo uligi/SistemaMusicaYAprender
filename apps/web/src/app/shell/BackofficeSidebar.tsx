@@ -32,13 +32,6 @@ function isCurrent(pathname: string, href: string): boolean {
   return pathname === href;
 }
 
-function recordingIdFrom(pathname: string): string | null {
-  const match = pathname.match(
-    /^\/editorial\/canciones\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\/|$)/i,
-  );
-  return match?.[1] ?? null;
-}
-
 function dynamicIdFrom(pathname: string, prefix: string): string | null {
   const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const match = pathname.match(
@@ -89,7 +82,6 @@ export type BackofficeSidebarProps = {
 };
 
 export function BackofficeSidebar({ access, pathname }: BackofficeSidebarProps) {
-  const recordingId = recordingIdFrom(pathname);
   const packageId = dynamicIdFrom(pathname, '/editorial/paquetes');
   const publicationId = dynamicIdFrom(pathname, '/administracion/publicaciones');
   const correctionId = dynamicIdFrom(pathname, '/administracion/correcciones');
@@ -98,46 +90,6 @@ export function BackofficeSidebar({ access, pathname }: BackofficeSidebarProps) 
     { routeId: 'UI-MVP-017', label: 'Bandeja editorial', href: '/editorial' },
     { routeId: 'UI-MVP-018', label: 'Nueva canción', href: '/editorial/canciones/nueva' },
   ];
-
-  if (recordingId) {
-    editorialItems.push(
-      {
-        routeId: 'UI-MVP-019',
-        label: 'Expediente',
-        href: `/editorial/canciones/${recordingId}`,
-      },
-      {
-        routeId: 'UI-MVP-020',
-        label: 'Créditos y procedencia',
-        href: `/editorial/canciones/${recordingId}/derechos`,
-      },
-      {
-        routeId: 'UI-MVP-021',
-        label: 'Letra',
-        href: `/editorial/canciones/${recordingId}/letra`,
-      },
-      {
-        routeId: 'UI-MVP-022',
-        label: 'Sincronización',
-        href: `/editorial/canciones/${recordingId}/sincronizacion`,
-      },
-      {
-        routeId: 'UI-MVP-023',
-        label: 'Traducción',
-        href: `/editorial/canciones/${recordingId}/traduccion`,
-      },
-      {
-        routeId: 'UI-MVP-024',
-        label: 'Análisis lingüístico',
-        href: `/editorial/canciones/${recordingId}/analisis`,
-      },
-      {
-        routeId: 'UI-MVP-025',
-        label: 'Ejercicios',
-        href: `/editorial/canciones/${recordingId}/ejercicios`,
-      },
-    );
-  }
 
   if (packageId) {
     editorialItems.push({
