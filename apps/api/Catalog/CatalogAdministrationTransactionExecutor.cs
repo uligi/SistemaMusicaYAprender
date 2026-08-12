@@ -8,7 +8,8 @@ public sealed class CatalogAdministrationTransactionExecutor(
     BackofficeSecurityTransactionExecutor inner)
     : IArtistAdministrationTransactionExecutor,
       ISongDraftAdministrationTransactionExecutor,
-      ICreditProvenanceAdministrationTransactionExecutor
+      ICreditProvenanceAdministrationTransactionExecutor,
+      IEditorialInboxTransactionExecutor
 {
     public Task<TResult> ExecuteAsync<TResult>(
         Guid actorAccountId,

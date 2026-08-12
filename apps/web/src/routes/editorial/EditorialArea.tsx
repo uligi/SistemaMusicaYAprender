@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { RouteMatch } from '../../app/router/match-route';
 import { RoutePlaceholder } from '../shared/RoutePlaceholder';
 import { ArtistAdministrationPage } from './ArtistAdministrationPage';
+import { EditorialInboxPage } from './EditorialInboxPage';
 import { RightsProvenancePage } from './RightsProvenancePage';
 import { SongContextNavigation } from './SongContextNavigation';
 import { SongDraftDetailPage } from './SongDraftDetailPage';
@@ -22,6 +23,10 @@ function SongWorkspace({ children, match }: { children: ReactNode; match: RouteM
 }
 
 export default function EditorialArea({ match }: EditorialAreaProps) {
+  if (match.route.id === 'UI-MVP-017') {
+    return <EditorialInboxPage />;
+  }
+
   if (match.route.id === 'UI-MVP-018') {
     return <ArtistAdministrationPage />;
   }

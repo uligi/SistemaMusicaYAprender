@@ -41,6 +41,38 @@ public sealed class EffectiveAuthorizationService(
         return new EffectiveAccessSnapshot(roles, permissions);
     }
 
+    public async Task<IReadOnlyList<EffectivePermissionGrant>>
+        ResolveScopedPermissionsAsync(
+            Guid accountId,
+            string correlationId,
+            CancellationToken cancellationToken = default)
+    {
+        ValidateSubject(accountId, correlationId);
+
+        var grants = await LoadEffectiveGrantsAsync(
+            accountId,
+            correlationId,
+            cancellationToken);
+
+        if (!grants.AccountActive)
+        {
+            return Array.Empty<EffectivePermissionGrant>();
+        }
+
+        return grants.Rows
+            .Select(static row => new EffectivePermissionGrant(
+                row.PermissionCode,
+                row.ScopeType,
+                row.ModuleCode,
+                row.ObjectId))
+            .Distinct()
+            .OrderBy(static grant => grant.PermissionCode, StringComparer.Ordinal)
+            .ThenBy(static grant => grant.ScopeType, StringComparer.Ordinal)
+            .ThenBy(static grant => grant.ModuleCode, StringComparer.Ordinal)
+            .ThenBy(static grant => grant.ObjectId)
+            .ToArray();
+    }
+
     public async Task<AuthorizationDecision> AuthorizeAsync(
         Guid accountId,
         string permissionCode,
@@ -312,6 +344,12 @@ public sealed class EffectiveAuthorizationService(
         string? ModuleCode,
         Guid? ObjectId);
 }
+
+public sealed record EffectivePermissionGrant(
+    string PermissionCode,
+    string? ScopeType,
+    string? ModuleCode,
+    Guid? ObjectId);
 
 public sealed record AuthorizationCatalog(
     IReadOnlyList<string> Roles,

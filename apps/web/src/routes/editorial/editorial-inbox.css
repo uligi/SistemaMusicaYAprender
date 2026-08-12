@@ -1,0 +1,119 @@
+.editorial-inbox {
+  gap: var(--ma-space-5);
+}
+
+.editorial-inbox__intro,
+.editorial-inbox__card,
+.editorial-inbox__next {
+  display: grid;
+  gap: var(--ma-space-3);
+}
+
+.editorial-inbox__intro p,
+.editorial-inbox__toolbar p,
+.editorial-inbox__artist,
+.editorial-inbox__recording,
+.editorial-inbox__next p,
+.editorial-inbox__no-action {
+  margin: 0;
+}
+
+.editorial-inbox__toolbar {
+  display: grid;
+  max-width: 42rem;
+  gap: var(--ma-space-2);
+}
+
+.editorial-inbox__toolbar label {
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.editorial-inbox__toolbar input {
+  min-height: 2.75rem;
+  padding: var(--ma-space-2) var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-surface);
+  color: inherit;
+  font: inherit;
+}
+
+.editorial-inbox__toolbar p,
+.editorial-inbox__artist,
+.editorial-inbox__recording,
+.editorial-inbox__no-action {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.editorial-inbox__list,
+.editorial-inbox__actions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.editorial-inbox__list {
+  display: grid;
+  gap: var(--ma-space-4);
+}
+
+.editorial-inbox__card {
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.editorial-inbox__card h2,
+.editorial-inbox__card h3 {
+  margin: 0;
+}
+
+.editorial-inbox__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ma-space-3);
+  margin: 0;
+}
+
+.editorial-inbox__facts div {
+  min-width: 0;
+  padding-block-start: var(--ma-space-2);
+  border-block-start: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.editorial-inbox__facts dt {
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.editorial-inbox__facts dd {
+  margin: var(--ma-space-1) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.editorial-inbox__next {
+  padding: var(--ma-space-3);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface-subtle);
+}
+
+.editorial-inbox__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-2);
+}
+
+@media (max-width: 39.9375rem) {
+  .editorial-inbox__facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .editorial-inbox__actions {
+    display: grid;
+  }
+
+  .editorial-inbox__actions .ma-button {
+    width: 100%;
+  }
+}
