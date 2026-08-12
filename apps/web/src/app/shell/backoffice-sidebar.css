@@ -1,0 +1,95 @@
+.backoffice-sidebar {
+  display: grid;
+  align-content: start;
+  gap: var(--ma-space-5);
+  min-width: 0;
+  padding: var(--ma-space-5) var(--ma-space-4);
+  border-inline-end: var(--ma-border-width-thin) solid var(--ma-color-border);
+  background: var(--ma-color-canvas);
+}
+
+.backoffice-sidebar__eyebrow,
+.backoffice-sidebar__heading,
+.backoffice-sidebar__footer p {
+  margin: 0;
+}
+
+.backoffice-sidebar__eyebrow {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.backoffice-sidebar__group {
+  display: grid;
+  gap: var(--ma-space-2);
+  min-width: 0;
+}
+
+.backoffice-sidebar__heading {
+  color: var(--ma-color-ink);
+  font-size: var(--ma-font-size-secondary);
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.backoffice-sidebar__links {
+  display: grid;
+  gap: var(--ma-space-1);
+}
+
+.backoffice-sidebar__link {
+  display: flex;
+  align-items: center;
+  min-height: var(--ma-touch-target);
+  min-width: 0;
+  padding: var(--ma-space-2) var(--ma-space-3);
+  border-radius: var(--ma-radius-control);
+  color: var(--ma-color-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.backoffice-sidebar__link:hover {
+  background: var(--ma-color-surface);
+  text-decoration: underline;
+}
+
+.backoffice-sidebar__link[aria-current='page'] {
+  background: var(--ma-color-surface);
+  font-weight: var(--ma-font-weight-semibold);
+  text-decoration: underline;
+  text-decoration-thickness: calc(var(--ma-border-width-thin) * 3);
+}
+
+.backoffice-sidebar__footer {
+  display: grid;
+  gap: var(--ma-space-2);
+  padding-block-start: var(--ma-space-3);
+  border-top: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.backoffice-sidebar__footer p {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+@media (max-width: 48rem) {
+  .backoffice-sidebar {
+    border-inline-end: 0;
+    border-bottom: var(--ma-border-width-thin) solid var(--ma-color-border);
+  }
+
+  .backoffice-sidebar__links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 29.9375rem) {
+  .backoffice-sidebar {
+    padding-inline: var(--ma-space-3);
+  }
+
+  .backoffice-sidebar__links {
+    grid-template-columns: 1fr;
+  }
+}

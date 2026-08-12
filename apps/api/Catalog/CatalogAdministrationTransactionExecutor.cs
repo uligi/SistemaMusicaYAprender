@@ -7,7 +7,8 @@ namespace MusicaAprender.Api.Catalog;
 public sealed class CatalogAdministrationTransactionExecutor(
     BackofficeSecurityTransactionExecutor inner)
     : IArtistAdministrationTransactionExecutor,
-      ISongDraftAdministrationTransactionExecutor
+      ISongDraftAdministrationTransactionExecutor,
+      ICreditProvenanceAdministrationTransactionExecutor
 {
     public Task<TResult> ExecuteAsync<TResult>(
         Guid actorAccountId,

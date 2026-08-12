@@ -1,6 +1,7 @@
 import type { RouteMatch } from '../../app/router/match-route';
 import { RoutePlaceholder } from '../shared/RoutePlaceholder';
 import { ArtistAdministrationPage } from './ArtistAdministrationPage';
+import { CreditProvenancePage } from './CreditProvenancePage';
 import { SongDraftDetailPage } from './SongDraftDetailPage';
 
 export type EditorialAreaProps = {
@@ -14,6 +15,10 @@ export default function EditorialArea({ match }: EditorialAreaProps) {
 
   if (match.route.id === 'UI-MVP-019') {
     return <SongDraftDetailPage recordingId={match.params.id ?? ''} />;
+  }
+
+  if (match.route.id === 'UI-MVP-020') {
+    return <CreditProvenancePage recordingId={match.params.id ?? ''} />;
   }
 
   return (
