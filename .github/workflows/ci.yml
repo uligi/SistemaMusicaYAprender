@@ -562,6 +562,10 @@ jobs:
           BL057_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/content/verify-synchronization-timeline-editor.sh
 
+      - name: Verify isolated YouTube IFrame adapter
+        shell: bash
+        run: bash scripts/ci/content/verify-youtube-iframe-adapter.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

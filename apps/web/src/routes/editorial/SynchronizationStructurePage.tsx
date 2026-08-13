@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
+import { YouTubeIframeAdapter } from '../../integrations/youtube/YouTubeIframeAdapter';
 import {
   SynchronizationTimelineEditor,
   type TimingRevisionEditorSnapshot,
@@ -194,6 +195,17 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
                     </div>
                   </dl>
 
+                  {source.providerCode === 'YOUTUBE' ? (
+                    <div className="synchronization-structure__external-preview">
+                      <p className="eyebrow">BL-MVP-058 · VISTA PREVIA EDITORIAL · NO PUBLICA</p>
+                      <YouTubeIframeAdapter
+                        externalRef={source.externalRef}
+                        title={`Fuente editorial ${source.externalRef}`}
+                        headingLevel={4}
+                      />
+                    </div>
+                  ) : null}
+
                   {source.durationMs === null ? (
                     <StateMessage
                       state="UI-EST-10"
@@ -297,7 +309,7 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
       <StateMessage
         state="UI-EST-11"
         title="Sincronización editable, todavía no publicada"
-        description="BL-MVP-057 guarda revisiones DRAFT. BL-MVP-058 conectará el IFrame de YouTube y BL-MVP-059 resolverá el seguimiento de reproducción."
+        description="BL-MVP-057 guarda revisiones DRAFT. BL-MVP-058 permite previsualizar la fuente YouTube sin publicar; BL-MVP-059 resolverá el seguimiento de reproducción."
       />
     </article>
   );

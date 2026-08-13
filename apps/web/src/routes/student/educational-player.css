@@ -1,0 +1,29 @@
+.educational-player {
+  display: grid;
+  gap: var(--ma-space-5);
+  max-inline-size: 64rem;
+}
+
+.educational-player__header,
+.educational-player__owned {
+  display: grid;
+  gap: var(--ma-space-3);
+}
+
+.educational-player__owned {
+  padding: var(--ma-space-5);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.educational-player__owned h2,
+.educational-player__owned p {
+  margin: 0;
+}
+
+@media (max-width: 40rem) {
+  .educational-player__owned {
+    padding: var(--ma-space-3);
+  }
+}

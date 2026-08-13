@@ -16,7 +16,8 @@ public sealed record PublicSongDetail(
     string? LanguageTag,
     DateTime AvailabilityValidFrom,
     DateTime? AvailabilityValidTo,
-    IReadOnlyList<string> AvailableComponents);
+    IReadOnlyList<string> AvailableComponents,
+    string SourceExternalRef);
 
 public sealed class AmbiguousPublicSongException : Exception
 {
@@ -174,7 +175,8 @@ public sealed class PublicSongDetailService
                         ) AS component
                     ),
                     ARRAY[]::text[]
-                ) AS component_kinds
+                ) AS component_kinds,
+                source.external_ref
             FROM editorial.published_package_projection AS projection
             INNER JOIN editorial.publication AS publication
                 ON publication.publication_id = projection.publication_id
@@ -299,7 +301,8 @@ public sealed class PublicSongDetailService
                 reader.IsDBNull(6) ? null : reader.GetString(6),
                 reader.GetDateTime(7),
                 reader.IsDBNull(8) ? null : reader.GetDateTime(8),
-                reader.GetFieldValue<string[]>(10)));
+                reader.GetFieldValue<string[]>(10),
+                reader.GetString(11)));
         }
 
         return rows.Count switch
