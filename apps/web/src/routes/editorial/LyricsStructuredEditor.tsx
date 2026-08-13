@@ -3,6 +3,13 @@ import { Button, Field, SelectField, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem, MutationState } from '../../data/http/types';
 import type { LyricsRevision, LyricsStructureResponse } from './LyricsStructurePage';
+import {
+  editableTokensFromRevision,
+  LyricsTokenSegmentationEditor,
+  serializeTokenRanges,
+  validateTokenRanges,
+  type EditableTokenRange,
+} from './LyricsTokenSegmentationEditor';
 import './lyrics-structured-editor.css';
 
 const client = createHttpClient();
@@ -25,6 +32,7 @@ type EditorLine = {
   japaneseText: string;
   speakerLabel: string;
   unknownContentCode: UnknownContentCode;
+  tokens: EditableTokenRange[];
 };
 
 type EditorSection = {
@@ -43,6 +51,13 @@ type EditorError = {
   message: string;
 };
 
+type SegmentationImpact = {
+  lyricsRevisionId: string;
+  timingRevisionCount: number;
+  translationRevisionCount: number;
+  analysisRevisionCount: number;
+  hasImpact: boolean;
+};
 type Csrf = {
   requestToken: string;
   headerName: string;
@@ -61,6 +76,7 @@ function newLine(): EditorLine {
     japaneseText: '',
     speakerLabel: '',
     unknownContentCode: '',
+    tokens: [],
   };
 }
 
@@ -110,6 +126,7 @@ function fromRevision(revision: LyricsRevision | null): EditorDraft {
           japaneseText: unknownContentCode ? '' : line.japaneseText,
           speakerLabel: line.speakerLabel ?? '',
           unknownContentCode,
+          tokens: editableTokensFromRevision(line.tokens),
         };
       }),
     })),
@@ -167,6 +184,21 @@ function validate(draft: EditorDraft): EditorError[] {
           message: `La línea ${lineIndex + 1} no puede mezclar texto inventado con una marca de contenido desconocido.`,
         });
       }
+      if (!line.unknownContentCode) {
+        validateTokenRanges(line.japaneseText, line.tokens).forEach((message, tokenIndex) =>
+          errors.push({
+            key: `section-${sectionIndex}-line-${lineIndex}-token-${tokenIndex}`,
+            message,
+          }),
+        );
+      }
+
+      if (line.unknownContentCode && line.tokens.length > 0) {
+        errors.push({
+          key: `section-${sectionIndex}-line-${lineIndex}-unknown-tokens`,
+          message: `La línea ${lineIndex + 1} no puede conservar tokens si el contenido es desconocido.`,
+        });
+      }
     });
   });
 
@@ -183,7 +215,7 @@ function requestBody(draft: EditorDraft) {
           ? unknownMarker(line.unknownContentCode)
           : line.japaneseText,
         speakerLabel: line.speakerLabel.trim() || null,
-        tokens: [],
+        tokens: line.unknownContentCode ? [] : serializeTokenRanges(line.japaneseText, line.tokens),
       })),
     })),
   };
@@ -218,6 +250,9 @@ export function LyricsStructuredEditor({
   const [problem, setProblem] = useState<ClientProblem | null>(null);
   const [comparison, setComparison] = useState<ServerComparison | null>(null);
   const [comparisonError, setComparisonError] = useState('');
+  const [segmentationChanged, setSegmentationChanged] = useState(false);
+  const [segmentationImpact, setSegmentationImpact] = useState<SegmentationImpact | null>(null);
+  const [segmentationImpactError, setSegmentationImpactError] = useState('');
 
   useEffect(() => {
     setDraft(fromRevision(revision));
@@ -225,9 +260,48 @@ export function LyricsStructuredEditor({
     setProblem(null);
     setComparison(null);
     setComparisonError('');
+    setSegmentationChanged(false);
+    setSegmentationImpact(null);
+    setSegmentationImpactError('');
     setMutation((current) => (current?.phase === 'confirmed' ? current : null));
   }, [etag, revision]);
 
+  useEffect(() => {
+    if (!revision) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadImpact = async () => {
+      const result = await client.get<SegmentationImpact>(
+        `/editorial/song-drafts/${encodeURIComponent(
+          recordingId,
+        )}/lyrics-revisions/${encodeURIComponent(revision.lyricsRevisionId)}/segmentation-impact`,
+        {
+          cacheMode: 'no-store',
+          retry: 'safe',
+          signal: controller.signal,
+        },
+      );
+
+      if (result.kind === 'cancelled') {
+        return;
+      }
+
+      if (result.ok) {
+        setSegmentationImpact(result.data);
+        setSegmentationImpactError('');
+        return;
+      }
+
+      setSegmentationImpact(null);
+      setSegmentationImpactError(result.problem.correction);
+    };
+
+    void loadImpact();
+    return () => controller.abort();
+  }, [recordingId, revision]);
   const errors = useMemo(() => validate(draft), [draft]);
 
   function markChanged() {
@@ -261,6 +335,80 @@ export function LyricsStructuredEditor({
     markChanged();
   }
 
+  function updateLineTokens(sectionIndex: number, lineIndex: number, tokens: EditableTokenRange[]) {
+    setDraft((current) => ({
+      sections: current.sections.map((section, position) => {
+        if (position !== sectionIndex) return section;
+
+        return {
+          ...section,
+          lines: section.lines.map((line, linePosition) =>
+            linePosition === lineIndex ? { ...line, tokens } : line,
+          ),
+        };
+      }),
+    }));
+    setSegmentationChanged(true);
+    markChanged();
+  }
+  function updateJapaneseText(sectionIndex: number, lineIndex: number, value: string) {
+    const normalizedValue = value.replace(/\r\n?/g, '\n');
+    const logicalLines = normalizedValue.split('\n');
+
+    if (logicalLines.length > 1 && logicalLines[logicalLines.length - 1] === '') {
+      logicalLines.pop();
+    }
+
+    setDraft((current) => ({
+      sections: current.sections.map((section, position) => {
+        if (position !== sectionIndex) return section;
+
+        const sourceLine = section.lines[lineIndex];
+        if (!sourceLine) return section;
+
+        if (logicalLines.length <= 1) {
+          return {
+            ...section,
+            lines: section.lines.map((line, linePosition) =>
+              linePosition === lineIndex
+                ? {
+                    ...line,
+                    japaneseText: normalizedValue,
+                    tokens: [],
+                  }
+                : line,
+            ),
+          };
+        }
+
+        const replacementLines = logicalLines.map((japaneseText, logicalIndex) =>
+          logicalIndex === 0
+            ? {
+                ...sourceLine,
+                japaneseText,
+                unknownContentCode: '' as UnknownContentCode,
+                tokens: [],
+              }
+            : {
+                ...newLine(),
+                japaneseText,
+              },
+        );
+
+        return {
+          ...section,
+          lines: [
+            ...section.lines.slice(0, lineIndex),
+            ...replacementLines,
+            ...section.lines.slice(lineIndex + 1),
+          ],
+        };
+      }),
+    }));
+
+    setSegmentationChanged(true);
+    markChanged();
+  }
   function addSection() {
     setDraft((current) => ({
       sections: [...current.sections, newSection()],
@@ -425,6 +573,7 @@ export function LyricsStructuredEditor({
     setMutation(null);
     setProblem(null);
     setComparison(null);
+    setSegmentationChanged(false);
   }
 
   function rebaseLocalVersion() {
@@ -493,6 +642,49 @@ export function LyricsStructuredEditor({
         </div>
       ) : null}
 
+      {segmentationChanged && revision ? (
+        <section
+          className="lyrics-editor__segmentation-impact"
+          aria-labelledby="lyrics-segmentation-impact-title"
+          role="status"
+        >
+          <h3 id="lyrics-segmentation-impact-title">Impacto de la segmentación</h3>
+          <p>
+            Esta corrección creará una nueva revisión. Las relaciones de la revisión actual no se
+            migran ni se consideran compatibles automáticamente.
+          </p>
+
+          {segmentationImpact ? (
+            <ul>
+              <li>
+                Sincronización: {segmentationImpact.timingRevisionCount}{' '}
+                {segmentationImpact.timingRevisionCount === 1
+                  ? 'revisión relacionada'
+                  : 'revisiones relacionadas'}
+              </li>
+              <li>
+                Traducciones: {segmentationImpact.translationRevisionCount}{' '}
+                {segmentationImpact.translationRevisionCount === 1
+                  ? 'revisión relacionada'
+                  : 'revisiones relacionadas'}
+              </li>
+              <li>
+                Análisis: {segmentationImpact.analysisRevisionCount}{' '}
+                {segmentationImpact.analysisRevisionCount === 1
+                  ? 'revisión relacionada'
+                  : 'revisiones relacionadas'}
+              </li>
+            </ul>
+          ) : segmentationImpactError ? (
+            <p>
+              No fue posible resolver el impacto completo. No asumas que los vínculos actuales
+              siguen siendo válidos: {segmentationImpactError}
+            </p>
+          ) : (
+            <p>Revisando relaciones temporales, traducciones y análisis…</p>
+          )}
+        </section>
+      ) : null}
       <ol className="lyrics-editor__sections">
         {draft.sections.map((section, sectionIndex) => (
           <li key={section.clientId}>
@@ -586,7 +778,6 @@ export function LyricsStructuredEditor({
                           </Button>
                         </div>
                       </header>
-
                       <div className="ma-field">
                         <label
                           className="ma-field__label"
@@ -598,8 +789,9 @@ export function LyricsStructuredEditor({
                           className="ma-field__help"
                           id={`lyrics-line-${line.clientId}-japanese-help`}
                         >
-                          Se conserva exactamente como lo escribes. No introduzcas una suposición si
-                          el audio no se entiende.
+                          Cada salto de línea crea una línea editorial independiente. El texto se
+                          conserva exactamente; no introduzcas una suposición si el audio no se
+                          entiende.
                         </span>
                         <textarea
                           className="ma-field__control lyrics-editor__textarea"
@@ -610,13 +802,10 @@ export function LyricsStructuredEditor({
                           disabled={Boolean(line.unknownContentCode)}
                           value={line.japaneseText}
                           onChange={(event) =>
-                            updateLine(sectionIndex, lineIndex, {
-                              japaneseText: event.target.value,
-                            })
+                            updateJapaneseText(sectionIndex, lineIndex, event.target.value)
                           }
                         />
                       </div>
-
                       <div className="lyrics-editor__line-fields">
                         <Field
                           id={`lyrics-line-${line.clientId}-speaker`}
@@ -639,7 +828,7 @@ export function LyricsStructuredEditor({
                             const unknownContentCode = event.target.value as UnknownContentCode;
                             updateLine(sectionIndex, lineIndex, {
                               unknownContentCode,
-                              ...(unknownContentCode ? { japaneseText: '' } : {}),
+                              ...(unknownContentCode ? { japaneseText: '', tokens: [] } : {}),
                             });
                           }}
                         >
@@ -650,6 +839,12 @@ export function LyricsStructuredEditor({
                           ))}
                         </SelectField>
                       </div>
+                      <LyricsTokenSegmentationEditor
+                        japaneseText={line.japaneseText}
+                        tokens={line.tokens}
+                        disabled={Boolean(line.unknownContentCode)}
+                        onChange={(tokens) => updateLineTokens(sectionIndex, lineIndex, tokens)}
+                      />{' '}
                     </article>
                   </li>
                 ))}

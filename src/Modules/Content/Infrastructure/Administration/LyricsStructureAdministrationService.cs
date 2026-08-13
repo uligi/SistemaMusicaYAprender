@@ -60,6 +60,18 @@ public sealed record LyricsRevisionSnapshot(
     long Version,
     List<LyricsSectionSnapshot> Sections);
 
+public sealed record LyricsSegmentationImpactSnapshot(
+    Guid LyricsRevisionId,
+    long TimingRevisionCount,
+    long TranslationRevisionCount,
+    long AnalysisRevisionCount)
+{
+    public bool HasImpact =>
+        TimingRevisionCount > 0
+        || TranslationRevisionCount > 0
+        || AnalysisRevisionCount > 0;
+}
+
 public sealed class LyricsStructureAdministrationException(
     string code,
     string message)
@@ -107,6 +119,89 @@ public sealed partial class LyricsStructureAdministrationService(
             cancellationToken);
     }
 
+    public Task<LyricsSegmentationImpactSnapshot> ReadSegmentationImpactAsync(
+        Guid actorAccountId,
+        Guid recordingId,
+        Guid lyricsRevisionId,
+        string correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateIdentity(
+            actorAccountId,
+            recordingId,
+            correlationId);
+
+        if (lyricsRevisionId == Guid.Empty)
+        {
+            throw new LyricsStructureAdministrationException(
+                "content.lyrics.revision.invalid",
+                "La revisión indicada no es válida.");
+        }
+
+        return transactionExecutor.ExecuteAsync(
+            actorAccountId,
+            correlationId,
+            async (connection, transaction, token) =>
+            {
+                const string sql = """
+                    SELECT
+                        EXISTS (
+                            SELECT 1
+                            FROM content.lyrics_revision AS revision
+                            WHERE revision.lyrics_revision_id = @lyrics_revision_id
+                              AND revision.recording_id = @recording_id
+                        ),
+                        (
+                            SELECT count(*)
+                            FROM content.timing_revision AS timing
+                            WHERE timing.lyrics_revision_id = @lyrics_revision_id
+                        ),
+                        (
+                            SELECT count(*)
+                            FROM content.translation_revision AS translation
+                            WHERE translation.lyrics_revision_id = @lyrics_revision_id
+                        ),
+                        (
+                            SELECT count(*)
+                            FROM content.linguistic_analysis_revision AS analysis
+                            WHERE analysis.lyrics_revision_id = @lyrics_revision_id
+                        );
+                    """;
+
+                await using var command =
+                    new NpgsqlCommand(
+                        sql,
+                        connection,
+                        transaction);
+
+                command.Parameters.AddWithValue(
+                    "lyrics_revision_id",
+                    NpgsqlDbType.Uuid,
+                    lyricsRevisionId);
+                command.Parameters.AddWithValue(
+                    "recording_id",
+                    NpgsqlDbType.Uuid,
+                    recordingId);
+
+                await using var reader =
+                    await command.ExecuteReaderAsync(token);
+
+                if (!await reader.ReadAsync(token)
+                    || !reader.GetBoolean(0))
+                {
+                    throw new LyricsStructureAdministrationException(
+                        "content.lyrics.revision.not-found",
+                        "La revisión de letra no pertenece a la grabación indicada.");
+                }
+
+                return new LyricsSegmentationImpactSnapshot(
+                    lyricsRevisionId,
+                    reader.GetInt64(1),
+                    reader.GetInt64(2),
+                    reader.GetInt64(3));
+            },
+            cancellationToken);
+    }
     public Task<LyricsRevisionSnapshot> CreateRevisionAsync(
         Guid actorAccountId,
         Guid recordingId,
@@ -944,7 +1039,9 @@ public sealed partial class LyricsStructureAdministrationService(
 
             if (sourceToken.StartOffset < 0
                 || sourceToken.EndOffset <= sourceToken.StartOffset
-                || sourceToken.EndOffset > original.Length)
+                || sourceToken.EndOffset > original.Length
+                || !IsUtf16Boundary(original, sourceToken.StartOffset)
+                || !IsUtf16Boundary(original, sourceToken.EndOffset))
             {
                 throw new LyricsStructureAdministrationException(
                     "content.lyrics.token.offset.invalid",
@@ -1121,6 +1218,18 @@ public sealed partial class LyricsStructureAdministrationService(
         }
     }
 
+    private static bool IsUtf16Boundary(
+        string text,
+        int index)
+    {
+        if (index <= 0 || index >= text.Length)
+        {
+            return true;
+        }
+
+        return !(char.IsHighSurrogate(text[index - 1])
+                 && char.IsLowSurrogate(text[index]));
+    }
     private static string? NormalizeOptional(
         string? value,
         int maxLength,

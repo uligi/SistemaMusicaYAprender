@@ -25,6 +25,15 @@ public static class LyricsStructureAdministrationEndpoints
             .WithName("ReadLatestEditorialLyricsRevision")
             .WithTags("Content");
 
+        endpoints.MapGet(
+                "/api/v1/editorial/song-drafts/{recordingId:guid}/lyrics-revisions/{lyricsRevisionId:guid}/segmentation-impact",
+                ReadSegmentationImpactAsync)
+            .RequireEffectivePermission(
+                "EDITORIAL.DRAFT",
+                moduleCode: "M03",
+                routeObjectKey: "recordingId")
+            .WithName("ReadEditorialLyricsSegmentationImpact")
+            .WithTags("Content");
         endpoints.MapPost(
                 "/api/v1/editorial/song-drafts/{recordingId:guid}/lyrics-revisions",
                 CreateAsync)
@@ -83,6 +92,44 @@ public static class LyricsStructureAdministrationEndpoints
         }
     }
 
+    private static async Task<IResult> ReadSegmentationImpactAsync(
+        Guid recordingId,
+        Guid lyricsRevisionId,
+        HttpContext httpContext,
+        LyricsStructureAdministrationService service)
+    {
+        if (!TryActor(
+                httpContext,
+                out var actorId))
+        {
+            return Results.Unauthorized();
+        }
+
+        try
+        {
+            var impact =
+                await service.ReadSegmentationImpactAsync(
+                    actorId,
+                    recordingId,
+                    lyricsRevisionId,
+                    httpContext.TraceIdentifier,
+                    httpContext.RequestAborted);
+
+            return Results.Ok(impact);
+        }
+        catch (LyricsStructureAdministrationException exception)
+        {
+            return Problem(exception);
+        }
+        catch (NpgsqlException)
+        {
+            return Unavailable();
+        }
+        catch (InvalidOperationException)
+        {
+            return Unavailable();
+        }
+    }
     private static async Task<IResult> CreateAsync(
         Guid recordingId,
         CreateLyricsRevisionInput request,
@@ -179,6 +226,8 @@ public static class LyricsStructureAdministrationEndpoints
             exception.Code switch
             {
                 "content.lyrics.recording.not-found" =>
+                    StatusCodes.Status404NotFound,
+                "content.lyrics.revision.not-found" =>
                     StatusCodes.Status404NotFound,
                 "content.lyrics.conflict" =>
                     StatusCodes.Status412PreconditionFailed,

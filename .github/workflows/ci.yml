@@ -529,6 +529,17 @@ jobs:
           BL054_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/content/verify-lyrics-structured-editor.sh
 
+      - name: Verify manual lyrics token segmentation
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL055_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/content/verify-lyrics-token-segmentation.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:
