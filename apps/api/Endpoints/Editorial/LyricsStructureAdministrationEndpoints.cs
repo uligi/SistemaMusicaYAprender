@@ -59,6 +59,10 @@ public static class LyricsStructureAdministrationEndpoints
                     httpContext.TraceIdentifier,
                     httpContext.RequestAborted);
 
+            ApplyRevisionETag(
+                httpContext,
+                revision);
+
             return Results.Ok(
                 new LyricsStructureResponse(
                     revision is not null,
@@ -93,6 +97,27 @@ public static class LyricsStructureAdministrationEndpoints
             return Results.Unauthorized();
         }
 
+        if (!httpContext.Request.Headers.TryGetValue(
+                "If-Match",
+                out var ifMatchHeader)
+            || string.IsNullOrWhiteSpace(
+                ifMatchHeader.ToString()))
+        {
+            return Results.Problem(
+                statusCode:
+                    StatusCodes.Status428PreconditionRequired,
+                title:
+                    "Falta la revisión base",
+                detail:
+                    "Recarga la revisión de letra antes de guardar cambios.",
+                extensions:
+                    new Dictionary<string, object?>
+                    {
+                        ["code"] =
+                            "content.lyrics.precondition-required"
+                    });
+        }
+
         try
         {
             await antiforgery.ValidateRequestAsync(
@@ -103,8 +128,13 @@ public static class LyricsStructureAdministrationEndpoints
                     actorId,
                     recordingId,
                     request,
+                    ifMatchHeader.ToString(),
                     httpContext.TraceIdentifier,
                     httpContext.RequestAborted);
+
+            ApplyRevisionETag(
+                httpContext,
+                revision);
 
             return Results.Ok(
                 new LyricsStructureResponse(
@@ -150,6 +180,10 @@ public static class LyricsStructureAdministrationEndpoints
             {
                 "content.lyrics.recording.not-found" =>
                     StatusCodes.Status404NotFound,
+                "content.lyrics.conflict" =>
+                    StatusCodes.Status412PreconditionFailed,
+                "content.lyrics.precondition-required" =>
+                    StatusCodes.Status428PreconditionRequired,
                 _ =>
                     StatusCodes.Status400BadRequest
             };
@@ -157,15 +191,35 @@ public static class LyricsStructureAdministrationEndpoints
         return Results.Problem(
             statusCode: status,
             title:
-                status == StatusCodes.Status404NotFound
-                    ? "Grabación no encontrada"
-                    : "Estructura de letra no válida",
+                status switch
+                {
+                    StatusCodes.Status404NotFound =>
+                        "Grabación no encontrada",
+                    StatusCodes.Status412PreconditionFailed =>
+                        "Hay una revisión de letra más reciente",
+                    StatusCodes.Status428PreconditionRequired =>
+                        "Falta la revisión base",
+                    _ =>
+                        "Estructura de letra no válida"
+                },
             detail: exception.Message,
             extensions:
                 new Dictionary<string, object?>
                 {
                     ["code"] = exception.Code
                 });
+    }
+
+    private static void ApplyRevisionETag(
+        HttpContext context,
+        LyricsRevisionSnapshot? revision)
+    {
+        context.Response.Headers["ETag"] =
+            revision is null
+                ? "\"lyrics-none\""
+                : $"\"lyrics-{revision.LyricsRevisionId:N}-v{revision.Version}\"";
+        context.Response.Headers["Cache-Control"] =
+            "no-store";
     }
 
     private static bool TryActor(

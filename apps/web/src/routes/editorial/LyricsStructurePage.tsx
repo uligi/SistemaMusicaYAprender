@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { StateMessage } from '../../components/ui';
+import { LyricsStructuredEditor } from './LyricsStructuredEditor';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
 import './lyrics-structure.css';
 
 const client = createHttpClient();
 
-type LyricsToken = {
+export type LyricsToken = {
   tokenId: string;
   tokenNo: number;
   surface: string;
@@ -15,7 +16,7 @@ type LyricsToken = {
   endOffset: number;
 };
 
-type LyricsLine = {
+export type LyricsLine = {
   lineId: string;
   lineNo: number;
   japaneseText: string;
@@ -24,7 +25,7 @@ type LyricsLine = {
   tokens: LyricsToken[];
 };
 
-type LyricsSection = {
+export type LyricsSection = {
   sectionId: string;
   sectionType: string;
   label: string | null;
@@ -32,7 +33,7 @@ type LyricsSection = {
   lines: LyricsLine[];
 };
 
-type LyricsRevision = {
+export type LyricsRevision = {
   lyricsRevisionId: string;
   recordingId: string;
   revisionNo: number;
@@ -45,14 +46,14 @@ type LyricsRevision = {
   sections: LyricsSection[];
 };
 
-type LyricsStructureResponse = {
+export type LyricsStructureResponse = {
   exists: boolean;
   revision: LyricsRevision | null;
 };
 
 type PageState =
   | { phase: 'loading' }
-  | { phase: 'ready'; data: LyricsStructureResponse }
+  | { phase: 'ready'; data: LyricsStructureResponse; etag: string }
   | { phase: 'failed'; problem: ClientProblem };
 
 export type LyricsStructurePageProps = {
@@ -87,7 +88,11 @@ export function LyricsStructurePage({ recordingId }: LyricsStructurePageProps) {
 
       setState(
         result.ok
-          ? { phase: 'ready', data: result.data }
+          ? {
+              phase: 'ready',
+              data: result.data,
+              etag: result.etag ?? '"lyrics-none"',
+            }
           : { phase: 'failed', problem: result.problem },
       );
     };
@@ -99,14 +104,14 @@ export function LyricsStructurePage({ recordingId }: LyricsStructurePageProps) {
   return (
     <article className="route-surface lyrics-structure" data-route-id="UI-MVP-021">
       <header className="lyrics-structure__header">
-        <p className="eyebrow">BL-MVP-053 · UI-MVP-021</p>
+        <p className="eyebrow">BL-MVP-053–054 · UI-MVP-021</p>
         <h1 className="route-title" id="route-title" ref={headingRef} tabIndex={-1}>
           Estructura de letra japonesa
         </h1>
         <p>
-          Modelo de revisión, secciones, líneas y tokens. La superficie japonesa se conserva
-          separada de cualquier normalización y esta pantalla todavía no publica ni adelanta el
-          editor de BL-MVP-054.
+          Modelo y editor de revisiones, secciones, líneas y voces. La superficie japonesa se
+          conserva separada de cualquier normalización; el borrador puede previsualizarse y
+          guardarse sin publicar.
         </p>
       </header>
 
@@ -130,7 +135,22 @@ export function LyricsStructurePage({ recordingId }: LyricsStructurePageProps) {
         <StateMessage
           state="UI-EST-12"
           title="Sin revisión de letra"
-          description="La grabación todavía no tiene una revisión estructurada. El editor funcional se incorpora en BL-MVP-054."
+          description="La grabación todavía no tiene una revisión estructurada. Puedes comenzar un borrador en el editor de esta pantalla."
+        />
+      ) : null}
+
+      {state.phase === 'ready' ? (
+        <LyricsStructuredEditor
+          recordingId={recordingId}
+          revision={state.data.revision}
+          etag={state.etag}
+          onSaved={(response, nextEtag) =>
+            setState({
+              phase: 'ready',
+              data: response,
+              etag: nextEtag,
+            })
+          }
         />
       ) : null}
 

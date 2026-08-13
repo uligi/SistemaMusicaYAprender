@@ -111,6 +111,7 @@ public sealed partial class LyricsStructureAdministrationService(
         Guid actorAccountId,
         Guid recordingId,
         CreateLyricsRevisionInput input,
+        string ifMatch,
         string correlationId,
         CancellationToken cancellationToken = default)
     {
@@ -121,6 +122,7 @@ public sealed partial class LyricsStructureAdministrationService(
             correlationId);
 
         var prepared = Prepare(input);
+        var expected = ParseExpectedRevision(ifMatch);
 
         return transactionExecutor.ExecuteAsync(
             actorAccountId,
@@ -132,6 +134,7 @@ public sealed partial class LyricsStructureAdministrationService(
                     actorAccountId,
                     recordingId,
                     prepared,
+                    expected,
                     token),
             cancellationToken);
     }
@@ -142,6 +145,7 @@ public sealed partial class LyricsStructureAdministrationService(
         Guid actorAccountId,
         Guid recordingId,
         PreparedRevision prepared,
+        ExpectedRevision expected,
         CancellationToken cancellationToken)
     {
         await AssertRecordingExistsAsync(
@@ -161,6 +165,8 @@ public sealed partial class LyricsStructureAdministrationService(
             transaction,
             recordingId,
             cancellationToken);
+
+        EnsureExpectedRevision(latest, expected);
 
         if (latest is not null
             && string.Equals(
@@ -843,6 +849,8 @@ public sealed partial class LyricsStructureAdministrationService(
 
             foreach (var sourceLine in sourceSection.Lines)
             {
+                ValidateUnknownContentLine(sourceLine);
+
                 if (string.IsNullOrWhiteSpace(
                         sourceLine.JapaneseText))
                 {
@@ -981,6 +989,138 @@ public sealed partial class LyricsStructureAdministrationService(
         return result;
     }
 
+    private static readonly string[] UnknownContentMarkers =
+    [
+        "[UNKNOWN:INAUDIBLE]",
+        "[UNKNOWN:UNKNOWN]",
+        "[UNKNOWN:OMITTED]",
+        "[UNKNOWN:PENDING_TRANSCRIPTION]"
+    ];
+
+    private static ExpectedRevision ParseExpectedRevision(
+        string ifMatch)
+    {
+        if (string.IsNullOrWhiteSpace(ifMatch))
+        {
+            throw new LyricsStructureAdministrationException(
+                "content.lyrics.precondition-required",
+                "El guardado requiere la revisión base mediante If-Match.");
+        }
+
+        var normalized = ifMatch.Trim();
+
+        if (string.Equals(
+                normalized,
+                "\"lyrics-none\"",
+                StringComparison.Ordinal))
+        {
+            return new ExpectedRevision(
+                ExpectsNone: true,
+                RevisionId: null,
+                Version: 0);
+        }
+
+        const string prefix = "\"lyrics-";
+        const string suffix = "\"";
+        const string versionSeparator = "-v";
+
+        if (!normalized.StartsWith(prefix, StringComparison.Ordinal)
+            || !normalized.EndsWith(suffix, StringComparison.Ordinal))
+        {
+            throw new LyricsStructureAdministrationException(
+                "content.lyrics.etag.invalid",
+                "El ETag de letra no tiene un formato válido.");
+        }
+
+        var body = normalized[1..^1];
+        var separatorIndex = body.LastIndexOf(
+            versionSeparator,
+            StringComparison.Ordinal);
+
+        if (separatorIndex < "lyrics-".Length)
+        {
+            throw new LyricsStructureAdministrationException(
+                "content.lyrics.etag.invalid",
+                "El ETag de letra no tiene un formato válido.");
+        }
+
+        var idText = body["lyrics-".Length..separatorIndex];
+        var versionText = body[(separatorIndex + versionSeparator.Length)..];
+
+        if (!Guid.TryParseExact(idText, "N", out var revisionId)
+            || !long.TryParse(versionText, out var version)
+            || version <= 0)
+        {
+            throw new LyricsStructureAdministrationException(
+                "content.lyrics.etag.invalid",
+                "El ETag de letra no tiene un formato válido.");
+        }
+
+        return new ExpectedRevision(
+            ExpectsNone: false,
+            RevisionId: revisionId,
+            Version: version);
+    }
+
+    private static void EnsureExpectedRevision(
+        LyricsRevisionSnapshot? latest,
+        ExpectedRevision expected)
+    {
+        if (expected.ExpectsNone)
+        {
+            if (latest is null)
+            {
+                return;
+            }
+
+            throw Conflict();
+        }
+
+        if (latest is null
+            || latest.LyricsRevisionId != expected.RevisionId
+            || latest.Version != expected.Version)
+        {
+            throw Conflict();
+        }
+    }
+
+    private static LyricsStructureAdministrationException Conflict() =>
+        new(
+            "content.lyrics.conflict",
+            "La revisión base cambió antes de guardar. Compara el borrador local con la revisión vigente.");
+
+    private static void ValidateUnknownContentLine(
+        LyricsLineDraft line)
+    {
+        if (!line.JapaneseText.StartsWith(
+                "[UNKNOWN:",
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var markerAllowed = Array.Exists(
+            UnknownContentMarkers,
+            marker => string.Equals(
+                marker,
+                line.JapaneseText,
+                StringComparison.Ordinal));
+
+        if (!markerAllowed)
+        {
+            throw new LyricsStructureAdministrationException(
+                "content.lyrics.unknown-content.invalid",
+                "El contenido desconocido debe usar uno de los marcadores editoriales permitidos.");
+        }
+
+        if (line.Tokens.Count > 0)
+        {
+            throw new LyricsStructureAdministrationException(
+                "content.lyrics.unknown-content.tokens-invalid",
+                "Una línea marcada como contenido desconocido no puede inventar tokens.");
+        }
+    }
+
     private static string? NormalizeOptional(
         string? value,
         int maxLength,
@@ -1111,6 +1251,11 @@ public sealed partial class LyricsStructureAdministrationService(
                 ? DBNull.Value
                 : value;
     }
+
+    private sealed record ExpectedRevision(
+        bool ExpectsNone,
+        Guid? RevisionId,
+        long Version);
 
     private sealed record PreparedRevision(
         List<PreparedSection> Sections,

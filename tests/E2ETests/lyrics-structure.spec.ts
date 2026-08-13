@@ -91,8 +91,9 @@ test.describe('BL-MVP-053 · revisiones, secciones, líneas y tokens', () => {
 
     await expect(page.getByText('Revisión 2', { exact: true })).toBeVisible();
     await expect(page.getByText('Verso 1', { exact: true })).toBeVisible();
-    await expect(page.getByText('が 怪獣', { exact: true })).toBeVisible();
-    await expect(page.getByText('が 怪獣', { exact: true })).toBeVisible();
+    const structureTree = page.getByLabel('Árbol estructural');
+    await expect(structureTree.getByText('が 怪獣', { exact: true })).toBeVisible();
+    await expect(structureTree.getByText('が 怪獣', { exact: true })).toBeVisible();
     await expect(page.getByText('Voz principal', { exact: true })).toBeVisible();
     await expect(page.getByText('0–2', { exact: true })).toBeVisible();
     await expect(page.getByText('3–5', { exact: true })).toBeVisible();

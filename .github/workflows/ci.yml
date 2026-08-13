@@ -518,6 +518,17 @@ jobs:
           BL053_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/content/verify-lyrics-structure-model.sh
 
+      - name: Verify structured Japanese lyrics editor
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL054_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/content/verify-lyrics-structured-editor.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:
