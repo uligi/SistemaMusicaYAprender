@@ -781,7 +781,7 @@ export function SynchronizationTimelineEditor({
             −0,5 s
           </button>
           <button type="button" onClick={togglePlayback}>
-            {isPlaying ? 'Pausar video' : 'Reproducir video'}
+            {isPlaying ? 'Pausar video' : 'Reproducir vista previa'}
           </button>
           <button type="button" onClick={() => seekTo(cursorMs + 500)}>
             +0,5 s
