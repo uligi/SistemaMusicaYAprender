@@ -74,6 +74,10 @@ builder.Services.AddSingleton<ILyricsStructureAdministrationTransactionExecutor>
     static services =>
         new ContentAdministrationTransactionExecutor(
             services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
+builder.Services.AddSingleton<ITimingAdministrationTransactionExecutor>(
+    static services =>
+        new ContentAdministrationTransactionExecutor(
+            services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
 builder.Services.AddSingleton<IRightsAdministrationTransactionExecutor>(
     static services =>
         new EditorialRightsAdministrationTransactionExecutor(
@@ -85,6 +89,7 @@ builder.Services.AddSingleton<EditorialInboxService>();
 builder.Services.AddSingleton<SongEditorialDossierService>();
 builder.Services.AddSingleton<RecordingDraftAutosaveService>();
 builder.Services.AddSingleton<LyricsStructureAdministrationService>();
+builder.Services.AddSingleton<TimingRevisionAdministrationService>();
 builder.Services.AddSingleton<RightsAdministrationService>();
 builder.Services.AddSingleton<PublicCatalogProjectionService>();
 builder.Services.AddSingleton<PublicCatalogSearchService>();
@@ -246,6 +251,7 @@ app.MapEditorialInbox();
 app.MapSongEditorialDossier();
 app.MapRecordingDraftAutosave();
 app.MapLyricsStructureAdministration();
+app.MapTimingRevisionAdministration();
 app.MapCreditProvenanceAdministration();
 app.MapRightsAdministration();
 app.MapPublicCatalogProjection();

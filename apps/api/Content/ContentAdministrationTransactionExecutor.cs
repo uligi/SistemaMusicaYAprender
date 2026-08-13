@@ -6,7 +6,7 @@ namespace MusicaAprender.Api.Content;
 
 public sealed class ContentAdministrationTransactionExecutor(
     BackofficeSecurityTransactionExecutor inner)
-    : ILyricsStructureAdministrationTransactionExecutor
+    : ILyricsStructureAdministrationTransactionExecutor, ITimingAdministrationTransactionExecutor
 {
     public Task<TResult> ExecuteAsync<TResult>(
         Guid actorAccountId,

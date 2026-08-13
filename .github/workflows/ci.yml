@@ -540,6 +540,17 @@ jobs:
           BL055_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/content/verify-lyrics-token-segmentation.sh
 
+      - name: Verify timing revisions and synchronization segments
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL056_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/content/verify-timing-revision-model.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:
