@@ -90,8 +90,14 @@ test.describe('BL-MVP-058 · adaptador aislado YouTube IFrame', () => {
     expect(box!.height).toBeGreaterThanOrEqual(200);
 
     await expect(page.getByText('Reproductor listo', { exact: false })).toBeVisible();
+    await expect(iframe).toHaveAttribute('title', 'Reproductor de YouTube para 怪獣');
+    await expect(iframe).toHaveAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
 
-    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    // El iframe es contenido de un tercero. Auditamos nuestro documento y el elemento iframe,
+    // pero no hacemos responsable a la aplicación del DOM interno servido por YouTube.
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .options({ iframes: false })
+      .analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
   });
 
@@ -218,11 +224,22 @@ test.describe('BL-MVP-058 · adaptador aislado YouTube IFrame', () => {
 
     await page.getByRole('button', { name: 'Cargar reproductor de YouTube' }).click();
 
-    await expect(page.locator('iframe')).toHaveCount(1);
+    const editorialIframe = page.locator('iframe');
+    await expect(editorialIframe).toHaveCount(1);
+    await expect(editorialIframe).toHaveAttribute(
+      'title',
+      `Reproductor de YouTube para Fuente editorial ${videoId}`,
+    );
+    await expect(editorialIframe).toHaveAttribute(
+      'referrerpolicy',
+      'strict-origin-when-cross-origin',
+    );
     await expect(page.getByText('Reproductor listo', { exact: false })).toBeVisible();
     expect(publicSongRequests).toBe(0);
 
-    const accessibility = await new AxeBuilder({ page }).analyze();
+    // YouTube controla el DOM del frame. Axe debe evaluar la superficie propia sin
+    // convertir defectos internos del proveedor externo en defectos de nuestra página.
+    const accessibility = await new AxeBuilder({ page }).options({ iframes: false }).analyze();
     expect(accessibility.violations).toEqual([]);
   });
 });
