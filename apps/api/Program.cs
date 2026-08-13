@@ -24,6 +24,7 @@ using MusicaAprender.Modules.Catalog.Infrastructure.Search;
 using MusicaAprender.Modules.Configuration.Infrastructure.Administration;
 using MusicaAprender.Modules.Configuration.Infrastructure.Publication;
 using MusicaAprender.Modules.Content.Infrastructure.Administration;
+using MusicaAprender.Modules.Content.Infrastructure.PublicPlayback;
 using MusicaAprender.Modules.Editorial.Infrastructure.Administration;
 using MusicaAprender.Modules.Editorial.Infrastructure.PublicCatalog;
 using MusicaAprender.Modules.Identity.Infrastructure.Preferences;
@@ -90,6 +91,7 @@ builder.Services.AddSingleton<SongEditorialDossierService>();
 builder.Services.AddSingleton<RecordingDraftAutosaveService>();
 builder.Services.AddSingleton<LyricsStructureAdministrationService>();
 builder.Services.AddSingleton<TimingRevisionAdministrationService>();
+builder.Services.AddSingleton<PublicSongSynchronizationService>();
 builder.Services.AddSingleton<RightsAdministrationService>();
 builder.Services.AddSingleton<PublicCatalogProjectionService>();
 builder.Services.AddSingleton<PublicCatalogSearchService>();
@@ -257,6 +259,7 @@ app.MapRightsAdministration();
 app.MapPublicCatalogProjection();
 app.MapPublicCatalogSearch();
 app.MapPublicSongDetail();
+app.MapPublicSongSynchronization();
 
 app.Run();
 

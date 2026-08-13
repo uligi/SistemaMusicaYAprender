@@ -566,6 +566,18 @@ jobs:
         shell: bash
         run: bash scripts/ci/content/verify-youtube-iframe-adapter.sh
 
+      - name: Verify local synchronization engine
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL059_USE_DOCKER_PSQL: 'false'
+          BL059_API_URL: https://localhost:5463
+        run: bash scripts/ci/content/verify-local-synchronization-engine.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

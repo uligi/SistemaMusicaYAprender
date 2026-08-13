@@ -1,0 +1,34 @@
+.local-synchronization {
+  display: grid;
+  gap: var(--ma-space-4);
+  min-width: 0;
+}
+
+.local-synchronization__status {
+  display: grid;
+  gap: var(--ma-space-2);
+  min-width: 0;
+  padding: var(--ma-space-4);
+  border: 1px solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.local-synchronization__status > * {
+  margin: 0;
+}
+
+.local-synchronization__line,
+.local-synchronization__token {
+  overflow-wrap: anywhere;
+}
+
+.local-synchronization__line [lang='ja'] {
+  font-size: 1.15em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .local-synchronization__status {
+    scroll-behavior: auto;
+  }
+}

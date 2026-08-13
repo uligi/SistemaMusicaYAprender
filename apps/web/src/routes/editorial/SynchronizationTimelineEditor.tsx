@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
+import type {
+  YouTubePlayerController,
+  YouTubePlayerState,
+} from '../../integrations/youtube/YouTubeIframeAdapter';
 import type { LyricsRevision, LyricsStructureResponse } from './LyricsStructurePage';
 import './synchronization-timeline-editor.css';
 
@@ -88,6 +92,9 @@ export type SynchronizationTimelineEditorProps = {
   lyricsRevisionId: string;
   source: TimelineSourceInput;
   onSaved: (revision: TimingRevisionEditorSnapshot) => void;
+  playerController?: YouTubePlayerController | null;
+  playerState?: YouTubePlayerState;
+  playbackPositionMs?: number | null;
 };
 
 function toInteger(value: string): number | null {
@@ -206,9 +213,7 @@ function validate(lines: EditableLine[], durationMs: number, offsetMs: number): 
   let previousInterval: { startMs: number; endMs: number } | null = null;
 
   for (const line of lines) {
-    if (isUntimed(line)) {
-      continue;
-    }
+    if (isUntimed(line)) continue;
 
     if (line.precision === 'LINE') {
       const startMs = toInteger(line.startMs);
@@ -233,7 +238,6 @@ function validate(lines: EditableLine[], durationMs: number, offsetMs: number): 
       }
 
       let previousTokenEnd: number | null = null;
-
       for (const token of line.tokens) {
         const startMs = toInteger(token.startMs);
         const endMs = toInteger(token.endMs);
@@ -267,9 +271,7 @@ function validate(lines: EditableLine[], durationMs: number, offsetMs: number): 
     }
 
     const interval = lineInterval(line);
-    if (!interval) {
-      continue;
-    }
+    if (!interval) continue;
 
     if (previousStart !== null && interval.startMs < previousStart) {
       errors.push({
@@ -347,9 +349,14 @@ export function SynchronizationTimelineEditor({
   lyricsRevisionId,
   source,
   onSaved,
+  playerController = null,
+  playerState = 'unstarted',
+  playbackPositionMs = null,
 }: SynchronizationTimelineEditorProps) {
   const [lyrics, setLyrics] = useState<LyricsState>({ phase: 'loading' });
   const [lines, setLines] = useState<EditableLine[]>([]);
+  const [focusedLineId, setFocusedLineId] = useState<string | null>(null);
+  const [autoAdvance, setAutoAdvance] = useState(true);
   const [offsetMs, setOffsetMs] = useState(
     String(source.timingRevision?.offsetMs ?? source.sourceOffsetMs ?? 0),
   );
@@ -403,8 +410,14 @@ export function SynchronizationTimelineEditor({
         return;
       }
 
+      const draft = buildDraft(result.data.revision, source);
       setLyrics({ phase: 'ready', revision: result.data.revision });
-      setLines(buildDraft(result.data.revision, source));
+      setLines(draft);
+      setFocusedLineId((current) =>
+        current && draft.some((line) => line.lineId === current)
+          ? current
+          : (draft[0]?.lineId ?? null),
+      );
     };
 
     void load();
@@ -425,22 +438,32 @@ export function SynchronizationTimelineEditor({
     () => activeLineAt(lines, cursorMs, parsedOffset ?? 0),
     [cursorMs, lines, parsedOffset],
   );
+  const focusedIndex = Math.max(
+    0,
+    lines.findIndex((line) => line.lineId === focusedLineId),
+  );
+  const focusedLine = lines[focusedIndex] ?? null;
+  const externalPlayerReady = playerController !== null;
+  const isPlaying = externalPlayerReady ? playerState === 'playing' : playing;
 
   useEffect(() => {
-    if (!playing || durationMs <= 0) return;
+    if (playbackPositionMs === null || !Number.isFinite(playbackPositionMs)) return;
+    setCursorMs(Math.min(durationMs, Math.max(0, Math.round(playbackPositionMs))));
+  }, [durationMs, playbackPositionMs]);
+
+  useEffect(() => {
+    if (externalPlayerReady || !playing || durationMs <= 0) return;
 
     const timer = window.setInterval(() => {
       setCursorMs((current) => {
         const next = Math.min(durationMs, current + 100);
-        if (next >= durationMs) {
-          setPlaying(false);
-        }
+        if (next >= durationMs) setPlaying(false);
         return next;
       });
     }, 100);
 
     return () => window.clearInterval(timer);
-  }, [durationMs, playing]);
+  }, [durationMs, externalPlayerReady, playing]);
 
   function updateLine(lineId: string, patch: Partial<EditableLine>) {
     setLines((current) =>
@@ -467,6 +490,12 @@ export function SynchronizationTimelineEditor({
     setConfirmedRevisionNo(null);
   }
 
+  function moveFocus(delta: number) {
+    if (lines.length === 0) return;
+    const next = Math.min(lines.length - 1, Math.max(0, focusedIndex + delta));
+    setFocusedLineId(lines[next]!.lineId);
+  }
+
   function changePrecision(line: EditableLine, precision: 'LINE' | 'TOKEN') {
     updateLine(line.lineId, {
       precision,
@@ -477,11 +506,43 @@ export function SynchronizationTimelineEditor({
   function markLine(line: EditableLine, boundary: 'startMs' | 'endMs') {
     const raw = Math.max(0, cursorMs - (parsedOffset ?? 0));
     updateLine(line.lineId, { [boundary]: String(raw) });
+
+    if (boundary === 'endMs' && autoAdvance) {
+      window.setTimeout(() => moveFocus(1), 0);
+    }
   }
 
   function markToken(line: EditableLine, token: EditableToken, boundary: 'startMs' | 'endMs') {
     const raw = Math.max(0, cursorMs - (parsedOffset ?? 0));
     updateToken(line.lineId, token.tokenId, { [boundary]: String(raw) });
+
+    const lastToken = line.tokens.at(-1)?.tokenId === token.tokenId;
+    if (boundary === 'endMs' && lastToken && autoAdvance) {
+      window.setTimeout(() => moveFocus(1), 0);
+    }
+  }
+
+  function seekTo(nextMs: number) {
+    const safe = Math.min(durationMs, Math.max(0, Math.round(nextMs)));
+    setCursorMs(safe);
+    if (externalPlayerReady) playerController.seek(safe / 1000);
+  }
+
+  function togglePlayback() {
+    if (externalPlayerReady) {
+      if (playerState === 'playing') playerController.pause();
+      else playerController.play();
+      return;
+    }
+
+    setPlaying((value) => !value);
+  }
+
+  function seekToFocusedLine() {
+    if (!focusedLine) return;
+    const interval = lineInterval(focusedLine);
+    if (!interval) return;
+    seekTo(interval.startMs + (parsedOffset ?? 0));
   }
 
   function applyBulkShift() {
@@ -599,7 +660,13 @@ export function SynchronizationTimelineEditor({
       onSaved(result.data);
 
       if (lyrics.phase === 'ready') {
-        setLines(buildDraft(lyrics.revision, { ...source, timingRevision: result.data }));
+        const draft = buildDraft(lyrics.revision, { ...source, timingRevision: result.data });
+        setLines(draft);
+        setFocusedLineId((current) =>
+          current && draft.some((line) => line.lineId === current)
+            ? current
+            : (draft[0]?.lineId ?? null),
+        );
       }
     } finally {
       setSaving(false);
@@ -632,12 +699,23 @@ export function SynchronizationTimelineEditor({
       aria-labelledby={`timeline-editor-${source.sourceId}`}
     >
       <header className="synchronization-timeline-editor__header">
-        <p className="eyebrow">BL-MVP-057 · EDICIÓN TEMPORAL</p>
-        <h4 id={`timeline-editor-${source.sourceId}`}>Editor de línea de tiempo</h4>
+        <div>
+          <p className="eyebrow">BL-MVP-057 · EDICIÓN TEMPORAL</p>
+          <h4 id={`timeline-editor-${source.sourceId}`}>Editor de línea de tiempo</h4>
+        </div>
         <p>
-          Marca, ajusta y desplaza tiempos en milisegundos. La previsualización es local: BL-MVP-058
-          conectará el IFrame de YouTube y BL-MVP-059 resolverá el seguimiento de reproducción.
+          Mantén el video y la línea que editas en la misma vista. Usa la posición real del
+          reproductor para marcar inicio y fin y cambia de línea sin recorrer toda la página.
         </p>
+        <div className="synchronization-timeline-editor__coverage" aria-label="Cobertura temporal">
+          <strong>
+            {timedCount} / {lines.length}
+          </strong>
+          <span>líneas temporizadas</span>
+          <progress value={timedCount} max={Math.max(1, lines.length)}>
+            {timedCount} de {lines.length}
+          </progress>
+        </div>
         <p className="synchronization-timeline-editor__status">
           {timedCount === lines.length
             ? `Cobertura completa: ${timedCount} de ${lines.length} líneas.`
@@ -649,50 +727,287 @@ export function SynchronizationTimelineEditor({
         className="synchronization-timeline-editor__preview"
         aria-labelledby={`timeline-preview-${source.sourceId}`}
       >
-        <h5 id={`timeline-preview-${source.sourceId}`}>Previsualización local</h5>
-        <div className="synchronization-timeline-editor__preview-controls">
-          <label className="synchronization-timeline-editor__field">
-            <span>Tiempo de vista previa (ms)</span>
-            <input
-              type="number"
-              min="0"
-              max={durationMs}
-              value={cursorMs}
-              onChange={(event) =>
-                setCursorMs(Math.min(durationMs, Math.max(0, Number(event.target.value) || 0)))
-              }
-            />
-          </label>
-          <input
-            type="range"
-            aria-label="Cursor de vista previa"
-            min="0"
-            max={durationMs}
-            step="100"
-            value={cursorMs}
-            onChange={(event) => setCursorMs(Number(event.target.value))}
-          />
-          <button type="button" onClick={() => setPlaying((value) => !value)}>
-            {playing ? 'Pausar vista previa' : 'Reproducir vista previa'}
-          </button>
-        </div>
-        <p aria-live="polite">
+        <div className="synchronization-timeline-editor__preview-heading">
+          <div>
+            <h5 id={`timeline-preview-${source.sourceId}`}>Control del reproductor</h5>
+            <p>
+              Posición actual: <strong>{cursorMs} ms</strong>
+              {externalPlayerReady ? ` · ${playerState}` : ' · vista previa local'}
+            </p>
+          </div>
           {activeLine ? (
-            <>
+            <p className="synchronization-timeline-editor__active-line" aria-live="polite">
               Línea activa: <strong>línea {activeLine.lineNo}</strong>{' '}
               <span lang="ja">{activeLine.japaneseText}</span>
-            </>
+            </p>
           ) : (
-            'Sin línea activa en este instante.'
+            <p className="synchronization-timeline-editor__active-line" aria-live="polite">
+              Sin línea activa en este instante.
+            </p>
           )}
-        </p>
+        </div>
+
+        <label className="synchronization-timeline-editor__field synchronization-timeline-editor__scrubber-value">
+          <span>Posición del reproductor (ms)</span>
+          <input
+            aria-label="Tiempo de vista previa (ms)"
+            type="number"
+            min="0"
+            max={durationMs}
+            value={cursorMs}
+            onChange={(event) => seekTo(Number(event.target.value) || 0)}
+          />
+        </label>
+
+        <input
+          type="range"
+          aria-label="Cursor de vista previa"
+          min="0"
+          max={durationMs}
+          step="100"
+          value={cursorMs}
+          onChange={(event) => seekTo(Number(event.target.value))}
+        />
+
+        <div
+          className="synchronization-timeline-editor__transport"
+          role="group"
+          aria-label="Controles rápidos del reproductor"
+        >
+          <button type="button" onClick={() => seekTo(cursorMs - 2000)}>
+            −2 s
+          </button>
+          <button type="button" onClick={() => seekTo(cursorMs - 500)}>
+            −0,5 s
+          </button>
+          <button type="button" onClick={togglePlayback}>
+            {isPlaying ? 'Pausar video' : 'Reproducir video'}
+          </button>
+          <button type="button" onClick={() => seekTo(cursorMs + 500)}>
+            +0,5 s
+          </button>
+          <button type="button" onClick={() => seekTo(cursorMs + 2000)}>
+            +2 s
+          </button>
+        </div>
       </section>
+
+      <section
+        className="synchronization-timeline-editor__navigator"
+        aria-label="Navegación por líneas"
+      >
+        <button
+          type="button"
+          onClick={() => moveFocus(-1)}
+          disabled={focusedIndex <= 0}
+          aria-label="Línea anterior"
+        >
+          ← Anterior
+        </button>
+
+        <label className="synchronization-timeline-editor__field synchronization-timeline-editor__line-select">
+          <span>Línea que estás editando</span>
+          <select
+            value={focusedLine?.lineId ?? ''}
+            onChange={(event) => setFocusedLineId(event.target.value)}
+          >
+            {lines.map((line) => (
+              <option value={line.lineId} key={line.lineId}>
+                {`Línea ${line.lineNo} — ${line.japaneseText}`}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button
+          type="button"
+          onClick={() => moveFocus(1)}
+          disabled={focusedIndex >= lines.length - 1}
+          aria-label="Línea siguiente"
+        >
+          Siguiente →
+        </button>
+      </section>
+
+      <label className="synchronization-timeline-editor__auto-advance">
+        <input
+          type="checkbox"
+          checked={autoAdvance}
+          onChange={(event) => setAutoAdvance(event.target.checked)}
+        />
+        Avanzar automáticamente a la siguiente línea al marcar el fin
+      </label>
+
+      {errors.length > 0 ? (
+        <div className="synchronization-timeline-editor__validation" role="alert">
+          <strong>Revisa los tiempos ({errors.length})</strong>
+          <ul className="synchronization-timeline-editor__error-list">
+            {errors.map((error) => (
+              <li key={error.key}>{error.message}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <ol className="synchronization-timeline-editor__lines">
+        {focusedLine ? (
+          <li key={focusedLine.lineId}>
+            <article
+              className={`synchronization-timeline-editor__line${activeLine?.lineId === focusedLine.lineId ? ' is-active' : ''}`}
+            >
+              <header className="synchronization-timeline-editor__line-heading">
+                <div>
+                  <p className="eyebrow">
+                    Línea {focusedIndex + 1} de {lines.length}
+                  </p>
+                  <strong>Línea {focusedLine.lineNo}</strong>{' '}
+                  {focusedLine.speakerLabel ? <span>{focusedLine.speakerLabel}</span> : null}
+                </div>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={focusedLine.selected}
+                    onChange={(event) =>
+                      updateLine(focusedLine.lineId, { selected: event.target.checked })
+                    }
+                  />{' '}
+                  Seleccionar línea {focusedLine.lineNo} para desplazamiento
+                </label>
+              </header>
+
+              <p className="synchronization-timeline-editor__japanese" lang="ja">
+                {focusedLine.japaneseText}
+              </p>
+
+              <div className="synchronization-timeline-editor__line-toolbar">
+                <label className="synchronization-timeline-editor__field">
+                  <span>Precisión línea {focusedLine.lineNo}</span>
+                  <select
+                    value={focusedLine.precision}
+                    onChange={(event) =>
+                      changePrecision(focusedLine, event.target.value as 'LINE' | 'TOKEN')
+                    }
+                  >
+                    <option value="LINE">Por línea</option>
+                    <option value="TOKEN" disabled={focusedLine.tokens.length === 0}>
+                      Por token
+                    </option>
+                  </select>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={seekToFocusedLine}
+                  disabled={lineInterval(focusedLine) === null}
+                >
+                  Ir al inicio guardado
+                </button>
+              </div>
+
+              {focusedLine.precision === 'LINE' ? (
+                <div className="synchronization-timeline-editor__boundary-grid">
+                  <div className="synchronization-timeline-editor__boundary-card">
+                    <label className="synchronization-timeline-editor__field">
+                      <span>Inicio línea {focusedLine.lineNo} (ms)</span>
+                      <input
+                        type="number"
+                        value={focusedLine.startMs}
+                        onChange={(event) =>
+                          updateLine(focusedLine.lineId, { startMs: event.target.value })
+                        }
+                      />
+                    </label>
+                    <button type="button" onClick={() => markLine(focusedLine, 'startMs')}>
+                      Marcar inicio línea {focusedLine.lineNo}
+                    </button>
+                  </div>
+
+                  <div className="synchronization-timeline-editor__boundary-card">
+                    <label className="synchronization-timeline-editor__field">
+                      <span>Fin línea {focusedLine.lineNo} (ms)</span>
+                      <input
+                        type="number"
+                        value={focusedLine.endMs}
+                        onChange={(event) =>
+                          updateLine(focusedLine.lineId, { endMs: event.target.value })
+                        }
+                      />
+                    </label>
+                    <button type="button" onClick={() => markLine(focusedLine, 'endMs')}>
+                      Marcar fin línea {focusedLine.lineNo}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <section className="synchronization-timeline-editor__tokens">
+                  <h5>Tiempos por token de la línea {focusedLine.lineNo}</h5>
+                  <div className="synchronization-timeline-editor__token-grid">
+                    {focusedLine.tokens.map((token) => (
+                      <article
+                        className="synchronization-timeline-editor__token"
+                        key={token.tokenId}
+                      >
+                        <span className="synchronization-timeline-editor__token-surface" lang="ja">
+                          {token.surface}
+                        </span>
+                        <label className="synchronization-timeline-editor__field">
+                          <span>
+                            Inicio token {token.tokenNo} línea {focusedLine.lineNo} (ms)
+                          </span>
+                          <input
+                            type="number"
+                            value={token.startMs}
+                            onChange={(event) =>
+                              updateToken(focusedLine.lineId, token.tokenId, {
+                                startMs: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => markToken(focusedLine, token, 'startMs')}
+                        >
+                          Inicio aquí
+                        </button>
+                        <label className="synchronization-timeline-editor__field">
+                          <span>
+                            Fin token {token.tokenNo} línea {focusedLine.lineNo} (ms)
+                          </span>
+                          <input
+                            type="number"
+                            value={token.endMs}
+                            onChange={(event) =>
+                              updateToken(focusedLine.lineId, token.tokenId, {
+                                endMs: event.target.value,
+                              })
+                            }
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => markToken(focusedLine, token, 'endMs')}
+                        >
+                          Fin aquí
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </article>
+          </li>
+        ) : null}
+      </ol>
 
       <section
         className="synchronization-timeline-editor__bulk"
         aria-labelledby={`bulk-${source.sourceId}`}
       >
-        <h5 id={`bulk-${source.sourceId}`}>Desplazamiento múltiple</h5>
+        <div>
+          <h5 id={`bulk-${source.sourceId}`}>Ajustes rápidos</h5>
+          <p>Opcional: desplaza varias líneas ya temporizadas o corrige el offset global.</p>
+        </div>
         <div className="synchronization-timeline-editor__line-controls">
           <label className="synchronization-timeline-editor__field">
             <span>Desplazamiento múltiple (ms)</span>
@@ -709,151 +1024,20 @@ export function SynchronizationTimelineEditor({
           >
             Desplazar selección
           </button>
+          <label className="synchronization-timeline-editor__field">
+            <span>Offset global de la revisión (ms)</span>
+            <input
+              type="number"
+              value={offsetMs}
+              onChange={(event) => {
+                setOffsetMs(event.target.value);
+                setProblem(null);
+                setConfirmedRevisionNo(null);
+              }}
+            />
+          </label>
         </div>
       </section>
-
-      <label className="synchronization-timeline-editor__field">
-        <span>Offset global de la revisión (ms)</span>
-        <input
-          type="number"
-          value={offsetMs}
-          onChange={(event) => {
-            setOffsetMs(event.target.value);
-            setProblem(null);
-            setConfirmedRevisionNo(null);
-          }}
-        />
-      </label>
-
-      {errors.length > 0 ? (
-        <div role="alert">
-          <strong>Revisa los tiempos</strong>
-          <ul className="synchronization-timeline-editor__error-list">
-            {errors.map((error) => (
-              <li key={error.key}>{error.message}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <ol className="synchronization-timeline-editor__lines">
-        {lines.map((line) => (
-          <li key={line.lineId}>
-            <article
-              className={`synchronization-timeline-editor__line${activeLine?.lineId === line.lineId ? ' is-active' : ''}`}
-            >
-              <header className="synchronization-timeline-editor__line-heading">
-                <div>
-                  <strong>Línea {line.lineNo}</strong>{' '}
-                  {line.speakerLabel ? <span>{line.speakerLabel}</span> : null}
-                </div>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={line.selected}
-                    onChange={(event) =>
-                      updateLine(line.lineId, { selected: event.target.checked })
-                    }
-                  />{' '}
-                  Seleccionar línea {line.lineNo} para desplazamiento
-                </label>
-              </header>
-
-              <p lang="ja">{line.japaneseText}</p>
-
-              <label className="synchronization-timeline-editor__field">
-                <span>Precisión línea {line.lineNo}</span>
-                <select
-                  value={line.precision}
-                  onChange={(event) =>
-                    changePrecision(line, event.target.value as 'LINE' | 'TOKEN')
-                  }
-                >
-                  <option value="LINE">Por línea</option>
-                  <option value="TOKEN" disabled={line.tokens.length === 0}>
-                    Por token
-                  </option>
-                </select>
-              </label>
-
-              {line.precision === 'LINE' ? (
-                <div className="synchronization-timeline-editor__line-controls">
-                  <label className="synchronization-timeline-editor__field">
-                    <span>Inicio línea {line.lineNo} (ms)</span>
-                    <input
-                      type="number"
-                      value={line.startMs}
-                      onChange={(event) => updateLine(line.lineId, { startMs: event.target.value })}
-                    />
-                  </label>
-                  <button type="button" onClick={() => markLine(line, 'startMs')}>
-                    Marcar inicio línea {line.lineNo}
-                  </button>
-                  <label className="synchronization-timeline-editor__field">
-                    <span>Fin línea {line.lineNo} (ms)</span>
-                    <input
-                      type="number"
-                      value={line.endMs}
-                      onChange={(event) => updateLine(line.lineId, { endMs: event.target.value })}
-                    />
-                  </label>
-                  <button type="button" onClick={() => markLine(line, 'endMs')}>
-                    Marcar fin línea {line.lineNo}
-                  </button>
-                </div>
-              ) : (
-                <section className="synchronization-timeline-editor__tokens">
-                  <h5>Tiempos por token de la línea {line.lineNo}</h5>
-                  <div className="synchronization-timeline-editor__token-grid">
-                    {line.tokens.map((token) => (
-                      <article
-                        className="synchronization-timeline-editor__token"
-                        key={token.tokenId}
-                      >
-                        <span className="synchronization-timeline-editor__token-surface" lang="ja">
-                          {token.surface}
-                        </span>
-                        <label className="synchronization-timeline-editor__field">
-                          <span>
-                            Inicio token {token.tokenNo} línea {line.lineNo} (ms)
-                          </span>
-                          <input
-                            type="number"
-                            value={token.startMs}
-                            onChange={(event) =>
-                              updateToken(line.lineId, token.tokenId, {
-                                startMs: event.target.value,
-                              })
-                            }
-                          />
-                        </label>
-                        <button type="button" onClick={() => markToken(line, token, 'startMs')}>
-                          Inicio aquí
-                        </button>
-                        <label className="synchronization-timeline-editor__field">
-                          <span>
-                            Fin token {token.tokenNo} línea {line.lineNo} (ms)
-                          </span>
-                          <input
-                            type="number"
-                            value={token.endMs}
-                            onChange={(event) =>
-                              updateToken(line.lineId, token.tokenId, { endMs: event.target.value })
-                            }
-                          />
-                        </label>
-                        <button type="button" onClick={() => markToken(line, token, 'endMs')}>
-                          Fin aquí
-                        </button>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </article>
-          </li>
-        ))}
-      </ol>
 
       {problem ? (
         <StateMessage
@@ -880,6 +1064,16 @@ export function SynchronizationTimelineEditor({
       ) : null}
 
       <div className="synchronization-timeline-editor__actions">
+        <div>
+          <strong>
+            {timedCount > 0
+              ? `${timedCount} línea${timedCount === 1 ? '' : 's'} listas`
+              : 'Aún sin tiempos'}
+          </strong>
+          <span>
+            {errors.length > 0 ? ` · ${errors.length} error${errors.length === 1 ? '' : 'es'}` : ''}
+          </span>
+        </div>
         <button
           type="button"
           onClick={() => void save()}

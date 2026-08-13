@@ -1,12 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
-import { YouTubeIframeAdapter } from '../../integrations/youtube/YouTubeIframeAdapter';
+import type { ClientProblem } from '../../data/http/types';
+import { SynchronizedYouTubePreview } from '../../features/player/synchronization/SynchronizedYouTubePreview';
+import type {
+  LocalSynchronizationSnapshot,
+  SynchronizationTimeline,
+} from '../../features/player/synchronization/LocalSynchronizationEngine';
+import type {
+  YouTubePlayerController,
+  YouTubePlayerState,
+} from '../../integrations/youtube/YouTubeIframeAdapter';
 import {
   SynchronizationTimelineEditor,
   type TimingRevisionEditorSnapshot,
 } from './SynchronizationTimelineEditor';
-import type { ClientProblem } from '../../data/http/types';
 import './synchronization-structure.css';
 
 const client = createHttpClient();
@@ -68,12 +76,108 @@ export type SynchronizationStructurePageProps = {
   recordingId: string;
 };
 
+type SourceWorkspaceProps = {
+  recordingId: string;
+  lyricsRevisionId: string;
+  source: SynchronizationSource;
+  onSaved: (revision: TimingRevisionEditorSnapshot) => void;
+};
+
 function milliseconds(value: number) {
   return `${value} ms`;
 }
 
 function displayCode(value: string) {
   return value.replaceAll('_', ' ');
+}
+
+function timelineForSource(source: SynchronizationSource): SynchronizationTimeline | null {
+  const revision = source.timingRevision;
+  if (!revision) return null;
+
+  const maximumPrecision = revision.lines.some((line) => line.precisionCode === 'TOKEN')
+    ? 'TOKEN'
+    : revision.lines.length > 0
+      ? 'LINE'
+      : 'NONE';
+
+  return {
+    available: revision.lines.length > 0,
+    maximumPrecision,
+    offsetMs: revision.offsetMs,
+    lines: revision.lines.map((line) => ({
+      sectionOrder: line.sectionOrder,
+      lineNo: line.lineNo,
+      japaneseText: line.japaneseText,
+      speakerLabel: line.speakerLabel,
+      precisionCode: line.precisionCode,
+      startMs: line.startMs,
+      endMs: line.endMs,
+      tokens: line.tokens.map((token) => ({
+        tokenNo: token.tokenNo,
+        surface: token.surface,
+        startMs: token.startMs,
+        endMs: token.endMs,
+      })),
+    })),
+  };
+}
+
+function SourceSynchronizationWorkspace({
+  recordingId,
+  lyricsRevisionId,
+  source,
+  onSaved,
+}: SourceWorkspaceProps) {
+  const [playerController, setPlayerController] = useState<YouTubePlayerController | null>(null);
+  const [playerState, setPlayerState] = useState<YouTubePlayerState>('unstarted');
+  const [playbackPositionMs, setPlaybackPositionMs] = useState(0);
+
+  const handleSnapshotChange = useCallback((snapshot: LocalSynchronizationSnapshot) => {
+    setPlaybackPositionMs(snapshot.positionMs);
+  }, []);
+
+  return (
+    <div className="synchronization-structure__workspace" data-editorial-sync-workspace>
+      <div
+        className="synchronization-structure__preview-panel"
+        role="group"
+        aria-label="Video y seguimiento"
+      >
+        <p className="eyebrow">BL-MVP-058 · VISTA PREVIA EDITORIAL · NO PUBLICA</p>
+        <p className="eyebrow">BL-MVP-059 · SEGUIMIENTO LOCAL</p>
+        <SynchronizedYouTubePreview
+          externalRef={source.externalRef}
+          title={`Fuente editorial ${source.externalRef}`}
+          timeline={timelineForSource(source)}
+          headingLevel={4}
+          onControllerReady={setPlayerController}
+          onSnapshotChange={handleSnapshotChange}
+          onPlayerStateChange={setPlayerState}
+        />
+      </div>
+
+      <div className="synchronization-structure__editor-panel">
+        {source.durationMs === null ? (
+          <StateMessage
+            state="UI-EST-10"
+            title="Duración pendiente"
+            description="Puedes previsualizar la fuente, pero la edición temporal se habilita cuando exista una duración confirmada."
+          />
+        ) : (
+          <SynchronizationTimelineEditor
+            recordingId={recordingId}
+            lyricsRevisionId={lyricsRevisionId}
+            source={source}
+            playerController={playerController}
+            playerState={playerState}
+            playbackPositionMs={playbackPositionMs}
+            onSaved={onSaved}
+          />
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function SynchronizationStructurePage({ recordingId }: SynchronizationStructurePageProps) {
@@ -94,9 +198,7 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
         },
       );
 
-      if (result.kind === 'cancelled') {
-        return;
-      }
+      if (result.kind === 'cancelled') return;
 
       setState(
         result.ok
@@ -106,21 +208,19 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
     };
 
     void load();
-
     return () => controller.abort();
   }, [recordingId]);
 
   return (
     <article className="route-surface synchronization-structure" data-route-id="UI-MVP-022">
       <header className="synchronization-structure__header">
-        <p className="eyebrow">BL-MVP-056–057 · UI-MVP-022</p>
+        <p className="eyebrow">BL-MVP-056–059 · UI-MVP-022</p>
         <h1 className="route-title" id="route-title" ref={headingRef} tabIndex={-1}>
           Revisiones de sincronización
         </h1>
         <p>
-          Cada fuente multimedia conserva una revisión temporal independiente sobre una revisión
-          exacta de la letra. Los intervalos se expresan en milisegundos y el editor permite marcar,
-          desplazar, previsualizar y guardar borradores sin publicar.
+          Trabaja con el video y la línea actual en una misma vista. Cada fuente conserva su propia
+          revisión temporal y el borrador sigue separado de la publicación.
         </p>
       </header>
 
@@ -162,8 +262,8 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
             <div>
               <h2 id="synchronization-sources">Fuentes y revisiones</h2>
               <p>
-                Letra base: revisión {state.data.lyricsRevisionNo}. Cambiar de fuente no reutiliza
-                silenciosamente sus marcas temporales.
+                Letra base: revisión {state.data.lyricsRevisionNo}. Selecciona una fuente y trabaja
+                sin perder de vista el video.
               </p>
             </div>
           </header>
@@ -193,26 +293,69 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
                       <dt>Offset de la fuente</dt>
                       <dd>{milliseconds(source.sourceOffsetMs)}</dd>
                     </div>
+                    <div>
+                      <dt>Revisión temporal</dt>
+                      <dd>
+                        {source.timingRevision
+                          ? `${source.timingRevision.revisionNo} · ${displayCode(source.timingRevision.statusCode)}`
+                          : 'Aún sin revisión'}
+                      </dd>
+                    </div>
                   </dl>
 
                   {source.providerCode === 'YOUTUBE' ? (
-                    <div className="synchronization-structure__external-preview">
-                      <p className="eyebrow">BL-MVP-058 · VISTA PREVIA EDITORIAL · NO PUBLICA</p>
-                      <YouTubeIframeAdapter
-                        externalRef={source.externalRef}
-                        title={`Fuente editorial ${source.externalRef}`}
-                        headingLevel={4}
-                      />
-                    </div>
-                  ) : null}
-
-                  {source.durationMs === null ? (
+                    <SourceSynchronizationWorkspace
+                      recordingId={recordingId}
+                      lyricsRevisionId={state.data.lyricsRevisionId!}
+                      source={source}
+                      onSaved={(revision) =>
+                        setState((current) =>
+                          current.phase !== 'ready'
+                            ? current
+                            : {
+                                phase: 'ready',
+                                data: {
+                                  ...current.data,
+                                  sources: current.data.sources.map((candidate) =>
+                                    candidate.sourceId === source.sourceId
+                                      ? { ...candidate, timingRevision: revision }
+                                      : candidate,
+                                  ),
+                                },
+                              },
+                        )
+                      }
+                    />
+                  ) : source.durationMs === null ? (
                     <StateMessage
                       state="UI-EST-10"
                       title="Duración pendiente"
-                      description="Los segmentos pueden modelarse, pero no se confirma una revisión temporal válida hasta conocer la duración exacta."
+                      description="La fuente puede inspeccionarse, pero la edición temporal requiere una duración confirmada."
                     />
-                  ) : null}
+                  ) : (
+                    <SynchronizationTimelineEditor
+                      recordingId={recordingId}
+                      lyricsRevisionId={state.data.lyricsRevisionId!}
+                      source={source}
+                      onSaved={(revision: TimingRevisionEditorSnapshot) =>
+                        setState((current) =>
+                          current.phase !== 'ready'
+                            ? current
+                            : {
+                                phase: 'ready',
+                                data: {
+                                  ...current.data,
+                                  sources: current.data.sources.map((candidate) =>
+                                    candidate.sourceId === source.sourceId
+                                      ? { ...candidate, timingRevision: revision }
+                                      : candidate,
+                                  ),
+                                },
+                              },
+                        )
+                      }
+                    />
+                  )}
 
                   {source.timingRevision ? (
                     <section
@@ -271,34 +414,9 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
                     <StateMessage
                       state="UI-EST-12"
                       title="Sin revisión de sincronización"
-                      description="Esta fuente todavía no tiene marcas temporales para la revisión de letra seleccionada."
+                      description="Esta fuente todavía no tiene marcas temporales para la revisión de letra seleccionada. Puedes crearlas en el editor sin publicar."
                     />
                   )}
-
-                  {source.durationMs !== null ? (
-                    <SynchronizationTimelineEditor
-                      recordingId={recordingId}
-                      lyricsRevisionId={state.data.lyricsRevisionId!}
-                      source={source}
-                      onSaved={(revision: TimingRevisionEditorSnapshot) =>
-                        setState((current) =>
-                          current.phase !== 'ready'
-                            ? current
-                            : {
-                                phase: 'ready',
-                                data: {
-                                  ...current.data,
-                                  sources: current.data.sources.map((candidate) =>
-                                    candidate.sourceId === source.sourceId
-                                      ? { ...candidate, timingRevision: revision }
-                                      : candidate,
-                                  ),
-                                },
-                              },
-                        )
-                      }
-                    />
-                  ) : null}
                 </article>
               </li>
             ))}
@@ -308,8 +426,8 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
 
       <StateMessage
         state="UI-EST-11"
-        title="Sincronización editable, todavía no publicada"
-        description="BL-MVP-057 guarda revisiones DRAFT. BL-MVP-058 permite previsualizar la fuente YouTube sin publicar; BL-MVP-059 resolverá el seguimiento de reproducción."
+        title="Sincronización editable con seguimiento local"
+        description="BL-MVP-057 guarda revisiones DRAFT y BL-MVP-059 puede seguirlas durante la previsualización. El editor mantiene video, línea y controles juntos; esta pantalla no publica."
       />
     </article>
   );

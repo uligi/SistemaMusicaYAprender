@@ -3,7 +3,11 @@ import { AppLink } from '../../app/router/navigation';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
-import { YouTubeIframeAdapter } from '../../integrations/youtube/YouTubeIframeAdapter';
+import { SynchronizedYouTubePreview } from '../../features/player/synchronization/SynchronizedYouTubePreview';
+import {
+  emptySynchronizationTimeline,
+  type SynchronizationTimeline,
+} from '../../features/player/synchronization/LocalSynchronizationEngine';
 import './educational-player.css';
 
 const httpClient = createHttpClient();
@@ -36,9 +40,13 @@ export type EducationalPlayerPageProps = {
 export function EducationalPlayerPage({ slug }: EducationalPlayerPageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [state, setState] = useState<PlayerState>({ phase: 'loading' });
+  const [timeline, setTimeline] = useState<SynchronizationTimeline | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
+    setState({ phase: 'loading' });
+    setTimeline(null);
+
     const load = async () => {
       const params = new URLSearchParams({ territory, language });
       const result = await httpClient.get<PublicEducationalSource>(
@@ -50,6 +58,14 @@ export function EducationalPlayerPage({ slug }: EducationalPlayerPageProps) {
 
       if (result.ok) {
         setState({ phase: 'ready', data: result.data });
+
+        const synchronization = await httpClient.get<SynchronizationTimeline>(
+          `/public/catalog/songs/${encodeURIComponent(slug)}/synchronization?${params.toString()}`,
+          { cacheMode: 'no-store', retry: 'safe', signal: controller.signal },
+        );
+
+        if (synchronization.kind === 'cancelled') return;
+        setTimeline(synchronization.ok ? synchronization.data : emptySynchronizationTimeline());
       } else if (result.problem.status === 404) {
         setState({ phase: 'unavailable' });
       } else {
@@ -121,9 +137,10 @@ export function EducationalPlayerPage({ slug }: EducationalPlayerPageProps) {
           </section>
 
           {state.data.providerCode === 'YOUTUBE' ? (
-            <YouTubeIframeAdapter
+            <SynchronizedYouTubePreview
               externalRef={state.data.sourceExternalRef}
               title={state.data.canonicalTitle}
+              timeline={timeline}
             />
           ) : (
             <StateMessage
@@ -135,8 +152,8 @@ export function EducationalPlayerPage({ slug }: EducationalPlayerPageProps) {
 
           <StateMessage
             state="UI-EST-11"
-            title="Adaptador listo para sincronización local"
-            description="BL-MVP-059 consumirá tiempo y eventos del adaptador sin exponer detalles de YouTube al contenido educativo."
+            title="Motor local listo para la vista educativa"
+            description="BL-MVP-059 resuelve línea/token desde la revisión temporal exacta. BL-MVP-060 construirá encima el karaoke y los controles educativos."
           />
         </>
       ) : null}
