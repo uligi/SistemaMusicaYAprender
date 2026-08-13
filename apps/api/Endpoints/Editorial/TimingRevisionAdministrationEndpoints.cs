@@ -167,6 +167,8 @@ public static class TimingRevisionAdministrationEndpoints
                     StatusCodes.Status404NotFound,
                 "content.timing.source-duration.required" =>
                     StatusCodes.Status409Conflict,
+                "content.timing.revision.conflict" =>
+                    StatusCodes.Status409Conflict,
                 _ =>
                     StatusCodes.Status400BadRequest
             };
@@ -178,6 +180,9 @@ public static class TimingRevisionAdministrationEndpoints
                 {
                     StatusCodes.Status404NotFound =>
                         "Objeto de sincronización no encontrado",
+                    StatusCodes.Status409Conflict
+                        when exception.Code == "content.timing.revision.conflict" =>
+                        "Conflicto de sincronización",
                     StatusCodes.Status409Conflict =>
                         "Fuente todavía no validable",
                     _ =>

@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
+import {
+  SynchronizationTimelineEditor,
+  type TimingRevisionEditorSnapshot,
+} from './SynchronizationTimelineEditor';
 import type { ClientProblem } from '../../data/http/types';
 import './synchronization-structure.css';
 
@@ -108,14 +112,14 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
   return (
     <article className="route-surface synchronization-structure" data-route-id="UI-MVP-022">
       <header className="synchronization-structure__header">
-        <p className="eyebrow">BL-MVP-056 · UI-MVP-022</p>
+        <p className="eyebrow">BL-MVP-056–057 · UI-MVP-022</p>
         <h1 className="route-title" id="route-title" ref={headingRef} tabIndex={-1}>
           Revisiones de sincronización
         </h1>
         <p>
           Cada fuente multimedia conserva una revisión temporal independiente sobre una revisión
-          exacta de la letra. Los intervalos se expresan en milisegundos y esta pantalla todavía no
-          adelanta el editor de línea de tiempo de BL-MVP-057.
+          exacta de la letra. Los intervalos se expresan en milisegundos y el editor permite marcar,
+          desplazar, previsualizar y guardar borradores sin publicar.
         </p>
       </header>
 
@@ -258,6 +262,31 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
                       description="Esta fuente todavía no tiene marcas temporales para la revisión de letra seleccionada."
                     />
                   )}
+
+                  {source.durationMs !== null ? (
+                    <SynchronizationTimelineEditor
+                      recordingId={recordingId}
+                      lyricsRevisionId={state.data.lyricsRevisionId!}
+                      source={source}
+                      onSaved={(revision: TimingRevisionEditorSnapshot) =>
+                        setState((current) =>
+                          current.phase !== 'ready'
+                            ? current
+                            : {
+                                phase: 'ready',
+                                data: {
+                                  ...current.data,
+                                  sources: current.data.sources.map((candidate) =>
+                                    candidate.sourceId === source.sourceId
+                                      ? { ...candidate, timingRevision: revision }
+                                      : candidate,
+                                  ),
+                                },
+                              },
+                        )
+                      }
+                    />
+                  ) : null}
                 </article>
               </li>
             ))}
@@ -267,8 +296,8 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
 
       <StateMessage
         state="UI-EST-11"
-        title="Modelo temporal listo para edición"
-        description="BL-MVP-057 añadirá marcado, desplazamiento y previsualización. BL-MVP-056 solo confirma identidad, fuente, revisiones, intervalos y validaciones."
+        title="Sincronización editable, todavía no publicada"
+        description="BL-MVP-057 guarda revisiones DRAFT. BL-MVP-058 conectará el IFrame de YouTube y BL-MVP-059 resolverá el seguimiento de reproducción."
       />
     </article>
   );

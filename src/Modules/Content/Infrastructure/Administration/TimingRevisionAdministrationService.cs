@@ -21,6 +21,7 @@ public sealed record CreateTimingRevisionInput(
     Guid LyricsRevisionId,
     Guid SourceId,
     long OffsetMs,
+    int? ExpectedRevisionNo,
     List<TimingLineDraft> Lines);
 
 public sealed record TimingTokenSnapshot(
@@ -271,6 +272,13 @@ public sealed class TimingRevisionAdministrationService(
                 StringComparison.OrdinalIgnoreCase))
         {
             return latest;
+        }
+
+        if ((latest?.RevisionNo) != input.ExpectedRevisionNo)
+        {
+            throw new TimingAdministrationException(
+                "content.timing.revision.conflict",
+                "La sincronización cambió en el servidor desde que abriste este borrador. Conserva tus cambios y compara antes de volver a guardar.");
         }
 
         var revisionId = Guid.CreateVersion7();

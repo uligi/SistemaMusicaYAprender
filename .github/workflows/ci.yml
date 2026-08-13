@@ -551,6 +551,17 @@ jobs:
           BL056_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/content/verify-timing-revision-model.sh
 
+      - name: Verify editable synchronization timeline
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL057_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/content/verify-synchronization-timeline-editor.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:
