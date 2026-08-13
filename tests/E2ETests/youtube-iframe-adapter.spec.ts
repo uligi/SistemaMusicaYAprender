@@ -29,6 +29,33 @@ async function mockDetail(page: import('@playwright/test').Page) {
   });
 }
 
+async function mockYoutubeEmbed(page: import('@playwright/test').Page) {
+  let embedRequests = 0;
+
+  await page.route('https://www.youtube-nocookie.com/embed/**', async (route) => {
+    embedRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      body: `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fixture accesible de YouTube embebido</title>
+  </head>
+  <body>
+    <div data-youtube-e2e-fixture="true">
+      <p><strong>Fixture de reproductor externo.</strong></p>
+      <p>El DOM real de YouTube pertenece al proveedor externo y no forma parte del E2E.</p>
+    </div>
+  </body>
+</html>`,
+    });
+  });
+
+  return () => embedRequests;
+}
+
 const mockIframeApi = `
 (() => {
   window.YT = {
@@ -51,6 +78,7 @@ const mockIframeApi = `
 test.describe('BL-MVP-058 · adaptador aislado YouTube IFrame', () => {
   test('carga YouTube solo tras acción y usa nocookie + origin', async ({ page }) => {
     await mockDetail(page);
+    const getEmbedRequests = await mockYoutubeEmbed(page);
 
     let iframeApiRequests = 0;
     await page.route('https://www.youtube.com/iframe_api', async (route) => {
@@ -67,6 +95,7 @@ test.describe('BL-MVP-058 · adaptador aislado YouTube IFrame', () => {
     await expect(page.getByRole('heading', { name: 'Reproductor educativo' })).toBeVisible();
     await expect(page.getByRole('heading', { name: '怪獣' })).toBeVisible();
     expect(iframeApiRequests).toBe(0);
+    expect(getEmbedRequests()).toBe(0);
     await expect(page.locator('iframe')).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Cargar reproductor de YouTube' }).click();
@@ -74,6 +103,7 @@ test.describe('BL-MVP-058 · adaptador aislado YouTube IFrame', () => {
     const iframe = page.locator('iframe');
     await expect(iframe).toHaveCount(1);
     expect(iframeApiRequests).toBe(1);
+    await expect.poll(getEmbedRequests).toBe(1);
 
     const source = await iframe.getAttribute('src');
     expect(source).not.toBeNull();
@@ -93,11 +123,9 @@ test.describe('BL-MVP-058 · adaptador aislado YouTube IFrame', () => {
     await expect(iframe).toHaveAttribute('title', 'Reproductor de YouTube para 怪獣');
     await expect(iframe).toHaveAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
 
-    // El iframe es contenido de un tercero. Auditamos nuestro documento y el elemento iframe,
-    // pero no hacemos responsable a la aplicación del DOM interno servido por YouTube.
-    const accessibilityScanResults = await new AxeBuilder({ page })
-      .options({ iframes: false })
-      .analyze();
+    // El E2E audita un documento de iframe controlado y accesible. La revisión del
+    // YouTube real se hace visualmente; CI no depende del DOM cambiante de un tercero.
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
   });
 
@@ -158,6 +186,7 @@ test.describe('BL-MVP-058 · adaptador aislado YouTube IFrame', () => {
     page,
   }) => {
     const draftRecordingId = 'efc89b51-cfa6-5a56-91b1-6bc03942a971';
+    const getEmbedRequests = await mockYoutubeEmbed(page);
 
     await page.route('**/api/v1/auth/session', async (route) => {
       await route.fulfill({
@@ -220,12 +249,14 @@ test.describe('BL-MVP-058 · adaptador aislado YouTube IFrame', () => {
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Cargar reproductor de YouTube' })).toBeVisible();
     await expect(page.locator('iframe')).toHaveCount(0);
+    expect(getEmbedRequests()).toBe(0);
     expect(publicSongRequests).toBe(0);
 
     await page.getByRole('button', { name: 'Cargar reproductor de YouTube' }).click();
 
     const editorialIframe = page.locator('iframe');
     await expect(editorialIframe).toHaveCount(1);
+    await expect.poll(getEmbedRequests).toBe(1);
     await expect(editorialIframe).toHaveAttribute(
       'title',
       `Reproductor de YouTube para Fuente editorial ${videoId}`,
@@ -237,9 +268,8 @@ test.describe('BL-MVP-058 · adaptador aislado YouTube IFrame', () => {
     await expect(page.getByText('Reproductor listo', { exact: false })).toBeVisible();
     expect(publicSongRequests).toBe(0);
 
-    // YouTube controla el DOM del frame. Axe debe evaluar la superficie propia sin
-    // convertir defectos internos del proveedor externo en defectos de nuestra página.
-    const accessibility = await new AxeBuilder({ page }).options({ iframes: false }).analyze();
+    // El frame usa una fixture accesible y determinista; no se audita el DOM vivo de YouTube.
+    const accessibility = await new AxeBuilder({ page }).analyze();
     expect(accessibility.violations).toEqual([]);
   });
 });
