@@ -6,6 +6,7 @@ import { EditorialInboxPage } from './EditorialInboxPage';
 import { RightsProvenancePage } from './RightsProvenancePage';
 import { LyricsStructurePage } from './LyricsStructurePage';
 import { SynchronizationStructurePage } from './SynchronizationStructurePage';
+import { TranslationStructurePage } from './TranslationStructurePage';
 import { SongContextNavigation } from './SongContextNavigation';
 import { SongEditorialDossierPage } from './SongEditorialDossierPage';
 
@@ -65,11 +66,15 @@ export default function EditorialArea({ match }: EditorialAreaProps) {
     );
   }
 
-  if (
-    match.route.id === 'UI-MVP-023' ||
-    match.route.id === 'UI-MVP-024' ||
-    match.route.id === 'UI-MVP-025'
-  ) {
+  if (match.route.id === 'UI-MVP-023') {
+    return (
+      <SongWorkspace match={match}>
+        <TranslationStructurePage recordingId={match.params.id ?? ''} />
+      </SongWorkspace>
+    );
+  }
+
+  if (match.route.id === 'UI-MVP-024' || match.route.id === 'UI-MVP-025') {
     return (
       <SongWorkspace match={match}>
         <RoutePlaceholder

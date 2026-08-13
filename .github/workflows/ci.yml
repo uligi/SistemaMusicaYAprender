@@ -578,6 +578,17 @@ jobs:
           BL059_API_URL: https://localhost:5463
         run: bash scripts/ci/content/verify-local-synchronization-engine.sh
 
+      - name: Verify translation revisions and alignments
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL061_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/content/verify-translation-revision-model.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

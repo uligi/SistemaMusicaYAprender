@@ -1,0 +1,181 @@
+.translation-structure {
+  display: grid;
+  gap: var(--ma-space-5);
+  min-width: 0;
+}
+
+.route-surface.translation-structure {
+  width: 100%;
+  max-width: 96rem;
+}
+
+.translation-structure__header,
+.translation-structure__section-heading {
+  display: grid;
+  gap: var(--ma-space-2);
+  max-width: var(--ma-content-reading-max);
+}
+
+.translation-structure__header p,
+.translation-structure__section-heading p,
+.translation-structure__source p,
+.translation-structure__revision p,
+.translation-structure__unit p,
+.translation-structure__support p {
+  margin: 0;
+}
+
+.translation-structure__source,
+.translation-structure__revision,
+.translation-structure__unit,
+.translation-structure__support {
+  display: grid;
+  gap: var(--ma-space-3);
+  min-width: 0;
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.translation-structure__source > header,
+.translation-structure__revision > header,
+.translation-structure__unit > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--ma-space-2);
+}
+
+.translation-structure__source h2,
+.translation-structure__revision h2,
+.translation-structure__unit h3 {
+  margin: 0;
+}
+
+.translation-structure__source ol,
+.translation-structure__units,
+.translation-structure__support ul,
+.translation-structure__alignments {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.translation-structure__source ol {
+  display: grid;
+  gap: var(--ma-space-2);
+}
+
+.translation-structure__source li {
+  display: grid;
+  grid-template-columns: minmax(5rem, auto) minmax(0, 1fr);
+  gap: var(--ma-space-3);
+  align-items: baseline;
+}
+
+.translation-structure__source li span[lang='ja'],
+.translation-structure__japanese {
+  overflow-wrap: anywhere;
+  font-size: 1.1rem;
+  line-height: 1.7;
+}
+
+.translation-structure__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--ma-space-3);
+  margin: 0;
+}
+
+.translation-structure__metrics > div {
+  min-width: 0;
+}
+
+.translation-structure__metrics dt {
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.translation-structure__metrics dd {
+  margin: var(--ma-space-1) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.translation-structure__coverage {
+  padding: var(--ma-space-3);
+  border-inline-start: 0.25rem solid var(--ma-color-primary);
+}
+
+.translation-structure__units {
+  display: grid;
+  gap: var(--ma-space-3);
+}
+
+.translation-structure__variants {
+  display: grid;
+  gap: var(--ma-space-3);
+}
+
+.translation-structure__variant {
+  display: grid;
+  gap: var(--ma-space-2);
+  min-width: 0;
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+}
+
+.translation-structure__variants h3 {
+  margin: 0;
+}
+
+.translation-structure__alignments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-2);
+}
+
+.translation-structure__alignments li {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-2);
+  align-items: baseline;
+  max-width: 100%;
+  padding: var(--ma-space-1) var(--ma-space-2);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+}
+
+.translation-structure__support {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+}
+
+.translation-structure__support > header {
+  grid-column: 1 / -1;
+}
+
+.translation-structure__support ul {
+  display: grid;
+  gap: var(--ma-space-2);
+}
+
+.translation-structure__support li {
+  display: grid;
+  gap: var(--ma-space-1);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .translation-structure__source li {
+    grid-template-columns: 1fr;
+    gap: var(--ma-space-1);
+  }
+
+  .translation-structure__source,
+  .translation-structure__revision,
+  .translation-structure__unit,
+  .translation-structure__support {
+    padding: var(--ma-space-3);
+  }
+}
