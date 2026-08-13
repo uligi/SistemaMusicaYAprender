@@ -50,7 +50,6 @@ Cuando exista publicación real, debe comprobarse además que la línea cambia c
 
 No hacer staging hasta que la revisión visual ejecutable de UI-MVP-022 y el inventario pre-stage sean aprobados.
 
-
 ## Revisión visual BL-MVP-059E
 
 En desktop/laptop confirmar que video y editor aparecen lado a lado, el panel de video permanece visible al recorrer el editor, el selector cambia de línea sin desplazar la página y los botones de inicio/fin usan la posición real del reproductor. En 320 px debe apilarse sin overflow.
