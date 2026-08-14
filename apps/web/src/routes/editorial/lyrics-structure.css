@@ -4,9 +4,14 @@
 }
 
 .lyrics-structure__header,
-.lyrics-structure__section-heading {
+.lyrics-structure__section-heading,
+.lyrics-structure__technical-content {
   display: grid;
   gap: var(--ma-space-2);
+}
+
+.lyrics-structure__header {
+  max-width: 62rem;
 }
 
 .lyrics-structure__header p,
@@ -15,6 +20,78 @@
 .lyrics-structure__section-card p,
 .lyrics-structure__line p {
   margin: 0;
+}
+
+.lyrics-structure__summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--ma-space-3);
+}
+
+.lyrics-structure__summary > div {
+  display: grid;
+  min-width: 0;
+  gap: var(--ma-space-1);
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.lyrics-structure__summary strong {
+  color: var(--ma-color-primary);
+  font-size: 1.2rem;
+  overflow-wrap: anywhere;
+}
+
+.lyrics-structure__summary span {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.lyrics-structure__guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ma-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lyrics-structure__guide li {
+  display: grid;
+  gap: var(--ma-space-1);
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface-subtle);
+}
+
+.lyrics-structure__guide span {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.lyrics-structure__technical {
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface-subtle);
+  overflow: hidden;
+}
+
+.lyrics-structure__technical > summary {
+  cursor: pointer;
+  padding: var(--ma-space-4);
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.lyrics-structure__technical[open] > summary {
+  border-block-end: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.lyrics-structure__technical-content {
+  gap: var(--ma-space-5);
+  padding: var(--ma-space-4);
 }
 
 .lyrics-structure__revision {
@@ -68,6 +145,7 @@
   padding: var(--ma-space-4);
   border: var(--ma-border-width-thin) solid var(--ma-color-border);
   border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
 }
 
 .lyrics-structure__section-card > header,
@@ -123,6 +201,19 @@
 
 .lyrics-structure__no-tokens {
   color: var(--ma-color-muted);
+}
+
+@media (max-width: 64rem) {
+  .lyrics-structure__summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 48rem) {
+  .lyrics-structure__summary,
+  .lyrics-structure__guide {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 30rem) {

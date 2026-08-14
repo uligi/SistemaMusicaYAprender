@@ -85,10 +85,10 @@ test.describe('BL-MVP-053 · revisiones, secciones, líneas y tokens', () => {
 
     await page.goto(`/editorial/canciones/${recordingId}/letra`);
 
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Estructura de letra japonesa' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Letra japonesa' })).toBeVisible();
 
+    await expect(page.getByText('r2', { exact: true })).toBeVisible();
+    await page.getByText('Ver estructura técnica de la revisión', { exact: true }).click();
     await expect(page.getByText('Revisión 2', { exact: true })).toBeVisible();
     await expect(page.getByText('Verso 1', { exact: true })).toBeVisible();
     const structureTree = page.getByLabel('Árbol estructural');
@@ -123,7 +123,7 @@ test.describe('BL-MVP-053 · revisiones, secciones, líneas y tokens', () => {
 
     await page.goto(`/editorial/canciones/${recordingId}/letra`);
 
-    await expect(page.getByText('Sin revisión de letra', { exact: true })).toBeVisible();
+    await expect(page.getByText('Todavía no hay letra', { exact: true })).toBeVisible();
     await expect(page.getByText('怪獣', { exact: true })).toHaveCount(0);
   });
 

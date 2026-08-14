@@ -65,10 +65,14 @@ test.describe('BL-MVP-044 · bandeja editorial por capacidades', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Bandeja editorial' })).toBeFocused();
     await expect(page.getByText('怪獣', { exact: true })).toBeVisible();
     await expect(page.getByText('サカナクション', { exact: true })).toBeVisible();
-    await expect(page.getByText('DRAFT', { exact: true })).toBeVisible();
+    await expect(page.getByText('Borrador', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'En edición (1)' })).toBeVisible();
+    await page.getByText('Ver datos editoriales', { exact: true }).click();
     await expect(page.getByText('Tú', { exact: true })).toBeVisible();
     await expect(page.getByText(/EDIT_METADATA/)).toBeVisible();
-    await expect(page.getByText('Procedencia registrada', { exact: true })).toBeVisible();
+    await expect(
+      page.getByLabel('Situación editorial').getByText('Procedencia registrada', { exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByText('Continuar preparando el expediente editorial.', { exact: true }),
     ).toBeVisible();
@@ -100,9 +104,11 @@ test.describe('BL-MVP-044 · bandeja editorial por capacidades', () => {
     await page.setViewportSize({ width: 320, height: 900 });
     await page.goto('/editorial');
 
-    await expect(page.getByText('Bandeja vacía', { exact: true })).toBeVisible();
     await expect(
-      page.getByText('No hay objetos editoriales dentro de tus capacidades y alcance vigentes.', {
+      page.getByText('No tienes tareas editoriales pendientes', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('No hay canciones disponibles para tu sesión en este momento.', {
         exact: true,
       }),
     ).toBeVisible();

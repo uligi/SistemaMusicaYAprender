@@ -91,6 +91,18 @@ async function csrfHeaders(): Promise<Readonly<Record<string, string>> | null> {
   };
 }
 
+function displayArtistType(value: string) {
+  const labels: Record<string, string> = {
+    PERSON: 'Persona',
+    GROUP: 'Grupo',
+    PROJECT: 'Proyecto',
+    BAND: 'Banda',
+    TEMPORARY_UNIT: 'Unidad temporal',
+    VIRTUAL: 'Artista virtual',
+  };
+  return labels[value] ?? value.replaceAll('_', ' ');
+}
+
 export function ArtistAdministrationPage() {
   const [canonicalName, setCanonicalName] = useState('');
   const [sortName, setSortName] = useState('');
@@ -291,15 +303,15 @@ export function ArtistAdministrationPage() {
     <section className="artist-administration" aria-labelledby="artist-administration-title">
       <header className="artist-administration__header">
         <p className="artist-administration__eyebrow">Paso 1 de 3 · Artista canónico</p>
-        <h2 id="artist-administration-title">Artista canónico para una nueva canción</h2>
+        <h2 id="artist-administration-title">1. Elige el artista</h2>
         <p>
-          Registra o localiza primero la identidad estable del artista. Los nombres sirven para
-          mostrar y buscar; nunca sustituyen al identificador interno.
+          Busca primero si el artista ya existe. Si lo encuentras, selecciónalo y continúa; crea una
+          identidad nueva únicamente cuando no haya una coincidencia correcta.
         </p>
       </header>
 
       {error ? (
-        <StateMessage state="UI-EST-04" title="No se confirmó el cambio" description={error} />
+        <StateMessage state="UI-EST-04" title="No se pudo continuar" description={error} />
       ) : null}
 
       {message ? (
@@ -309,16 +321,83 @@ export function ArtistAdministrationPage() {
       ) : null}
 
       <div className="artist-administration__layout">
-        <form className="artist-administration__panel" onSubmit={checkDuplicates}>
+        <form
+          className="artist-administration__panel artist-administration__panel--search"
+          onSubmit={searchExisting}
+        >
           <div>
-            <p className="artist-administration__eyebrow">Crear identidad</p>
-            <h2>Nombre principal, lectura y alias</h2>
+            <p className="artist-administration__eyebrow">Recomendado</p>
+            <h2>Buscar un artista existente</h2>
+            <p>
+              Puedes buscar por nombre original, lectura en kana o romanización. Reutilizar una
+              identidad evita duplicados y mantiene todo el catálogo conectado.
+            </p>
+          </div>
+
+          <Field
+            id="artist-search-query"
+            label="Nombre, lectura o romanización"
+            helpText="Ejemplo: サカナクション, さかなくしょん o Sakanaction."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            maxLength={512}
+          />
+
+          <Button type="submit" disabled={busy || !searchQuery.trim()}>
+            Buscar artista
+          </Button>
+
+          {searchResults.length > 0 ? (
+            <ul className="artist-administration__search-results" aria-label="Artistas encontrados">
+              {searchResults.map((artist) => (
+                <li key={artist.artistId}>
+                  <strong>{artist.canonicalName}</strong>
+                  <span>
+                    {displayArtistType(artist.artistType)} · coincidencia «{artist.matchedText}»
+                  </span>
+                  <details className="artist-administration__technical">
+                    <summary>Ver identificador técnico</summary>
+                    <code>{artist.artistId}</code>
+                  </details>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() =>
+                      setSelectedArtist({
+                        artistId: artist.artistId,
+                        canonicalName: artist.canonicalName,
+                      })
+                    }
+                  >
+                    Usar {artist.canonicalName}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : searchQuery.trim() && !busy ? (
+            <p className="artist-administration__eyebrow">
+              Si no aparece el artista correcto, usa el formulario de registro que está debajo.
+            </p>
+          ) : null}
+        </form>
+
+        <form
+          className="artist-administration__panel artist-administration__panel--create"
+          onSubmit={checkDuplicates}
+        >
+          <div>
+            <p className="artist-administration__eyebrow">Solo si no existe</p>
+            <h2>Registrar un artista nuevo</h2>
+            <p>
+              Conserva el nombre original y agrega lecturas o alias solo cuando los conozcas. Antes
+              de crear la identidad revisaremos posibles coincidencias.
+            </p>
           </div>
 
           <Field
             id="artist-canonical-name"
-            label="Nombre canónico"
-            helpText="Conserva la escritura original. El servidor genera la identidad estable."
+            label="Nombre original del artista"
+            helpText="Escríbelo como aparece oficialmente."
             value={canonicalName}
             onChange={(event) => {
               setCanonicalName(event.target.value);
@@ -330,8 +409,8 @@ export function ArtistAdministrationPage() {
 
           <Field
             id="artist-sort-name"
-            label="Nombre de ordenación"
-            helpText="Opcional. Si se omite, se usa el nombre canónico."
+            label="Nombre para ordenar"
+            helpText="Opcional. Úsalo solo si quieres una forma distinta para ordenar listas."
             value={sortName}
             onChange={(event) => {
               setSortName(event.target.value);
@@ -343,7 +422,7 @@ export function ArtistAdministrationPage() {
           <SelectField
             id="artist-type"
             label="Tipo de artista"
-            helpText="Elige la categoría visible; el código interno se envía automáticamente."
+            helpText="Elige la categoría que mejor describe esta identidad."
             value={artistType}
             onChange={(event) => {
               setArtistType(event.target.value);
@@ -360,23 +439,27 @@ export function ArtistAdministrationPage() {
           </SelectField>
 
           <div className="artist-administration__two-columns">
-            <Field
+            <SelectField
               id="artist-language"
-              label="Idioma del nombre principal"
-              helpText="Usa una etiqueta de idioma válida, por ejemplo ja, es, en o it. Los caracteres fuera del formato BCP-47 se bloquean."
+              label="Idioma del nombre"
+              helpText="Elige el idioma principal del nombre original."
               value={canonicalLanguageTag}
               onChange={(event) => {
-                setCanonicalLanguageTag(event.target.value.replace(/[^A-Za-z0-9-]/g, ''));
+                setCanonicalLanguageTag(event.target.value);
                 markDraftChanged();
               }}
-              pattern="[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*"
-              maxLength={35}
               required
-            />
+            >
+              <option value="ja">Japonés</option>
+              <option value="es">Español</option>
+              <option value="en">Inglés</option>
+              <option value="it">Italiano</option>
+            </SelectField>
+
             <SelectField
               id="artist-script"
-              label="Sistema de escritura"
-              helpText="Elige cómo está escrito el nombre principal; no escribas el código técnico."
+              label="Cómo está escrito"
+              helpText="Elige el sistema de escritura del nombre principal."
               value={canonicalScriptCode}
               onChange={(event) => {
                 setCanonicalScriptCode(event.target.value);
@@ -394,7 +477,7 @@ export function ArtistAdministrationPage() {
           <Field
             id="artist-kana-reading"
             label="Lectura en hiragana"
-            helpText="Opcional. Se conserva como forma japonesa buscable."
+            helpText="Opcional. Ayuda a buscar y leer el nombre japonés."
             value={kanaReading}
             onChange={(event) => {
               setKanaReading(event.target.value);
@@ -406,7 +489,7 @@ export function ArtistAdministrationPage() {
           <Field
             id="artist-romaji"
             label="Romanización"
-            helpText="Opcional. No reemplaza el nombre original."
+            helpText="Opcional. Ejemplo: Sakanaction."
             value={romanizedName}
             onChange={(event) => {
               setRomanizedName(event.target.value);
@@ -417,8 +500,8 @@ export function ArtistAdministrationPage() {
 
           <Field
             id="artist-spanish-name"
-            label="Nombre localizado en español"
-            helpText="Opcional. Se almacena como alias localizado, no como clave."
+            label="Nombre en español"
+            helpText="Opcional. Solo si existe una forma localizada útil."
             value={spanishName}
             onChange={(event) => {
               setSpanishName(event.target.value);
@@ -432,19 +515,22 @@ export function ArtistAdministrationPage() {
               className="artist-administration__duplicates"
               aria-labelledby="artist-duplicates-title"
             >
-              <h3 id="artist-duplicates-title">Revisión de posibles duplicados</h3>
+              <h3 id="artist-duplicates-title">Revisa estas posibles coincidencias</h3>
 
               {duplicateReview.candidates.length > 0 ? (
                 <>
                   <ul>
                     {duplicateReview.candidates.map((candidate) => (
                       <li key={candidate.artistId}>
-                        <strong>{candidate.canonicalName}</strong>{' '}
+                        <strong>{candidate.canonicalName}</strong>
                         <span>
-                          ({candidate.artistType}) · coincidencia «{candidate.matchedText}» ·{' '}
-                          {Math.round(candidate.similarity * 100)}%
+                          {displayArtistType(candidate.artistType)} · coincidencia «
+                          {candidate.matchedText}» · {Math.round(candidate.similarity * 100)}%
                         </span>
-                        <code>{candidate.artistId}</code>
+                        <details className="artist-administration__technical">
+                          <summary>Ver identificador técnico</summary>
+                          <code>{candidate.artistId}</code>
+                        </details>
                       </li>
                     ))}
                   </ul>
@@ -459,21 +545,21 @@ export function ArtistAdministrationPage() {
                   </label>
                 </>
               ) : (
-                <p>No hay coincidencias que requieran confirmación.</p>
+                <p>No encontramos otra identidad que requiera confirmación.</p>
               )}
             </section>
           ) : null}
 
           {created ? (
             <section className="artist-administration__created" aria-label="Artista confirmado">
+              <p className="artist-administration__eyebrow">Artista listo</p>
               <h3>{created.canonicalName}</h3>
-              <p>
-                Identificador estable: <code>{created.artistId}</code>
-              </p>
-              <p>
-                Estado interno: {created.statusCode}. Esto no publica una canción ni crea una
-                grabación.
-              </p>
+              <p>La identidad quedó seleccionada y ya puedes continuar con la canción.</p>
+              <details className="artist-administration__technical">
+                <summary>Ver identificador técnico</summary>
+                <code>{created.artistId}</code>
+                <p>Estado interno: {created.statusCode}</p>
+              </details>
             </section>
           ) : null}
 
@@ -494,55 +580,6 @@ export function ArtistAdministrationPage() {
               Crear identidad de artista
             </Button>
           </div>
-        </form>
-
-        <form className="artist-administration__panel" onSubmit={searchExisting}>
-          <div>
-            <p className="artist-administration__eyebrow">Reutilizar identidad</p>
-            <h2>Buscar un artista existente</h2>
-            <p>
-              Revisa nombres canónicos, lecturas y alias antes de crear otro registro. La asociación
-              con obra y grabación se completa en la siguiente etapa editorial.
-            </p>
-          </div>
-
-          <Field
-            id="artist-search-query"
-            label="Nombre, lectura o romanización"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            maxLength={512}
-          />
-
-          <Button type="submit" disabled={busy || !searchQuery.trim()}>
-            Buscar artista
-          </Button>
-
-          {searchResults.length > 0 ? (
-            <ul className="artist-administration__search-results" aria-label="Artistas encontrados">
-              {searchResults.map((artist) => (
-                <li key={artist.artistId}>
-                  <strong>{artist.canonicalName}</strong>
-                  <span>
-                    {artist.artistType} · coincidencia «{artist.matchedText}»
-                  </span>
-                  <code>{artist.artistId}</code>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() =>
-                      setSelectedArtist({
-                        artistId: artist.artistId,
-                        canonicalName: artist.canonicalName,
-                      })
-                    }
-                  >
-                    Usar {artist.canonicalName}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
         </form>
       </div>
 

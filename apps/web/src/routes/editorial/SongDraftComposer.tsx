@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Button, Field, StateMessage } from '../../components/ui';
+import { Button, Field, SelectField, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 
 export type SelectedArtist = {
@@ -283,15 +283,22 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
     <section className="song-draft" aria-labelledby="song-draft-title">
       <header className="song-draft__header">
         <p className="song-draft__eyebrow">Paso 2 de 3 · Obra, grabación y fuente</p>
-        <h2 id="song-draft-title">Completar el borrador de canción</h2>
-        <p>
-          Artista seleccionado: <strong>{artist.canonicalName}</strong>{' '}
-          <code>{artist.artistId}</code>
-        </p>
+        <h2 id="song-draft-title">2. Completa los datos de la canción</h2>
+        <div className="song-draft__selected-artist">
+          Artista seleccionado: <strong>{artist.canonicalName}</strong>
+          <details>
+            <summary>Ver identificador técnico</summary>
+            <code>{artist.artistId}</code>
+          </details>
+        </div>
       </header>
 
       {error ? (
-        <StateMessage state="UI-EST-04" title="No se confirmó el borrador" description={error} />
+        <StateMessage
+          state="UI-EST-04"
+          title="No se pudo guardar el borrador"
+          description={error}
+        />
       ) : null}
 
       {message ? (
@@ -301,10 +308,16 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
       ) : null}
 
       <form className="song-draft__form" onSubmit={checkDuplicates}>
+        <div className="song-draft__form-step">
+          <span>Paso 2A</span>
+          <strong>Datos básicos</strong>
+          <small>Indica el título y, si aplica, qué versión concreta estás registrando.</small>
+        </div>
+
         <Field
           id="song-work-title"
-          label="Título original de la obra"
-          helpText="Se conserva como título canónico de la obra; no identifica la grabación."
+          label="Título original de la canción"
+          helpText="Escríbelo como aparece oficialmente; preferiblemente en su idioma original."
           value={canonicalTitle}
           onChange={(event) => {
             setCanonicalTitle(event.target.value);
@@ -314,24 +327,27 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
           required
         />
 
-        <Field
+        <SelectField
           id="song-work-language"
-          label="Idioma principal de la obra"
-          helpText="Etiqueta de idioma, por ejemplo ja, es, en o it. Los caracteres fuera de BCP-47 se bloquean."
+          label="Idioma principal"
+          helpText="Elige el idioma principal del título y de la obra."
           value={languageTag}
           onChange={(event) => {
-            setLanguageTag(event.target.value.replace(/[^A-Za-z0-9-]/g, ''));
+            setLanguageTag(event.target.value);
             markChanged();
           }}
-          pattern="[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*"
-          maxLength={35}
           required
-        />
+        >
+          <option value="ja">Japonés</option>
+          <option value="es">Español</option>
+          <option value="en">Inglés</option>
+          <option value="it">Italiano</option>
+        </SelectField>
 
         <Field
           id="song-recording-title"
-          label="Título de esta grabación"
-          helpText="Opcional. Úsalo para distinguir live, acústica, remix u otra versión visible."
+          label="Nombre de esta versión"
+          helpText="Opcional. Úsalo para distinguir live, acústica, remix u otra versión."
           value={recordingTitle}
           onChange={(event) => {
             setRecordingTitle(event.target.value);
@@ -343,8 +359,8 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
         <div className="song-draft__two-columns">
           <Field
             id="song-recording-duration"
-            label="Duración de referencia de la grabación (s)"
-            helpText="Opcional y separada de la duración del video."
+            label="Duración de la canción (segundos)"
+            helpText="Opcional. Puede ser distinta a la duración completa del video."
             type="number"
             min="0.001"
             step="0.001"
@@ -357,8 +373,8 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
 
           <Field
             id="song-source-duration"
-            label="Duración conocida del video (s)"
-            helpText="Opcional; pertenece a la fuente de YouTube, no a la obra."
+            label="Duración del video (segundos)"
+            helpText="Opcional. Úsala solo si la conoces."
             type="number"
             min="0.001"
             step="0.001"
@@ -370,10 +386,16 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
           />
         </div>
 
+        <div className="song-draft__form-step">
+          <span>Paso 2B</span>
+          <strong>Video de YouTube</strong>
+          <small>Pega el enlace del video que corresponde exactamente a esta grabación.</small>
+        </div>
+
         <Field
           id="song-youtube-reference"
-          label="URL o identificador de YouTube"
-          helpText="Se valida localmente y solo se guarda el identificador externo; no se descargan audio ni video."
+          label="Enlace de YouTube"
+          helpText="Puedes pegar la URL completa o el identificador del video."
           value={youtubeReference}
           onChange={(event) => {
             setYoutubeReference(event.target.value);
@@ -385,8 +407,8 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
 
         <Field
           id="song-source-offset"
-          label="Desplazamiento inicial de la fuente (s)"
-          helpText="Usa 0 si la grabación comienza al inicio del video."
+          label="La canción empieza en el segundo"
+          helpText="Usa 0 si empieza al inicio del video. Si hay una introducción antes, indica aquí cuándo comienza."
           type="number"
           min="0"
           step="0.001"
@@ -397,6 +419,12 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
           }}
           required
         />
+
+        <div className="song-draft__form-step">
+          <span>Paso 2C</span>
+          <strong>Confirma la grabación</strong>
+          <small>Esto evita enlazar por error un live, remix o versión diferente.</small>
+        </div>
 
         <label className="song-draft__confirmation">
           <input
@@ -413,26 +441,29 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
 
         {duplicateReview ? (
           <section className="song-draft__duplicates" aria-labelledby="song-duplicates-title">
-            <h3 id="song-duplicates-title">Revisión de posibles grabaciones duplicadas</h3>
+            <h3 id="song-duplicates-title">Revisa estas posibles coincidencias</h3>
 
             {duplicateReview.candidates.length > 0 ? (
               <ul>
                 {duplicateReview.candidates.map((candidate) => (
                   <li key={candidate.recordingId}>
-                    <strong>{candidate.canonicalTitle}</strong>{' '}
+                    <strong>{candidate.canonicalTitle}</strong>
                     <span>
-                      · {candidate.artistName} ·{' '}
+                      {candidate.artistName} ·{' '}
                       {candidate.exactSourceMatch
-                        ? 'misma fuente de YouTube'
+                        ? 'usa la misma fuente de YouTube'
                         : `${Math.round(candidate.similarity * 100)}% de similitud`}
                     </span>
-                    <code>{candidate.recordingId}</code>
-                    {candidate.externalRef ? <code>YouTube: {candidate.externalRef}</code> : null}
+                    <details className="song-draft__created-technical">
+                      <summary>Ver datos técnicos</summary>
+                      <code>{candidate.recordingId}</code>
+                      {candidate.externalRef ? <code>YouTube: {candidate.externalRef}</code> : null}
+                    </details>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p>No hay coincidencias que requieran revisión.</p>
+              <p>No encontramos otra grabación que requiera revisión.</p>
             )}
 
             {duplicateReview.requiresAcknowledgement && !duplicateReview.hasExactSourceConflict ? (
@@ -452,49 +483,55 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
         {created ? (
           <section className="song-draft__created" aria-label="Borrador de canción confirmado">
             <p className="song-draft__eyebrow">Paso 3 de 3 · Borrador guardado</p>
-            <h3>{created.canonicalTitle}</h3>
-            <dl>
-              <div>
-                <dt>Obra</dt>
-                <dd>
-                  <code>{created.workId}</code>
-                </dd>
-              </div>
-              <div>
-                <dt>Grabación</dt>
-                <dd>
-                  <code>{created.recordingId}</code>
-                </dd>
-              </div>
-              <div>
-                <dt>Fuente</dt>
-                <dd>
-                  <code>{created.sourceId}</code>
-                </dd>
-              </div>
-              <div>
-                <dt>YouTube</dt>
-                <dd>
-                  {created.providerCode} · <code>{created.externalRef}</code>
-                </dd>
-              </div>
-            </dl>
-            <a className="ma-link" href={`/editorial/canciones/${created.recordingId}`}>
-              Abrir expediente de la canción
-            </a>
-            <a className="ma-link" href={`/editorial/canciones/${created.recordingId}/derechos`}>
-              Continuar con derechos y procedencia
-            </a>
+            <h3>Borrador listo: {created.canonicalTitle}</h3>
             <p>
-              El borrador sigue sin publicar. Revisión, paquete y publicación se completan en sus
-              etapas editoriales correspondientes.
+              La canción quedó guardada como borrador. Ahora puedes abrir su expediente y continuar
+              con letra, derechos, traducción, sincronización y análisis.
             </p>
+            <div className="song-draft__created-links">
+              <a className="ma-link" href={`/editorial/canciones/${created.recordingId}`}>
+                Abrir expediente de la canción
+              </a>
+              <a className="ma-link" href={`/editorial/canciones/${created.recordingId}/derechos`}>
+                Continuar con derechos y procedencia
+              </a>
+            </div>
+            <details className="song-draft__created-technical">
+              <summary>Ver identificadores técnicos</summary>
+              <dl>
+                <div>
+                  <dt>Obra</dt>
+                  <dd>
+                    <code>{created.workId}</code>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Grabación</dt>
+                  <dd>
+                    <code>{created.recordingId}</code>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Fuente</dt>
+                  <dd>
+                    <code>{created.sourceId}</code>
+                  </dd>
+                </div>
+                <div>
+                  <dt>YouTube</dt>
+                  <dd>
+                    {created.providerCode} · <code>{created.externalRef}</code>
+                  </dd>
+                </div>
+              </dl>
+            </details>
+            <p>Guardar este borrador no publica contenido.</p>
           </section>
         ) : null}
 
         <div className="song-draft__actions">
           <Button type="submit" disabled={busy}>
-            Revisar grabaciones duplicadas
+            Comprobar coincidencias
           </Button>
           <Button
             type="button"
@@ -507,7 +544,7 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
             }
             onClick={() => void createSongDraft()}
           >
-            Crear obra, grabación y fuente
+            Guardar borrador de canción
           </Button>
         </div>
       </form>

@@ -42,14 +42,47 @@ type InboxState =
   | { phase: 'ready'; data: EditorialInboxResponse }
   | { phase: 'failed'; problem: ClientProblem };
 
+type InboxView = 'ALL' | 'READY' | 'LOCKED';
+
 function formatState(value: string) {
   const [, raw = value] = value.split(':', 2);
-  return raw.replaceAll('_', ' ');
+  const normalized = raw.replaceAll('_', ' ');
+  const labels: Record<string, string> = {
+    DRAFT: 'Borrador',
+    IN_REVIEW: 'En revisión',
+    REVIEW: 'En revisión',
+    APPROVED: 'Aprobado',
+    PUBLISHED: 'Publicado',
+    ARCHIVED: 'Archivado',
+    BLOCKED: 'Bloqueado',
+  };
+  return labels[raw] ?? normalized.charAt(0) + normalized.slice(1).toLocaleLowerCase('es');
+}
+
+function formatOperation(value: string | null) {
+  if (!value) return 'Operación editorial';
+  const labels: Record<string, string> = {
+    EDIT_METADATA: 'Edición de metadatos',
+    EDIT_LYRICS: 'Edición de letra',
+    EDIT_TRANSLATION: 'Edición de traducción',
+    EDIT_TIMING: 'Edición de sincronización',
+    EDIT_ANALYSIS: 'Edición de análisis lingüístico',
+    EDIT_RIGHTS: 'Edición de derechos',
+  };
+  return labels[value] ?? value.replaceAll('_', ' ').toLocaleLowerCase('es');
+}
+
+function formatProvider(value: string | null) {
+  if (!value) return 'Sin fuente seleccionada';
+  const labels: Record<string, string> = {
+    YOUTUBE: 'YouTube',
+  };
+  return labels[value] ?? value.replaceAll('_', ' ');
 }
 
 function formatDate(value: string | null) {
   if (!value) {
-    return 'Sin actividad fechada';
+    return 'Sin actividad registrada';
   }
 
   return new Intl.DateTimeFormat('es-CR', {
@@ -62,6 +95,7 @@ export function EditorialInboxPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [state, setState] = useState<InboxState>({ phase: 'loading' });
   const [filter, setFilter] = useState('');
+  const [view, setView] = useState<InboxView>('ALL');
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -90,6 +124,18 @@ export function EditorialInboxPage() {
     return () => controller.abort();
   }, []);
 
+  const summary = useMemo(() => {
+    if (state.phase !== 'ready') {
+      return { ready: 0, locked: 0, total: 0 };
+    }
+
+    return {
+      ready: state.data.items.filter((item) => !item.lock.active && item.actions.length > 0).length,
+      locked: state.data.items.filter((item) => item.lock.active).length,
+      total: state.data.visibleCount,
+    };
+  }, [state]);
+
   const visibleItems = useMemo(() => {
     if (state.phase !== 'ready') {
       return [];
@@ -97,17 +143,34 @@ export function EditorialInboxPage() {
 
     const term = filter.trim().toLocaleLowerCase('es');
 
-    if (!term) {
-      return state.data.items;
-    }
+    return state.data.items.filter((item) => {
+      if (view === 'READY' && (item.lock.active || item.actions.length === 0)) {
+        return false;
+      }
 
-    return state.data.items.filter((item) =>
-      [item.canonicalTitle, item.recordingTitle ?? '', item.artistName, item.stateCode]
+      if (view === 'LOCKED' && !item.lock.active) {
+        return false;
+      }
+
+      if (!term) {
+        return true;
+      }
+
+      return [
+        item.canonicalTitle,
+        item.recordingTitle ?? '',
+        item.artistName,
+        item.stateCode,
+        item.ownerLabel,
+        item.provenanceLabel,
+        item.providerCode ?? '',
+        item.nextAction,
+      ]
         .join(' ')
         .toLocaleLowerCase('es')
-        .includes(term),
-    );
-  }, [filter, state]);
+        .includes(term);
+    });
+  }, [filter, state, view]);
 
   return (
     <article className="route-surface editorial-inbox" data-route-id="UI-MVP-017">
@@ -117,16 +180,17 @@ export function EditorialInboxPage() {
           Bandeja editorial
         </h1>
         <p>
-          Reúne únicamente los objetos que tu sesión puede trabajar. El servidor vuelve a comprobar
-          capacidad y alcance por grabación antes de devolver cada fila y cada acción.
+          Aquí aparecen las canciones que puedes trabajar ahora. Empieza por la siguiente tarea
+          sugerida; los permisos y el alcance se vuelven a comprobar en el servidor al abrir cada
+          acción.
         </p>
       </header>
 
       {state.phase === 'loading' ? (
         <StateMessage
-          description="Resolviendo objetos, permisos, bloqueo y siguiente acción."
+          description="Preparando tus canciones, bloqueos y siguientes tareas."
           state="UI-EST-01"
-          title="Cargando bandeja"
+          title="Preparando tu bandeja"
         />
       ) : null}
 
@@ -140,108 +204,190 @@ export function EditorialInboxPage() {
 
       {state.phase === 'ready' && state.data.items.length === 0 ? (
         <StateMessage
-          description="No hay objetos editoriales dentro de tus capacidades y alcance vigentes."
+          description="No hay canciones disponibles para tu sesión en este momento."
           state="UI-EST-02"
-          title="Bandeja vacía"
+          title="No tienes tareas editoriales pendientes"
         />
       ) : null}
 
       {state.phase === 'ready' && state.data.items.length > 0 ? (
         <>
-          <div className="editorial-inbox__toolbar">
-            <label htmlFor="editorial-inbox-filter">Filtrar objetos visibles</label>
-            <input
-              id="editorial-inbox-filter"
-              onChange={(event) => setFilter(event.target.value)}
-              placeholder="Título, artista o estado"
-              type="search"
-              value={filter}
-            />
-            <p>
-              {visibleItems.length} de {state.data.visibleCount} objetos permitidos.
-            </p>
-          </div>
+          <section className="editorial-inbox__summary" aria-label="Resumen de la bandeja">
+            <div>
+              <strong>{summary.total}</strong>
+              <span>canciones disponibles</span>
+            </div>
+            <div>
+              <strong>{summary.ready}</strong>
+              <span>listas para continuar</span>
+            </div>
+            <div>
+              <strong>{summary.locked}</strong>
+              <span>en edición ahora</span>
+            </div>
+          </section>
+
+          <section className="editorial-inbox__controls" aria-label="Buscar y filtrar">
+            <div className="editorial-inbox__toolbar">
+              <label htmlFor="editorial-inbox-filter">Buscar en mi bandeja</label>
+              <input
+                id="editorial-inbox-filter"
+                onChange={(event) => setFilter(event.target.value)}
+                placeholder="Canción, artista, responsable o estado"
+                type="search"
+                value={filter}
+              />
+              <p>
+                Mostrando {visibleItems.length} de {state.data.visibleCount} canciones disponibles.
+              </p>
+            </div>
+
+            <div
+              className="editorial-inbox__view-filter"
+              role="group"
+              aria-label="Filtrar por situación"
+            >
+              <button
+                type="button"
+                className={view === 'ALL' ? 'is-active' : ''}
+                aria-pressed={view === 'ALL'}
+                onClick={() => setView('ALL')}
+              >
+                Todas ({summary.total})
+              </button>
+              <button
+                type="button"
+                className={view === 'READY' ? 'is-active' : ''}
+                aria-pressed={view === 'READY'}
+                onClick={() => setView('READY')}
+              >
+                Listas para continuar ({summary.ready})
+              </button>
+              <button
+                type="button"
+                className={view === 'LOCKED' ? 'is-active' : ''}
+                aria-pressed={view === 'LOCKED'}
+                onClick={() => setView('LOCKED')}
+              >
+                En edición ({summary.locked})
+              </button>
+            </div>
+          </section>
 
           {visibleItems.length === 0 ? (
             <StateMessage
-              description="Cambia el texto del filtro; los permisos no se amplían por buscar."
+              description="Prueba otro término o cambia el filtro. Buscar no modifica tus permisos."
               state="UI-EST-02"
-              title="Sin coincidencias visibles"
+              title="No hay coincidencias con este filtro"
             />
           ) : (
             <ul className="editorial-inbox__list">
-              {visibleItems.map((item) => (
-                <li key={item.recordingId}>
-                  <article className="editorial-inbox__card">
-                    <header>
-                      <p className="editorial-inbox__artist">{item.artistName}</p>
-                      <h2 lang="ja">{item.canonicalTitle}</h2>
-                      {item.recordingTitle ? (
-                        <p className="editorial-inbox__recording">{item.recordingTitle}</p>
-                      ) : null}
-                    </header>
+              {visibleItems.map((item) => {
+                const primaryAction = item.actions[0];
+                const secondaryActions = item.actions.slice(1);
 
-                    <dl className="editorial-inbox__facts">
-                      <div>
-                        <dt>Estado</dt>
-                        <dd>{formatState(item.stateCode)}</dd>
-                      </div>
-                      <div>
-                        <dt>Propietario</dt>
-                        <dd>{item.ownerLabel}</dd>
-                      </div>
-                      <div>
-                        <dt>Bloqueo</dt>
-                        <dd>
-                          {item.lock.active
-                            ? `${item.lock.operationCode ?? 'Operación editorial'} · hasta ${formatDate(
-                                item.lock.expiresAt,
-                              )}`
-                            : 'Sin bloqueo activo'}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Procedencia</dt>
-                        <dd>{item.provenanceLabel}</dd>
-                      </div>
-                      <div>
-                        <dt>Fuente</dt>
-                        <dd>{item.providerCode ?? 'Sin fuente seleccionada'}</dd>
-                      </div>
-                      <div>
-                        <dt>Última actividad</dt>
-                        <dd>{formatDate(item.lastActivityAt)}</dd>
-                      </div>
-                    </dl>
+                return (
+                  <li key={item.recordingId}>
+                    <article className="editorial-inbox__card">
+                      <header className="editorial-inbox__card-header">
+                        <div>
+                          <p className="editorial-inbox__artist">{item.artistName}</p>
+                          <h2 lang="ja">{item.canonicalTitle}</h2>
+                          {item.recordingTitle ? (
+                            <p className="editorial-inbox__recording">{item.recordingTitle}</p>
+                          ) : null}
+                        </div>
+                        <span className="editorial-inbox__state">
+                          {formatState(item.stateCode)}
+                        </span>
+                      </header>
 
-                    <section
-                      aria-labelledby={`next-${item.recordingId}`}
-                      className="editorial-inbox__next"
-                    >
-                      <h3 id={`next-${item.recordingId}`}>Siguiente acción</h3>
-                      <p>{item.nextAction}</p>
-                    </section>
+                      <div className="editorial-inbox__signals" aria-label="Situación editorial">
+                        <span>{item.lock.active ? 'En edición' : 'Disponible'}</span>
+                        <span>Responsable: {item.ownerLabel}</span>
+                        <span>{item.provenanceLabel}</span>
+                        <span>{formatProvider(item.providerCode)}</span>
+                      </div>
 
-                    {item.actions.length > 0 ? (
-                      <nav aria-label={`Acciones permitidas para ${item.canonicalTitle}`}>
-                        <ul className="editorial-inbox__actions">
-                          {item.actions.map((action) => (
-                            <li key={action.code}>
-                              <a className="ma-button ma-button--secondary" href={action.href}>
-                                {action.label}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </nav>
-                    ) : (
-                      <p className="editorial-inbox__no-action">
-                        No hay una acción navegable disponible para tu capacidad actual.
-                      </p>
-                    )}
-                  </article>
-                </li>
-              ))}
+                      <section
+                        aria-labelledby={`next-${item.recordingId}`}
+                        className="editorial-inbox__next"
+                      >
+                        <p className="eyebrow">Siguiente paso sugerido</p>
+                        <h3 id={`next-${item.recordingId}`}>{item.nextAction}</h3>
+
+                        {primaryAction ? (
+                          <a className="ma-button ma-button--primary" href={primaryAction.href}>
+                            {primaryAction.label}
+                          </a>
+                        ) : (
+                          <p className="editorial-inbox__no-action">
+                            No hay una acción navegable disponible para tu capacidad actual.
+                          </p>
+                        )}
+
+                        {secondaryActions.length > 0 ? (
+                          <nav aria-label={`Otras acciones para ${item.canonicalTitle}`}>
+                            <ul className="editorial-inbox__actions">
+                              {secondaryActions.map((action) => (
+                                <li key={action.code}>
+                                  <a className="ma-button ma-button--secondary" href={action.href}>
+                                    {action.label}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </nav>
+                        ) : null}
+                      </section>
+
+                      <details className="editorial-inbox__details">
+                        <summary>Ver datos editoriales</summary>
+                        <dl className="editorial-inbox__facts">
+                          <div>
+                            <dt>Estado</dt>
+                            <dd>
+                              {formatState(item.stateCode)} <code>{item.stateCode}</code>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Responsable</dt>
+                            <dd>{item.ownerLabel}</dd>
+                          </div>
+                          <div>
+                            <dt>Bloqueo</dt>
+                            <dd>
+                              {item.lock.active
+                                ? `${formatOperation(item.lock.operationCode)} · hasta ${formatDate(
+                                    item.lock.expiresAt,
+                                  )}`
+                                : 'Sin bloqueo activo'}
+                              {item.lock.operationCode ? (
+                                <code>{item.lock.operationCode}</code>
+                              ) : null}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>Procedencia</dt>
+                            <dd>{item.provenanceLabel}</dd>
+                          </div>
+                          <div>
+                            <dt>Fuente</dt>
+                            <dd>{formatProvider(item.providerCode)}</dd>
+                          </div>
+                          <div>
+                            <dt>Última actividad</dt>
+                            <dd>{formatDate(item.lastActivityAt)}</dd>
+                          </div>
+                        </dl>
+                        <p className="editorial-inbox__technical-id">
+                          Identificador técnico: <code>{item.recordingId}</code>
+                        </p>
+                      </details>
+                    </article>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </>

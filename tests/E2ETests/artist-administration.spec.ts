@@ -92,7 +92,7 @@ test.describe('BL-MVP-037 · identidad estable de artista', () => {
     await expect(
       page.getByRole('heading', {
         level: 2,
-        name: 'Artista canónico para una nueva canción',
+        name: '1. Elige el artista',
       }),
     ).toBeVisible();
 
@@ -107,9 +107,10 @@ test.describe('BL-MVP-037 · identidad estable de artista', () => {
 
     await expect(
       page.getByRole('heading', {
-        name: 'Revisión de posibles duplicados',
+        name: 'Revisa estas posibles coincidencias',
       }),
     ).toBeVisible();
+    await page.getByText('Ver identificador técnico', { exact: true }).first().click();
     await expect(page.getByText('11111111-1111-4111-8111-111111111111')).toBeVisible();
 
     const createButton = page.getByRole('button', {
@@ -125,6 +126,10 @@ test.describe('BL-MVP-037 · identidad estable de artista', () => {
     await expect(createButton).toBeEnabled();
     await createButton.click();
 
+    await page
+      .getByLabel('Artista confirmado')
+      .getByText('Ver identificador técnico', { exact: true })
+      .click();
     await expect(
       page.getByLabel('Artista confirmado').getByText('22222222-2222-4222-8222-222222222222'),
     ).toBeVisible();
@@ -164,6 +169,7 @@ test.describe('BL-MVP-037 · identidad estable de artista', () => {
     await page.getByRole('button', { name: 'Buscar artista' }).click();
 
     await expect(page.getByText('魚の名前', { exact: true })).toBeVisible();
+    await page.getByText('Ver identificador técnico', { exact: true }).click();
     await expect(page.getByText('33333333-3333-4333-8333-333333333333')).toBeVisible();
 
     const accessibility = await new AxeBuilder({ page })

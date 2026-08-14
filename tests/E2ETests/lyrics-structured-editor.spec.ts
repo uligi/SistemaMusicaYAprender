@@ -109,7 +109,7 @@ test.describe('BL-MVP-054 · editor estructurado de letra japonesa', () => {
 
     await page.goto(`/editorial/canciones/${recordingId}/letra`);
 
-    await expect(page.getByRole('heading', { name: 'Editor estructurado' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Editar letra japonesa' })).toBeVisible();
 
     const japanese = page.getByLabel('Japonés original');
     await japanese.fill('怪獣');

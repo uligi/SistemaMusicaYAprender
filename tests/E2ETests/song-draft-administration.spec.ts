@@ -110,7 +110,7 @@ test.describe('BL-MVP-038 · obra, grabación y fuente de YouTube', () => {
 
     await expect(
       page.getByRole('heading', {
-        name: 'Completar el borrador de canción',
+        name: '2. Completa los datos de la canción',
       }),
     ).toBeVisible();
     await expect(
@@ -131,13 +131,14 @@ test.describe('BL-MVP-038 · obra, grabación y fuente de YouTube', () => {
       )
       .check();
 
-    await page.getByRole('button', { name: 'Revisar grabaciones duplicadas' }).click();
+    await page.getByRole('button', { name: 'Comprobar coincidencias' }).click();
     await expect(
       page.getByText('No se encontraron grabaciones potencialmente duplicadas.'),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Crear obra, grabación y fuente' }).click();
+    await page.getByRole('button', { name: 'Guardar borrador de canción' }).click();
 
+    await page.getByText('Ver identificadores técnicos', { exact: true }).click();
     await expect(page.getByText(workId)).toBeVisible();
     await expect(page.getByText(recordingId)).toBeVisible();
     await expect(page.getByText(sourceId)).toBeVisible();

@@ -20,6 +20,17 @@
   gap: var(--ma-space-2);
 }
 
+.lyrics-editor__header {
+  padding-block-end: var(--ma-space-3);
+  border-block-end: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.lyrics-editor__header > div {
+  display: grid;
+  max-width: 52rem;
+  gap: var(--ma-space-2);
+}
+
 .lyrics-editor__header h2,
 .lyrics-editor__section h3,
 .lyrics-editor__line h4,
@@ -29,6 +40,30 @@
 .lyrics-editor__compare h4,
 .lyrics-editor p {
   margin: 0;
+}
+
+.lyrics-editor__guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ma-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lyrics-editor__guide li {
+  display: grid;
+  gap: var(--ma-space-1);
+  padding: var(--ma-space-3);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-surface-subtle);
+}
+
+.lyrics-editor__guide span,
+.lyrics-editor__save-help,
+.lyrics-editor__tokens-workspace > header span {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
 }
 
 .lyrics-editor__sections,
@@ -51,6 +86,11 @@
   border-radius: var(--ma-radius-control);
 }
 
+.lyrics-editor__section {
+  border-inline-start: 0.25rem solid var(--ma-color-primary);
+  background: var(--ma-color-surface-subtle);
+}
+
 .lyrics-editor__line,
 .lyrics-editor__preview {
   background: var(--ma-color-surface);
@@ -67,6 +107,8 @@
 .lyrics-editor__textarea {
   min-height: 6rem;
   resize: vertical;
+  font-size: 1.1rem;
+  line-height: 1.65;
 }
 
 .lyrics-editor__validation {
@@ -77,6 +119,24 @@
 
 .lyrics-editor__validation ul {
   margin-block-end: 0;
+}
+
+.lyrics-editor__tokens-workspace {
+  display: grid;
+  gap: var(--ma-space-3);
+  padding: var(--ma-space-3);
+  border-block-start: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.lyrics-editor__tokens-workspace > header {
+  display: grid;
+  gap: var(--ma-space-1);
+}
+
+.lyrics-editor__save-help {
+  padding: var(--ma-space-3);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-surface-subtle);
 }
 
 .lyrics-editor__preview-section {
@@ -94,6 +154,7 @@
 }
 
 @media (max-width: 48rem) {
+  .lyrics-editor__guide,
   .lyrics-editor__section-fields,
   .lyrics-editor__line-fields,
   .lyrics-editor__compare-grid {
@@ -102,6 +163,10 @@
 }
 
 @media (max-width: 24rem) {
+  .lyrics-editor {
+    padding: var(--ma-space-3);
+  }
+
   .lyrics-editor__header,
   .lyrics-editor__section > header,
   .lyrics-editor__line > header,

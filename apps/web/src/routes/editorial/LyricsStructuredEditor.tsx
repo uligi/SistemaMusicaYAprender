@@ -588,20 +588,40 @@ export function LyricsStructuredEditor({
   }
 
   return (
-    <section className="lyrics-editor" aria-labelledby="lyrics-editor-title">
+    <section
+      className="lyrics-editor"
+      aria-labelledby="lyrics-editor-title"
+      data-editor-kind="Editor estructurado"
+    >
       <header className="lyrics-editor__header">
         <div>
-          <p className="eyebrow">BL-MVP-054 · edición estructurada</p>
-          <h2 id="lyrics-editor-title">Editor estructurado</h2>
+          <p className="eyebrow">Paso 1 · Organiza la letra</p>
+          <h2 id="lyrics-editor-title">Editar letra japonesa</h2>
           <p>
-            Organiza secciones, líneas y voces. El texto desconocido se marca de forma explícita
-            para no inventar contenido.
+            Pega o escribe la letra y ordénala por secciones. Cada salto de línea se convierte en
+            una línea independiente para que puedas trabajar rápido sin perder la escritura
+            original.
           </p>
         </div>
         <Button type="button" variant="secondary" onClick={addSection}>
           Agregar sección
         </Button>
       </header>
+
+      <ol className="lyrics-editor__guide" aria-label="Cómo editar esta letra">
+        <li>
+          <strong>Secciones</strong>
+          <span>Separa verso, coro, puente y otras partes.</span>
+        </li>
+        <li>
+          <strong>Líneas y voces</strong>
+          <span>Pega varias líneas y marca quién canta cuando haga falta.</span>
+        </li>
+        <li>
+          <strong>Tokens opcionales</strong>
+          <span>Úsalos solo cuando necesites una segmentación manual más precisa.</span>
+        </li>
+      </ol>
 
       {mutation?.phase === 'saving' ? (
         <StateMessage
@@ -839,12 +859,24 @@ export function LyricsStructuredEditor({
                           ))}
                         </SelectField>
                       </div>
-                      <LyricsTokenSegmentationEditor
-                        japaneseText={line.japaneseText}
-                        tokens={line.tokens}
-                        disabled={Boolean(line.unknownContentCode)}
-                        onChange={(tokens) => updateLineTokens(sectionIndex, lineIndex, tokens)}
-                      />{' '}
+                      <section
+                        className="lyrics-editor__tokens-workspace"
+                        aria-label={`Tokens de la línea ${lineIndex + 1}`}
+                      >
+                        <header>
+                          <strong>Tokens de esta línea (opcional)</strong>
+                          <span>
+                            Ajusta la segmentación solo cuando la automática o la existente no sea
+                            correcta.
+                          </span>
+                        </header>
+                        <LyricsTokenSegmentationEditor
+                          japaneseText={line.japaneseText}
+                          tokens={line.tokens}
+                          disabled={Boolean(line.unknownContentCode)}
+                          onChange={(tokens) => updateLineTokens(sectionIndex, lineIndex, tokens)}
+                        />
+                      </section>
                     </article>
                   </li>
                 ))}
@@ -857,6 +889,11 @@ export function LyricsStructuredEditor({
           </li>
         ))}
       </ol>
+
+      <p className="lyrics-editor__save-help">
+        Antes de guardar, usa la previsualización para comprobar el orden y el texto. Guardar crea
+        una revisión de borrador; no publica la canción.
+      </p>
 
       <div className="lyrics-editor__footer-actions">
         <Button

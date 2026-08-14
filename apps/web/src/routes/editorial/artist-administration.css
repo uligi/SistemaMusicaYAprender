@@ -10,6 +10,7 @@
 }
 
 .artist-administration__header h1,
+.artist-administration__header h2,
 .artist-administration__header p,
 .artist-administration__panel h2,
 .artist-administration__panel h3,
@@ -25,18 +26,18 @@
 }
 
 .artist-administration__status {
-  max-width: 62rem;
+  max-width: 72rem;
   padding: var(--ma-space-4);
-  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border: var(--ma-border-width-thin) solid var(--ma-color-primary);
   border-radius: var(--ma-radius-control);
-  background: var(--ma-color-surface);
+  background: var(--ma-color-surface-subtle);
 }
 
 .artist-administration__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.8fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--ma-space-5);
-  align-items: start;
+  max-width: 72rem;
 }
 
 .artist-administration__panel {
@@ -47,6 +48,19 @@
   border: var(--ma-border-width-thin) solid var(--ma-color-border);
   border-radius: var(--ma-radius-panel);
   background: var(--ma-color-surface);
+}
+
+.artist-administration__panel--search {
+  border-inline-start: 0.25rem solid var(--ma-color-primary);
+}
+
+.artist-administration__panel--create {
+  background: var(--ma-color-surface-subtle);
+}
+
+.artist-administration__panel > div:first-child {
+  display: grid;
+  gap: var(--ma-space-2);
 }
 
 .artist-administration__two-columns {
@@ -62,6 +76,11 @@
   padding: var(--ma-space-4);
   border: var(--ma-border-width-thin) solid var(--ma-color-border);
   border-radius: var(--ma-radius-control);
+  background: var(--ma-color-surface);
+}
+
+.artist-administration__created {
+  border-color: var(--ma-color-primary);
 }
 
 .artist-administration__duplicates ul,
@@ -69,13 +88,18 @@
   display: grid;
   gap: var(--ma-space-3);
   margin: 0;
-  padding-inline-start: 1.25rem;
+  padding: 0;
+  list-style: none;
 }
 
 .artist-administration__duplicates li,
 .artist-administration__search-results li {
   display: grid;
-  gap: var(--ma-space-1);
+  gap: var(--ma-space-2);
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-surface);
 }
 
 .artist-administration__duplicates code,
@@ -84,10 +108,30 @@
   overflow-wrap: anywhere;
 }
 
+.artist-administration__technical {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.artist-administration__technical summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.artist-administration__technical code,
+.artist-administration__technical p {
+  display: block;
+  margin-block-start: var(--ma-space-2);
+}
+
 .artist-administration__confirmation {
   display: flex;
   gap: var(--ma-space-2);
   align-items: flex-start;
+  padding: var(--ma-space-3);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-surface-subtle);
 }
 
 .artist-administration__confirmation input {
@@ -100,14 +144,18 @@
   gap: var(--ma-space-3);
 }
 
-@media (max-width: 64rem) {
-  .artist-administration__layout {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 36rem) {
-  .artist-administration__two-columns {
-    grid-template-columns: 1fr;
+  .artist-administration__panel {
+    padding: var(--ma-space-4);
+  }
+
+  .artist-administration__two-columns,
+  .artist-administration__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .artist-administration__actions .ma-button {
+    width: 100%;
   }
 }
