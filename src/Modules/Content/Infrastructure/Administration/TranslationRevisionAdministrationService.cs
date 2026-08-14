@@ -1,5 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace MusicaAprender.Modules.Content.Infrastructure.Administration;
 
@@ -79,6 +82,18 @@ public sealed record TranslationContextSnapshot(
     List<TranslationSourceLineSnapshot> SourceLines,
     TranslationRevisionSnapshot? Revision);
 
+public sealed record TranslationUnitDraft(
+    Guid LineId,
+    string? LiteralText,
+    string? NaturalText,
+    string? NoteText);
+
+public sealed record CreateTranslationRevisionInput(
+    Guid LyricsRevisionId,
+    string TargetLanguage,
+    string TranslationType,
+    List<TranslationUnitDraft> Units);
+
 public sealed class TranslationAdministrationException(
     string code,
     string message)
@@ -90,6 +105,53 @@ public sealed class TranslationAdministrationException(
 public sealed partial class TranslationRevisionAdministrationService(
     ITranslationAdministrationTransactionExecutor transactionExecutor)
 {
+    private const int MaxUnits = 2000;
+    private const int MaxTranslationLength = 8000;
+    private const int MaxNoteLength = 4000;
+
+    public static string ETagFor(TranslationContextSnapshot context)
+    {
+        if (context.LyricsRevisionId is not { } lyricsRevisionId)
+        {
+            return "\"translation-none\"";
+        }
+
+        if (context.Revision is not { } revision)
+        {
+            return $"\"translation-{lyricsRevisionId:N}-none\"";
+        }
+
+        return $"\"translation-{revision.TranslationRevisionId:N}-r{revision.RevisionNo}\"";
+    }
+
+    public Task<TranslationContextSnapshot> CreateRevisionAsync(
+        Guid actorAccountId,
+        Guid recordingId,
+        CreateTranslationRevisionInput input,
+        string ifMatch,
+        string correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        ValidateIdentity(actorAccountId, recordingId, correlationId);
+
+        var prepared = PrepareDraft(input);
+
+        return transactionExecutor.ExecuteAsync(
+            actorAccountId,
+            correlationId,
+            (connection, transaction, token) =>
+                CreateRevisionCoreAsync(
+                    connection,
+                    transaction,
+                    actorAccountId,
+                    recordingId,
+                    prepared,
+                    ifMatch,
+                    token),
+            cancellationToken);
+    }
+
     public Task<TranslationContextSnapshot> ReadContextAsync(
         Guid actorAccountId,
         Guid recordingId,
@@ -115,6 +177,944 @@ public sealed partial class TranslationRevisionAdministrationService(
                     token),
             cancellationToken);
     }
+
+    private static async Task<TranslationContextSnapshot> CreateRevisionCoreAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        Guid actorAccountId,
+        Guid recordingId,
+        PreparedTranslationDraft prepared,
+        string ifMatch,
+        CancellationToken cancellationToken)
+    {
+        await AssertRecordingExistsAsync(
+            connection,
+            transaction,
+            recordingId,
+            cancellationToken);
+
+        await AcquireTranslationLockAsync(
+            connection,
+            transaction,
+            recordingId,
+            cancellationToken);
+
+        var current = await ReadContextCoreAsync(
+            connection,
+            transaction,
+            recordingId,
+            prepared.TargetLanguage,
+            prepared.TranslationType,
+            cancellationToken);
+
+        EnsureExpectedContext(current, ifMatch);
+
+        if (current.LyricsRevisionId is not { } currentLyricsRevisionId)
+        {
+            throw new TranslationAdministrationException(
+                "content.translation.source.required",
+                "La traducción necesita una revisión japonesa estructurada.");
+        }
+
+        if (currentLyricsRevisionId != prepared.LyricsRevisionId)
+        {
+            throw SourceConflict();
+        }
+
+        var sourceLineIds = current.SourceLines
+            .Select(line => line.LineId)
+            .ToHashSet();
+
+        foreach (var unit in prepared.Units)
+        {
+            if (!sourceLineIds.Contains(unit.LineId))
+            {
+                throw SourceConflict();
+            }
+        }
+
+        if (prepared.Units.Count != sourceLineIds.Count)
+        {
+            throw new TranslationAdministrationException(
+                "content.translation.units.incomplete",
+                "El borrador debe conservar una unidad por cada línea de la revisión japonesa vigente.");
+        }
+
+        var checksum = BuildDraftChecksum(prepared);
+        var checksumSha256 = Convert.ToHexString(checksum).ToLowerInvariant();
+
+        if (current.Revision is { } currentRevision
+            && string.Equals(
+                currentRevision.ChecksumSha256,
+                checksumSha256,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return current;
+        }
+
+        var revisionId = Guid.CreateVersion7();
+        var revisionNo = (current.Revision?.RevisionNo ?? 0) + 1;
+        var parentRevisionId = current.Revision?.TranslationRevisionId;
+
+        const string insertRevision = """
+            INSERT INTO content.translation_revision (
+                translation_revision_id,
+                lyrics_revision_id,
+                target_language,
+                translation_type,
+                revision_no,
+                parent_revision_id,
+                status_code,
+                checksum
+            )
+            VALUES (
+                @translation_revision_id,
+                @lyrics_revision_id,
+                @target_language,
+                @translation_type,
+                @revision_no,
+                @parent_revision_id,
+                'DRAFT',
+                @checksum
+            );
+            """;
+
+        await using (var command = new NpgsqlCommand(
+                         insertRevision,
+                         connection,
+                         transaction))
+        {
+            command.Parameters.AddWithValue(
+                "translation_revision_id",
+                NpgsqlDbType.Uuid,
+                revisionId);
+            command.Parameters.AddWithValue(
+                "lyrics_revision_id",
+                NpgsqlDbType.Uuid,
+                currentLyricsRevisionId);
+            command.Parameters.AddWithValue(
+                "target_language",
+                prepared.TargetLanguage);
+            command.Parameters.AddWithValue(
+                "translation_type",
+                prepared.TranslationType);
+            command.Parameters.AddWithValue(
+                "revision_no",
+                NpgsqlDbType.Integer,
+                revisionNo);
+
+            var parent = command.Parameters.Add(
+                "parent_revision_id",
+                NpgsqlDbType.Uuid);
+            parent.Value = parentRevisionId is { } parentId
+                ? parentId
+                : DBNull.Value;
+
+            command.Parameters.AddWithValue(
+                "checksum",
+                NpgsqlDbType.Bytea,
+                checksum);
+
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        var createdLines =
+            new Dictionary<(Guid LineId, string VariantCode), CreatedTranslationLine>();
+
+        var unitByLineId = prepared.Units.ToDictionary(unit => unit.LineId);
+
+        for (var sourceIndex = 0;
+             sourceIndex < current.SourceLines.Count;
+             sourceIndex++)
+        {
+            var source = current.SourceLines[sourceIndex];
+
+            if (!unitByLineId.TryGetValue(source.LineId, out var unit))
+            {
+                continue;
+            }
+
+            if (unit.LiteralText is { } literalText)
+            {
+                var created = await InsertTranslationLineAsync(
+                    connection,
+                    transaction,
+                    revisionId,
+                    source.LineId,
+                    "LITERAL",
+                    literalText,
+                    sourceIndex * 2,
+                    cancellationToken);
+                createdLines[(source.LineId, "LITERAL")] = created;
+            }
+
+            if (unit.NaturalText is { } naturalText)
+            {
+                var created = await InsertTranslationLineAsync(
+                    connection,
+                    transaction,
+                    revisionId,
+                    source.LineId,
+                    "NATURAL",
+                    naturalText,
+                    sourceIndex * 2 + 1,
+                    cancellationToken);
+                createdLines[(source.LineId, "NATURAL")] = created;
+            }
+        }
+
+        if (parentRevisionId is { } parentIdForCopy)
+        {
+            await CopyCompatibleAlignmentsAsync(
+                connection,
+                transaction,
+                parentIdForCopy,
+                currentLyricsRevisionId,
+                createdLines,
+                cancellationToken);
+        }
+
+        var authorSourceReferenceId = Guid.CreateVersion7();
+
+        const string insertSource = """
+            INSERT INTO catalog.source_reference (
+                source_reference_id,
+                source_type,
+                citation,
+                locator,
+                retrieved_at,
+                checksum
+            )
+            VALUES (
+                @source_reference_id,
+                'EDITORIAL',
+                @citation,
+                @locator,
+                CURRENT_TIMESTAMP,
+                NULL
+            );
+            """;
+
+        await using (var command = new NpgsqlCommand(
+                         insertSource,
+                         connection,
+                         transaction))
+        {
+            command.Parameters.AddWithValue(
+                "source_reference_id",
+                NpgsqlDbType.Uuid,
+                authorSourceReferenceId);
+            command.Parameters.AddWithValue(
+                "citation",
+                $"Traducción humana al español · revisión {revisionNo}");
+            command.Parameters.AddWithValue(
+                "locator",
+                $"lyrics_revision:{currentLyricsRevisionId:N}");
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        if (parentRevisionId is { } parentIdForNotes)
+        {
+            await CopyProtectedNotesAsync(
+                connection,
+                transaction,
+                parentIdForNotes,
+                revisionId,
+                currentLyricsRevisionId,
+                cancellationToken);
+        }
+
+        foreach (var unit in prepared.Units)
+        {
+            if (unit.NoteText is not { } noteText)
+            {
+                continue;
+            }
+
+            const string insertNote = """
+                INSERT INTO content.translation_note (
+                    note_id,
+                    translation_revision_id,
+                    line_id,
+                    token_id,
+                    note_type,
+                    note_text,
+                    source_reference_id
+                )
+                VALUES (
+                    @note_id,
+                    @translation_revision_id,
+                    @line_id,
+                    NULL,
+                    'EDITORIAL',
+                    @note_text,
+                    @source_reference_id
+                );
+                """;
+
+            await using var command = new NpgsqlCommand(
+                insertNote,
+                connection,
+                transaction);
+            command.Parameters.AddWithValue(
+                "note_id",
+                NpgsqlDbType.Uuid,
+                Guid.CreateVersion7());
+            command.Parameters.AddWithValue(
+                "translation_revision_id",
+                NpgsqlDbType.Uuid,
+                revisionId);
+            command.Parameters.AddWithValue(
+                "line_id",
+                NpgsqlDbType.Uuid,
+                unit.LineId);
+            command.Parameters.AddWithValue(
+                "note_text",
+                noteText);
+            command.Parameters.AddWithValue(
+                "source_reference_id",
+                NpgsqlDbType.Uuid,
+                authorSourceReferenceId);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        const string insertProvenance = """
+            INSERT INTO editorial.provenance_record (
+                provenance_id,
+                object_type,
+                object_id,
+                source_reference_id,
+                contribution_type,
+                recorded_by
+            )
+            VALUES (
+                @provenance_id,
+                'TRANSLATION_REVISION',
+                @object_id,
+                @source_reference_id,
+                'TRANSLATION_AUTHOR',
+                @recorded_by
+            );
+            """;
+
+        await using (var command = new NpgsqlCommand(
+                         insertProvenance,
+                         connection,
+                         transaction))
+        {
+            command.Parameters.AddWithValue(
+                "provenance_id",
+                NpgsqlDbType.Uuid,
+                Guid.CreateVersion7());
+            command.Parameters.AddWithValue(
+                "object_id",
+                NpgsqlDbType.Uuid,
+                revisionId);
+            command.Parameters.AddWithValue(
+                "source_reference_id",
+                NpgsqlDbType.Uuid,
+                authorSourceReferenceId);
+            command.Parameters.AddWithValue(
+                "recorded_by",
+                NpgsqlDbType.Uuid,
+                actorAccountId);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        return await ReadContextCoreAsync(
+            connection,
+            transaction,
+            recordingId,
+            prepared.TargetLanguage,
+            prepared.TranslationType,
+            cancellationToken);
+    }
+
+    private static async Task<CreatedTranslationLine> InsertTranslationLineAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        Guid translationRevisionId,
+        Guid lineId,
+        string variantCode,
+        string translatedText,
+        int displayOrder,
+        CancellationToken cancellationToken)
+    {
+        var translationLineId = Guid.CreateVersion7();
+
+        const string sql = """
+            INSERT INTO content.translation_line (
+                translation_line_id,
+                translation_revision_id,
+                line_id,
+                translated_text,
+                variant_code,
+                display_order
+            )
+            VALUES (
+                @translation_line_id,
+                @translation_revision_id,
+                @line_id,
+                @translated_text,
+                @variant_code,
+                @display_order
+            );
+            """;
+
+        await using var command = new NpgsqlCommand(
+            sql,
+            connection,
+            transaction);
+        command.Parameters.AddWithValue(
+            "translation_line_id",
+            NpgsqlDbType.Uuid,
+            translationLineId);
+        command.Parameters.AddWithValue(
+            "translation_revision_id",
+            NpgsqlDbType.Uuid,
+            translationRevisionId);
+        command.Parameters.AddWithValue(
+            "line_id",
+            NpgsqlDbType.Uuid,
+            lineId);
+        command.Parameters.AddWithValue(
+            "translated_text",
+            translatedText);
+        command.Parameters.AddWithValue(
+            "variant_code",
+            variantCode);
+        command.Parameters.AddWithValue(
+            "display_order",
+            NpgsqlDbType.Integer,
+            displayOrder);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+
+        return new CreatedTranslationLine(
+            translationLineId,
+            translatedText);
+    }
+
+    private static async Task CopyCompatibleAlignmentsAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        Guid parentRevisionId,
+        Guid lyricsRevisionId,
+        IReadOnlyDictionary<(Guid LineId, string VariantCode), CreatedTranslationLine> createdLines,
+        CancellationToken cancellationToken)
+    {
+        if (createdLines.Count == 0)
+        {
+            return;
+        }
+
+        const string readSql = """
+            SELECT
+                translated.line_id,
+                translated.variant_code,
+                translated.translated_text,
+                alignment.token_id,
+                alignment.target_start,
+                alignment.target_end,
+                alignment.alignment_type
+            FROM content.translation_line AS translated
+            JOIN content.lyric_line AS anchor
+              ON anchor.line_id = translated.line_id
+            JOIN content.lyric_section AS anchor_section
+              ON anchor_section.section_id = anchor.section_id
+            JOIN content.token_alignment AS alignment
+              ON alignment.translation_line_id = translated.translation_line_id
+            JOIN content.lyric_token AS token
+              ON token.token_id = alignment.token_id
+            JOIN content.lyric_line AS token_line
+              ON token_line.line_id = token.line_id
+            JOIN content.lyric_section AS token_section
+              ON token_section.section_id = token_line.section_id
+            WHERE translated.translation_revision_id = @parent_revision_id
+              AND anchor_section.lyrics_revision_id = @lyrics_revision_id
+              AND token_section.lyrics_revision_id = @lyrics_revision_id
+            ORDER BY translated.display_order, alignment.alignment_id;
+            """;
+
+        var rows = new List<ParentAlignmentRow>();
+
+        await using (var command = new NpgsqlCommand(
+                         readSql,
+                         connection,
+                         transaction))
+        {
+            command.Parameters.AddWithValue(
+                "parent_revision_id",
+                NpgsqlDbType.Uuid,
+                parentRevisionId);
+            command.Parameters.AddWithValue(
+                "lyrics_revision_id",
+                NpgsqlDbType.Uuid,
+                lyricsRevisionId);
+
+            await using var reader =
+                await command.ExecuteReaderAsync(cancellationToken);
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                rows.Add(
+                    new ParentAlignmentRow(
+                        reader.GetGuid(0),
+                        reader.GetString(1),
+                        reader.GetString(2),
+                        reader.GetGuid(3),
+                        reader.IsDBNull(4) ? null : reader.GetInt32(4),
+                        reader.IsDBNull(5) ? null : reader.GetInt32(5),
+                        reader.GetString(6)));
+            }
+        }
+
+        const string insertSql = """
+            INSERT INTO content.token_alignment (
+                alignment_id,
+                translation_line_id,
+                token_id,
+                target_start,
+                target_end,
+                alignment_type
+            )
+            VALUES (
+                @alignment_id,
+                @translation_line_id,
+                @token_id,
+                @target_start,
+                @target_end,
+                @alignment_type
+            );
+            """;
+
+        foreach (var row in rows)
+        {
+            if (!createdLines.TryGetValue(
+                    (row.LineId, row.VariantCode),
+                    out var created))
+            {
+                continue;
+            }
+
+            var preserveTargetSpan =
+                string.Equals(
+                    row.ParentTranslatedText,
+                    created.TranslatedText,
+                    StringComparison.Ordinal);
+
+            await using var command = new NpgsqlCommand(
+                insertSql,
+                connection,
+                transaction);
+            command.Parameters.AddWithValue(
+                "alignment_id",
+                NpgsqlDbType.Uuid,
+                Guid.CreateVersion7());
+            command.Parameters.AddWithValue(
+                "translation_line_id",
+                NpgsqlDbType.Uuid,
+                created.TranslationLineId);
+            command.Parameters.AddWithValue(
+                "token_id",
+                NpgsqlDbType.Uuid,
+                row.TokenId);
+
+            var targetStart = command.Parameters.Add(
+                "target_start",
+                NpgsqlDbType.Integer);
+            targetStart.Value =
+                preserveTargetSpan && row.TargetStart is { } start
+                    ? start
+                    : DBNull.Value;
+
+            var targetEnd = command.Parameters.Add(
+                "target_end",
+                NpgsqlDbType.Integer);
+            targetEnd.Value =
+                preserveTargetSpan && row.TargetEnd is { } end
+                    ? end
+                    : DBNull.Value;
+
+            command.Parameters.AddWithValue(
+                "alignment_type",
+                row.AlignmentType);
+
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
+
+    private static async Task CopyProtectedNotesAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        Guid parentRevisionId,
+        Guid newRevisionId,
+        Guid lyricsRevisionId,
+        CancellationToken cancellationToken)
+    {
+        const string readSql = """
+            SELECT
+                note.line_id,
+                note.token_id,
+                note.note_type,
+                note.note_text,
+                note.source_reference_id
+            FROM content.translation_note AS note
+            LEFT JOIN content.lyric_line AS note_line
+              ON note_line.line_id = note.line_id
+            LEFT JOIN content.lyric_section AS note_line_section
+              ON note_line_section.section_id = note_line.section_id
+            LEFT JOIN content.lyric_token AS note_token
+              ON note_token.token_id = note.token_id
+            LEFT JOIN content.lyric_line AS note_token_line
+              ON note_token_line.line_id = note_token.line_id
+            LEFT JOIN content.lyric_section AS note_token_section
+              ON note_token_section.section_id = note_token_line.section_id
+            WHERE note.translation_revision_id = @parent_revision_id
+              AND NOT (
+                  note.note_type = 'EDITORIAL'
+                  AND note.line_id IS NOT NULL
+                  AND note.token_id IS NULL
+              )
+              AND (
+                  note.line_id IS NULL
+                  OR note_line_section.lyrics_revision_id = @lyrics_revision_id
+              )
+              AND (
+                  note.token_id IS NULL
+                  OR note_token_section.lyrics_revision_id = @lyrics_revision_id
+              )
+            ORDER BY note.note_id;
+            """;
+
+        var rows = new List<ParentNoteRow>();
+
+        await using (var command = new NpgsqlCommand(
+                         readSql,
+                         connection,
+                         transaction))
+        {
+            command.Parameters.AddWithValue(
+                "parent_revision_id",
+                NpgsqlDbType.Uuid,
+                parentRevisionId);
+            command.Parameters.AddWithValue(
+                "lyrics_revision_id",
+                NpgsqlDbType.Uuid,
+                lyricsRevisionId);
+
+            await using var reader =
+                await command.ExecuteReaderAsync(cancellationToken);
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                rows.Add(
+                    new ParentNoteRow(
+                        reader.IsDBNull(0) ? null : reader.GetGuid(0),
+                        reader.IsDBNull(1) ? null : reader.GetGuid(1),
+                        reader.GetString(2),
+                        reader.GetString(3),
+                        reader.IsDBNull(4) ? null : reader.GetGuid(4)));
+            }
+        }
+
+        const string insertSql = """
+            INSERT INTO content.translation_note (
+                note_id,
+                translation_revision_id,
+                line_id,
+                token_id,
+                note_type,
+                note_text,
+                source_reference_id
+            )
+            VALUES (
+                @note_id,
+                @translation_revision_id,
+                @line_id,
+                @token_id,
+                @note_type,
+                @note_text,
+                @source_reference_id
+            );
+            """;
+
+        foreach (var row in rows)
+        {
+            await using var command = new NpgsqlCommand(
+                insertSql,
+                connection,
+                transaction);
+            command.Parameters.AddWithValue(
+                "note_id",
+                NpgsqlDbType.Uuid,
+                Guid.CreateVersion7());
+            command.Parameters.AddWithValue(
+                "translation_revision_id",
+                NpgsqlDbType.Uuid,
+                newRevisionId);
+
+            var line = command.Parameters.Add(
+                "line_id",
+                NpgsqlDbType.Uuid);
+            line.Value = row.LineId is { } lineId
+                ? lineId
+                : DBNull.Value;
+
+            var token = command.Parameters.Add(
+                "token_id",
+                NpgsqlDbType.Uuid);
+            token.Value = row.TokenId is { } tokenId
+                ? tokenId
+                : DBNull.Value;
+
+            command.Parameters.AddWithValue(
+                "note_type",
+                row.NoteType);
+            command.Parameters.AddWithValue(
+                "note_text",
+                row.NoteText);
+
+            var source = command.Parameters.Add(
+                "source_reference_id",
+                NpgsqlDbType.Uuid);
+            source.Value = row.SourceReferenceId is { } sourceReferenceId
+                ? sourceReferenceId
+                : DBNull.Value;
+
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+    }
+
+    private static async Task AcquireTranslationLockAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        Guid recordingId,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT pg_advisory_xact_lock(
+                hashtextextended(
+                    CAST(@recording_id AS text),
+                    62
+                )
+            );
+            """;
+
+        await using var command = new NpgsqlCommand(
+            sql,
+            connection,
+            transaction);
+        command.Parameters.AddWithValue(
+            "recording_id",
+            NpgsqlDbType.Uuid,
+            recordingId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static void EnsureExpectedContext(
+        TranslationContextSnapshot current,
+        string ifMatch)
+    {
+        if (string.IsNullOrWhiteSpace(ifMatch))
+        {
+            throw new TranslationAdministrationException(
+                "content.translation.etag.invalid",
+                "Falta una revisión base válida para guardar.");
+        }
+
+        if (!string.Equals(
+                ETagFor(current),
+                ifMatch.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw Conflict();
+        }
+    }
+
+    private static PreparedTranslationDraft PrepareDraft(
+        CreateTranslationRevisionInput input)
+    {
+        if (input.LyricsRevisionId == Guid.Empty)
+        {
+            throw new TranslationAdministrationException(
+                "content.translation.source.invalid",
+                "La revisión japonesa indicada no es válida.");
+        }
+
+        var language = NormalizeLanguage(input.TargetLanguage);
+        if (!string.Equals(language, "es", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new TranslationAdministrationException(
+                "content.translation.language.unsupported",
+                "BL-MVP-062 edita únicamente traducción al español.");
+        }
+
+        var type = NormalizeCode(
+            input.TranslationType,
+            "content.translation.type.invalid");
+        if (!string.Equals(type, "HUMAN", StringComparison.Ordinal))
+        {
+            throw new TranslationAdministrationException(
+                "content.translation.type.unsupported",
+                "BL-MVP-062 solo admite traducción humana.");
+        }
+
+        if (input.Units is null
+            || input.Units.Count == 0)
+        {
+            throw new TranslationAdministrationException(
+                "content.translation.units.required",
+                "El borrador debe contener al menos una unidad fuente.");
+        }
+
+        if (input.Units.Count > MaxUnits)
+        {
+            throw new TranslationAdministrationException(
+                "content.translation.units.too-many",
+                "El borrador supera la cantidad máxima de unidades.");
+        }
+
+        var seenLineIds = new HashSet<Guid>();
+        var units = new List<PreparedTranslationUnit>(
+            input.Units.Count);
+        var hasTranslation = false;
+
+        foreach (var unit in input.Units)
+        {
+            if (unit.LineId == Guid.Empty
+                || !seenLineIds.Add(unit.LineId))
+            {
+                throw new TranslationAdministrationException(
+                    "content.translation.unit.invalid",
+                    "Cada unidad debe referenciar una línea japonesa válida una sola vez.");
+            }
+
+            var literal = NormalizeOptionalEditorText(
+                unit.LiteralText,
+                MaxTranslationLength,
+                "content.translation.literal.too-long",
+                "Una traducción literal supera el máximo permitido.");
+            var natural = NormalizeOptionalEditorText(
+                unit.NaturalText,
+                MaxTranslationLength,
+                "content.translation.natural.too-long",
+                "Una traducción natural supera el máximo permitido.");
+            var note = NormalizeOptionalEditorText(
+                unit.NoteText,
+                MaxNoteLength,
+                "content.translation.note.too-long",
+                "Una nota editorial supera el máximo permitido.");
+
+            hasTranslation |= literal is not null || natural is not null;
+
+            units.Add(
+                new PreparedTranslationUnit(
+                    unit.LineId,
+                    literal,
+                    natural,
+                    note));
+        }
+
+        if (!hasTranslation)
+        {
+            throw new TranslationAdministrationException(
+                "content.translation.text.required",
+                "Agrega al menos una traducción literal o natural antes de guardar.");
+        }
+
+        return new PreparedTranslationDraft(
+            input.LyricsRevisionId,
+            language,
+            type,
+            units);
+    }
+
+    private static byte[] BuildDraftChecksum(
+        PreparedTranslationDraft prepared)
+    {
+        var builder = new StringBuilder();
+        builder.Append("lyrics=")
+            .Append(prepared.LyricsRevisionId.ToString("N"))
+            .Append('\n');
+        builder.Append("language=")
+            .Append(prepared.TargetLanguage)
+            .Append('\n');
+        builder.Append("type=")
+            .Append(prepared.TranslationType)
+            .Append('\n');
+
+        foreach (var unit in prepared.Units.OrderBy(unit => unit.LineId))
+        {
+            builder.Append("line=")
+                .Append(unit.LineId.ToString("N"))
+                .Append('\n');
+            AppendChecksumField(builder, "literal", unit.LiteralText);
+            AppendChecksumField(builder, "natural", unit.NaturalText);
+            AppendChecksumField(builder, "note", unit.NoteText);
+        }
+
+        return SHA256.HashData(
+            Encoding.UTF8.GetBytes(builder.ToString()));
+    }
+
+    private static void AppendChecksumField(
+        StringBuilder builder,
+        string name,
+        string? value)
+    {
+        builder.Append(name)
+            .Append('=');
+
+        if (value is null)
+        {
+            builder.Append("-1:");
+        }
+        else
+        {
+            builder.Append(value.Length)
+                .Append(':')
+                .Append(value);
+        }
+
+        builder.Append('\n');
+    }
+
+    private static string? NormalizeOptionalEditorText(
+        string? value,
+        int maxLength,
+        string code,
+        string message)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var normalized = value
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Trim();
+
+        if (normalized.Length > maxLength)
+        {
+            throw new TranslationAdministrationException(
+                code,
+                message);
+        }
+
+        return normalized;
+    }
+
+    private static TranslationAdministrationException Conflict() =>
+        new(
+            "content.translation.conflict",
+            "La traducción o la revisión japonesa cambió antes de guardar. Compara tu borrador con el estado vigente.");
+
+    private static TranslationAdministrationException SourceConflict() =>
+        new(
+            "content.translation.source-changed",
+            "La revisión japonesa cambió o una unidad ya no pertenece a la fuente vigente. Compara antes de guardar.");
 
     private static async Task<TranslationContextSnapshot> ReadContextCoreAsync(
         NpgsqlConnection connection,
@@ -768,6 +1768,38 @@ public sealed partial class TranslationRevisionAdministrationService(
         Guid? ParentRevisionId,
         string StatusCode,
         string ChecksumSha256);
+
+    private sealed record PreparedTranslationDraft(
+        Guid LyricsRevisionId,
+        string TargetLanguage,
+        string TranslationType,
+        List<PreparedTranslationUnit> Units);
+
+    private sealed record PreparedTranslationUnit(
+        Guid LineId,
+        string? LiteralText,
+        string? NaturalText,
+        string? NoteText);
+
+    private sealed record CreatedTranslationLine(
+        Guid TranslationLineId,
+        string TranslatedText);
+
+    private sealed record ParentAlignmentRow(
+        Guid LineId,
+        string VariantCode,
+        string ParentTranslatedText,
+        Guid TokenId,
+        int? TargetStart,
+        int? TargetEnd,
+        string AlignmentType);
+
+    private sealed record ParentNoteRow(
+        Guid? LineId,
+        Guid? TokenId,
+        string NoteType,
+        string NoteText,
+        Guid? SourceReferenceId);
 
     private sealed record TranslationLineRow(
         Guid TranslationLineId,

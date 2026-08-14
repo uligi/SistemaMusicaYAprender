@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
+import { useVisibleAccess } from '../../app/access/AccessContext';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
+import { TranslationEditor } from './TranslationEditor';
 import './translation-structure.css';
 
 const client = createHttpClient();
 
-type TranslationSourceLine = {
+export type TranslationSourceLine = {
   lineId: string;
   lineNo: number;
   japaneseText: string;
 };
 
-type TranslationAlignment = {
+export type TranslationAlignment = {
   alignmentId: string;
   tokenId: string;
   sourceLineId: string;
@@ -23,7 +25,7 @@ type TranslationAlignment = {
   alignmentType: string;
 };
 
-type TranslationLine = {
+export type TranslationLine = {
   translationLineId: string;
   anchorLineId: string;
   anchorLineNo: number;
@@ -34,7 +36,7 @@ type TranslationLine = {
   alignments: TranslationAlignment[];
 };
 
-type TranslationNote = {
+export type TranslationNote = {
   noteId: string;
   lineId: string | null;
   tokenId: string | null;
@@ -46,7 +48,7 @@ type TranslationNote = {
   locator: string | null;
 };
 
-type TranslationProvenance = {
+export type TranslationProvenance = {
   sourceReferenceId: string;
   sourceType: string;
   citation: string;
@@ -56,7 +58,7 @@ type TranslationProvenance = {
   recordedAt: string;
 };
 
-type TranslationRevision = {
+export type TranslationRevision = {
   translationRevisionId: string;
   lyricsRevisionId: string;
   lyricsRevisionNo: number;
@@ -78,7 +80,7 @@ type TranslationRevision = {
   provenance: TranslationProvenance[];
 };
 
-type TranslationContext = {
+export type TranslationContext = {
   recordingId: string;
   lyricsRevisionId: string | null;
   lyricsRevisionNo: number | null;
@@ -91,7 +93,7 @@ type TranslationContext = {
 
 type PageState =
   | { phase: 'loading' }
-  | { phase: 'ready'; data: TranslationContext }
+  | { phase: 'ready'; data: TranslationContext; etag: string }
   | { phase: 'failed'; problem: ClientProblem };
 
 export type TranslationStructurePageProps = {
@@ -133,6 +135,8 @@ function groupedLines(lines: TranslationLine[]) {
 
 export function TranslationStructurePage({ recordingId }: TranslationStructurePageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const access = useVisibleAccess();
+  const canEdit = access.capabilities.includes('EDITORIAL.DRAFT');
   const [state, setState] = useState<PageState>({ phase: 'loading' });
 
   useEffect(() => {
@@ -157,7 +161,11 @@ export function TranslationStructurePage({ recordingId }: TranslationStructurePa
       if (result.kind === 'cancelled') return;
       setState(
         result.ok
-          ? { phase: 'ready', data: result.data }
+          ? {
+              phase: 'ready',
+              data: result.data,
+              etag: result.etag ?? '',
+            }
           : { phase: 'failed', problem: result.problem },
       );
     };
@@ -172,22 +180,22 @@ export function TranslationStructurePage({ recordingId }: TranslationStructurePa
   return (
     <article className="route-surface translation-structure" data-route-id="UI-MVP-023">
       <header className="translation-structure__header">
-        <p className="eyebrow">BL-MVP-061 · UI-MVP-023</p>
+        <p className="eyebrow">BL-MVP-061–062 · UI-MVP-023</p>
         <h1 className="route-title" id="route-title" ref={headingRef} tabIndex={-1}>
           Traducción y alineaciones
         </h1>
         <p>
-          Modelo versionado de traducción al español asociado a una revisión japonesa exacta. Las
-          variantes literal y natural permanecen separadas y la alineación N:M conserva procedencia
-          sin modificar la letra original.
+          Traduce línea por línea con la fuente japonesa siempre visible y protegida. Lo técnico
+          —alineaciones, checksum y procedencia— queda disponible cuando lo necesitas, sin
+          interrumpir el trabajo principal.
         </p>
       </header>
 
       {state.phase === 'loading' ? (
         <StateMessage
           state="UI-EST-01"
-          title="Cargando modelo de traducción"
-          description="Resolviendo la revisión japonesa vigente y una traducción española compatible."
+          title="Preparando el espacio de traducción"
+          description="Cargando la letra japonesa vigente y el último borrador español compatible."
         />
       ) : null}
 
@@ -202,8 +210,8 @@ export function TranslationStructurePage({ recordingId }: TranslationStructurePa
       {state.phase === 'ready' && !state.data.lyricsRevisionId ? (
         <StateMessage
           state="UI-EST-12"
-          title="Sin letra japonesa estructurada"
-          description="La traducción necesita una revisión exacta de letra antes de poder modelarse."
+          title="Falta una letra japonesa estructurada"
+          description="Primero debe existir una revisión de letra. Después podrás traducirla sin alterar el japonés."
         />
       ) : null}
 
@@ -213,193 +221,256 @@ export function TranslationStructurePage({ recordingId }: TranslationStructurePa
           title={
             state.data.hasStaleRevision
               ? 'La fuente japonesa cambió'
-              : 'Sin revisión de traducción compatible'
+              : canEdit
+                ? 'Nuevo borrador listo para empezar'
+                : 'Sin revisión de traducción compatible'
           }
           description={
             state.data.hasStaleRevision
               ? 'Existe traducción de una revisión japonesa anterior. Sus alineaciones quedan pendientes de revisión explícita y no se reutilizan automáticamente.'
-              : 'La revisión japonesa actual todavía no tiene una traducción española asociada. BL-MVP-062 incorporará el editor; esta pantalla no publica contenido.'
+              : canEdit
+                ? 'Todavía no hay traducción para esta revisión. Puedes comenzar abajo; guardar crea un borrador y no publica contenido.'
+                : 'La revisión japonesa actual todavía no tiene una traducción española asociada.'
           }
         />
       ) : null}
 
       {state.phase === 'ready' && state.data.lyricsRevisionId ? (
-        <section className="translation-structure__source" aria-labelledby="translation-source">
-          <header>
+        <section
+          className="translation-structure__workspace-context"
+          aria-labelledby="translation-source"
+        >
+          <div className="translation-structure__context-copy">
+            <p className="eyebrow">CONTEXTO DE TRABAJO</p>
+            <h2 id="translation-source">Letra japonesa · revisión {state.data.lyricsRevisionNo}</h2>
+            <p>Fuente bloqueada. Todo lo que escribas se guarda como una capa española separada.</p>
+          </div>
+
+          <dl className="translation-structure__context-facts">
             <div>
-              <p className="eyebrow">FUENTE EXACTA</p>
-              <h2 id="translation-source">
-                Letra japonesa · revisión {state.data.lyricsRevisionNo}
-              </h2>
+              <dt>Idioma</dt>
+              <dd>Español</dd>
             </div>
-            <span lang="es">{state.data.targetLanguage}</span>
-          </header>
-          <p>
-            La compatibilidad se resuelve por identificador de revisión, nunca por similitud del
-            texto.
-          </p>
-          <ol>
-            {state.data.sourceLines.map((line) => (
-              <li key={line.lineId}>
-                <strong>Línea {line.lineNo}</strong>
-                <span lang="ja">{line.japaneseText}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ) : null}
+            <div>
+              <dt>Modo</dt>
+              <dd>{canEdit ? 'Edición' : 'Lectura'}</dd>
+            </div>
+            <div>
+              <dt>Traducción</dt>
+              <dd>{revision ? `Revisión ${revision.revisionNo}` : 'Nuevo borrador'}</dd>
+            </div>
+          </dl>
 
-      {revision ? (
-        <>
-          <section
-            className="translation-structure__revision"
-            aria-labelledby="translation-revision"
-          >
-            <header>
-              <div>
-                <p className="eyebrow">REVISIÓN COMPATIBLE</p>
-                <h2 id="translation-revision">Traducción · revisión {revision.revisionNo}</h2>
-              </div>
-              <span>{displayCode(revision.statusCode)}</span>
-            </header>
-
-            <dl className="translation-structure__metrics">
-              <div>
-                <dt>Idioma</dt>
-                <dd>{revision.targetLanguage}</dd>
-              </div>
-              <div>
-                <dt>Tipo</dt>
-                <dd>{displayCode(revision.translationType)}</dd>
-              </div>
-              <div>
-                <dt>Literal</dt>
-                <dd>
-                  {revision.literalCoveredLines}/{revision.sourceLineCount}
-                </dd>
-              </div>
-              <div>
-                <dt>Natural</dt>
-                <dd>
-                  {revision.naturalCoveredLines}/{revision.sourceLineCount}
-                </dd>
-              </div>
-              <div>
-                <dt>Alineación</dt>
-                <dd>{revision.hasManyToManyAlignment ? 'N:M detectada' : 'Sin N:M registrada'}</dd>
-              </div>
-              <div>
-                <dt>Revisión</dt>
-                <dd>{revision.completeForReview ? 'Cobertura completa' : 'Borrador parcial'}</dd>
-              </div>
-            </dl>
-
-            {!revision.completeForReview ? (
-              <p className="translation-structure__coverage" role="status">
-                Pendientes — literal: {revision.missingLiteralLineNos.join(', ') || 'ninguna'} ·
-                natural: {revision.missingNaturalLineNos.join(', ') || 'ninguna'}.
-              </p>
-            ) : null}
-
-            <p>
-              Checksum: <code>{revision.checksumSha256.slice(0, 16)}…</code>
-            </p>
-          </section>
-
-          <section aria-labelledby="translation-units">
-            <header className="translation-structure__section-heading">
-              <h2 id="translation-units">Unidades y variantes</h2>
-              <p>
-                Japonés y español se presentan como capas distintas. Las relaciones con tokens son
-                explícitas y admiten correspondencias N:M sin duplicar la letra.
-              </p>
-            </header>
-
-            <ol className="translation-structure__units">
-              {lineGroups.map((group) => (
-                <li key={group.anchorLineId}>
-                  <article className="translation-structure__unit">
-                    <header>
-                      <strong>Línea ancla {group.anchorLineNo}</strong>
-                    </header>
-                    <p className="translation-structure__japanese" lang="ja">
-                      {group.japaneseText}
-                    </p>
-
-                    <div className="translation-structure__variants">
-                      {group.variants.map((variant) => (
-                        <div
-                          key={variant.translationLineId}
-                          className="translation-structure__variant"
-                          role="group"
-                          aria-labelledby={`translation-variant-${variant.translationLineId}`}
-                        >
-                          <h3 id={`translation-variant-${variant.translationLineId}`}>
-                            {displayCode(variant.variantCode)}
-                          </h3>
-                          <p lang="es">{variant.translatedText}</p>
-
-                          <ul
-                            className="translation-structure__alignments"
-                            aria-label="Alineaciones"
-                          >
-                            {variant.alignments.map((alignment) => (
-                              <li key={alignment.alignmentId}>
-                                <span lang="ja">{alignment.surface}</span>
-                                <span>
-                                  línea {alignment.sourceLineNo} ·{' '}
-                                  {displayCode(alignment.alignmentType)}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
+          <details className="translation-structure__source-details" open={!canEdit}>
+            <summary>
+              <span>Ver letra japonesa completa</span>
+              <span>{state.data.sourceLines.length} líneas</span>
+            </summary>
+            <ol>
+              {state.data.sourceLines.map((line) => (
+                <li key={line.lineId}>
+                  <strong>{line.lineNo}</strong>
+                  <span lang="ja">{line.japaneseText}</span>
                 </li>
               ))}
             </ol>
-          </section>
+          </details>
+        </section>
+      ) : null}
 
-          <section className="translation-structure__support" aria-labelledby="translation-notes">
-            <header className="translation-structure__section-heading">
-              <h2 id="translation-notes">Notas y procedencia</h2>
-              <p>
-                Las notas editoriales permanecen separadas del texto traducido. Nada de esta vista
-                publica una revisión.
+      {state.phase === 'ready' && state.data.lyricsRevisionId && canEdit ? (
+        <TranslationEditor
+          recordingId={recordingId}
+          context={state.data}
+          etag={state.etag}
+          onSaved={(data, etag) =>
+            setState({
+              phase: 'ready',
+              data,
+              etag,
+            })
+          }
+        />
+      ) : null}
+
+      {state.phase === 'ready' && state.data.lyricsRevisionId && !canEdit ? (
+        <StateMessage
+          state="UI-EST-08"
+          title="Modo de revisión"
+          description="Puedes consultar la traducción y sus evidencias. Para guardar un borrador se necesita la capacidad EDITORIAL.DRAFT."
+        />
+      ) : null}
+
+      {revision ? (
+        <details className="translation-structure__inspector" open={!canEdit}>
+          <summary>
+            <span>
+              <strong>Revisión, alineaciones y procedencia</strong>
+              <small>Detalles técnicos y evidencia editorial</small>
+            </span>
+            <span className="translation-structure__inspector-status">
+              {revision.completeForReview ? 'Cobertura completa' : 'Borrador parcial'}
+            </span>
+          </summary>
+
+          <div className="translation-structure__inspector-body">
+            <section
+              className="translation-structure__revision"
+              aria-labelledby="translation-revision"
+            >
+              <header>
+                <div>
+                  <p className="eyebrow">REVISIÓN COMPATIBLE</p>
+                  <h2 id="translation-revision">Traducción · revisión {revision.revisionNo}</h2>
+                </div>
+                <span>{displayCode(revision.statusCode)}</span>
+              </header>
+
+              <dl className="translation-structure__metrics">
+                <div>
+                  <dt>Literal</dt>
+                  <dd>
+                    {revision.literalCoveredLines}/{revision.sourceLineCount}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Natural</dt>
+                  <dd>
+                    {revision.naturalCoveredLines}/{revision.sourceLineCount}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Alineación</dt>
+                  <dd>
+                    {revision.hasManyToManyAlignment ? 'N:M detectada' : 'Sin N:M registrada'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Estado</dt>
+                  <dd>{revision.completeForReview ? 'Lista para revisar' : 'En progreso'}</dd>
+                </div>
+              </dl>
+
+              {!revision.completeForReview ? (
+                <p className="translation-structure__coverage" role="status">
+                  Pendientes — literal: {revision.missingLiteralLineNos.join(', ') || 'ninguna'} ·
+                  natural: {revision.missingNaturalLineNos.join(', ') || 'ninguna'}.
+                </p>
+              ) : null}
+
+              <p className="translation-structure__technical-id">
+                Checksum: <code>{revision.checksumSha256.slice(0, 16)}…</code>
               </p>
-            </header>
+            </section>
 
-            {revision.notes.length > 0 ? (
-              <ul>
-                {revision.notes.map((note) => (
-                  <li key={note.noteId}>
-                    <strong>{displayCode(note.noteType)}</strong>
-                    <span>{note.noteText}</span>
-                    {note.citation ? <small>Fuente: {note.citation}</small> : null}
+            <section aria-labelledby="translation-units">
+              <header className="translation-structure__section-heading">
+                <div>
+                  <p className="eyebrow">VISTA DE REVISIÓN</p>
+                  <h2 id="translation-units">Unidades traducidas</h2>
+                </div>
+                <p>
+                  Consulta el resultado guardado y sus anclas sin mezclarlo con los campos de
+                  edición.
+                </p>
+              </header>
+
+              <ol className="translation-structure__units">
+                {lineGroups.map((group) => (
+                  <li key={group.anchorLineId}>
+                    <article className="translation-structure__unit">
+                      <div className="translation-structure__unit-source">
+                        <strong>Línea {group.anchorLineNo}</strong>
+                        <p className="translation-structure__japanese" lang="ja">
+                          {group.japaneseText}
+                        </p>
+                      </div>
+
+                      <div className="translation-structure__variants">
+                        {group.variants.map((variant) => (
+                          <div
+                            key={variant.translationLineId}
+                            className="translation-structure__variant"
+                            role="group"
+                            aria-labelledby={`translation-variant-${variant.translationLineId}`}
+                          >
+                            <h3 id={`translation-variant-${variant.translationLineId}`}>
+                              {displayCode(variant.variantCode)}
+                            </h3>
+                            <p lang="es">{variant.translatedText}</p>
+
+                            {variant.alignments.length > 0 ? (
+                              <ul
+                                className="translation-structure__alignments"
+                                aria-label="Alineaciones"
+                              >
+                                {variant.alignments.map((alignment) => (
+                                  <li key={alignment.alignmentId}>
+                                    <span lang="ja">{alignment.surface}</span>
+                                    <span>
+                                      línea {alignment.sourceLineNo} ·{' '}
+                                      {displayCode(alignment.alignmentType)}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </article>
                   </li>
                 ))}
-              </ul>
-            ) : (
-              <p>Sin notas registradas en esta revisión.</p>
-            )}
+              </ol>
+            </section>
 
-            {revision.provenance.length > 0 ? (
-              <ul>
-                {revision.provenance.map((item) => (
-                  <li key={`${item.sourceReferenceId}-${item.contributionType}-${item.recordedAt}`}>
-                    <strong>{displayCode(item.contributionType)}</strong>
-                    <span>{item.citation}</span>
-                    {item.locator ? <small>{item.locator}</small> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>Sin procedencia adicional registrada.</p>
-            )}
-          </section>
-        </>
+            <section className="translation-structure__support" aria-labelledby="translation-notes">
+              <header className="translation-structure__section-heading">
+                <div>
+                  <p className="eyebrow">EVIDENCIA</p>
+                  <h2 id="translation-notes">Notas y procedencia</h2>
+                </div>
+                <p>Información de apoyo separada del texto que verá el estudiante.</p>
+              </header>
+
+              <div className="translation-structure__support-column">
+                <h3>Notas editoriales</h3>
+                {revision.notes.length > 0 ? (
+                  <ul>
+                    {revision.notes.map((note) => (
+                      <li key={note.noteId}>
+                        <strong>{displayCode(note.noteType)}</strong>
+                        <span>{note.noteText}</span>
+                        {note.citation ? <small>Fuente: {note.citation}</small> : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>Sin notas registradas en esta revisión.</p>
+                )}
+              </div>
+
+              <div className="translation-structure__support-column">
+                <h3>Procedencia</h3>
+                {revision.provenance.length > 0 ? (
+                  <ul>
+                    {revision.provenance.map((item) => (
+                      <li
+                        key={`${item.sourceReferenceId}-${item.contributionType}-${item.recordedAt}`}
+                      >
+                        <strong>{displayCode(item.contributionType)}</strong>
+                        <span>{item.citation}</span>
+                        {item.locator ? <small>{item.locator}</small> : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>Sin procedencia adicional registrada.</p>
+                )}
+              </div>
+            </section>
+          </div>
+        </details>
       ) : null}
     </article>
   );

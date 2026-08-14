@@ -168,9 +168,16 @@ test.describe('BL-MVP-061 · traducciones, revisiones y alineaciones', () => {
     await page.goto(`/editorial/canciones/${recordingId}/traduccion`);
 
     await expect(page.getByRole('heading', { name: 'Traducción y alineaciones' })).toBeVisible();
-    await expect(page.getByText('Letra japonesa · revisión 3')).toBeVisible();
-    await expect(page.getByText('Grito una y otra vez')).toBeVisible();
-    await expect(page.getByText('Sigo gritando, una vez más')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Letra japonesa · revisión 3', exact: true }),
+    ).toBeVisible();
+    await page.getByText('Revisión, alineaciones y procedencia', { exact: true }).click();
+    await expect(
+      page.locator('p[lang="es"]').filter({ hasText: /^Grito una y otra vez$/ }),
+    ).toBeVisible();
+    await expect(
+      page.locator('p[lang="es"]').filter({ hasText: /^Sigo gritando, una vez más$/ }),
+    ).toBeVisible();
     await expect(page.getByText('N:M detectada')).toBeVisible();
     await expect(page.getByText('Decisión de traducción del equipo').first()).toBeVisible();
 
@@ -223,8 +230,11 @@ test.describe('BL-MVP-061 · traducciones, revisiones y alineaciones', () => {
 
     await page.setViewportSize({ width: 320, height: 900 });
     await page.goto(`/editorial/canciones/${recordingId}/traduccion`);
+    await page.getByText('Revisión, alineaciones y procedencia', { exact: true }).click();
 
-    await expect(page.getByText('Grito una y otra vez')).toBeVisible();
+    await expect(
+      page.locator('p[lang="es"]').filter({ hasText: /^Grito una y otra vez$/ }),
+    ).toBeVisible();
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );

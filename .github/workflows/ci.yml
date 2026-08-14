@@ -589,6 +589,17 @@ jobs:
           BL061_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/content/verify-translation-revision-model.sh
 
+      - name: Verify Spanish translation editor
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL062_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/content/verify-translation-editor.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

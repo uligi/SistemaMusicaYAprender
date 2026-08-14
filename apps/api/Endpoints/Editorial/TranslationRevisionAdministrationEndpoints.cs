@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Antiforgery;
 using MusicaAprender.Api.Security;
 using MusicaAprender.Modules.Content.Infrastructure.Administration;
 using Npgsql;
@@ -19,6 +20,16 @@ public static class TranslationRevisionAdministrationEndpoints
                 moduleCode: "M04",
                 routeObjectKey: "recordingId")
             .WithName("ReadEditorialTranslationContext")
+            .WithTags("Content");
+
+        endpoints.MapPost(
+                "/api/v1/editorial/song-drafts/{recordingId:guid}/translation-revisions",
+                CreateRevisionAsync)
+            .RequireEffectivePermission(
+                "EDITORIAL.DRAFT",
+                moduleCode: "M04",
+                routeObjectKey: "recordingId")
+            .WithName("CreateEditorialTranslationRevision")
             .WithTags("Content");
 
         return endpoints;
@@ -46,8 +57,73 @@ public static class TranslationRevisionAdministrationEndpoints
                 httpContext.TraceIdentifier,
                 httpContext.RequestAborted);
 
-            httpContext.Response.Headers["Cache-Control"] = "no-store";
+            ApplyContextETag(httpContext, context);
             return Results.Ok(context);
+        }
+        catch (TranslationAdministrationException exception)
+        {
+            return Problem(exception);
+        }
+        catch (NpgsqlException)
+        {
+            return Unavailable();
+        }
+        catch (InvalidOperationException)
+        {
+            return Unavailable();
+        }
+    }
+
+    private static async Task<IResult> CreateRevisionAsync(
+        Guid recordingId,
+        CreateTranslationRevisionInput request,
+        HttpContext httpContext,
+        IAntiforgery antiforgery,
+        TranslationRevisionAdministrationService service)
+    {
+        if (!TryActor(httpContext, out var actorId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!httpContext.Request.Headers.TryGetValue("If-Match", out var ifMatchHeader)
+            || string.IsNullOrWhiteSpace(ifMatchHeader.ToString()))
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status428PreconditionRequired,
+                title: "Falta la revisión base",
+                detail: "Recarga la traducción antes de guardar el borrador.",
+                extensions: new Dictionary<string, object?>
+                {
+                    ["code"] = "content.translation.precondition-required"
+                });
+        }
+
+        try
+        {
+            await antiforgery.ValidateRequestAsync(httpContext);
+
+            var context = await service.CreateRevisionAsync(
+                actorId,
+                recordingId,
+                request,
+                ifMatchHeader.ToString(),
+                httpContext.TraceIdentifier,
+                httpContext.RequestAborted);
+
+            ApplyContextETag(httpContext, context);
+            return Results.Ok(context);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Solicitud no válida",
+                detail: "Actualiza la página y vuelve a intentarlo.",
+                extensions: new Dictionary<string, object?>
+                {
+                    ["code"] = "content.translation.csrf.invalid"
+                });
         }
         catch (TranslationAdministrationException exception)
         {
@@ -68,19 +144,37 @@ public static class TranslationRevisionAdministrationEndpoints
         var status = exception.Code switch
         {
             "content.translation.recording.not-found" => StatusCodes.Status404NotFound,
+            "content.translation.conflict" => StatusCodes.Status412PreconditionFailed,
+            "content.translation.source-changed" => StatusCodes.Status412PreconditionFailed,
+            "content.translation.precondition-required" => StatusCodes.Status428PreconditionRequired,
             _ => StatusCodes.Status400BadRequest
+        };
+
+        var title = status switch
+        {
+            StatusCodes.Status404NotFound => "Canción editorial no encontrada",
+            StatusCodes.Status412PreconditionFailed => "La fuente o traducción cambió",
+            StatusCodes.Status428PreconditionRequired => "Falta la revisión base",
+            _ => "Traducción no válida"
         };
 
         return Results.Problem(
             statusCode: status,
-            title: status == StatusCodes.Status404NotFound
-                ? "Canción editorial no encontrada"
-                : "Consulta de traducción no válida",
+            title: title,
             detail: exception.Message,
             extensions: new Dictionary<string, object?>
             {
                 ["code"] = exception.Code
             });
+    }
+
+    private static void ApplyContextETag(
+        HttpContext context,
+        TranslationContextSnapshot translationContext)
+    {
+        context.Response.Headers["ETag"] =
+            TranslationRevisionAdministrationService.ETagFor(translationContext);
+        context.Response.Headers["Cache-Control"] = "no-store";
     }
 
     private static bool TryActor(HttpContext context, out Guid actorId)
