@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
+import { ContextualReading, ContextualReadingStatus } from './ContextualReading';
 import './linguistic-analysis-structure.css';
 
 const client = createHttpClient();
@@ -220,7 +221,7 @@ export function LinguisticAnalysisStructurePage({
   return (
     <article className="route-surface linguistic-analysis" data-route-id="UI-MVP-024">
       <header className="linguistic-analysis__header">
-        <p className="eyebrow">BL-MVP-064 · UI-MVP-024</p>
+        <p className="eyebrow">BL-MVP-064–065 · UI-MVP-024</p>
         <h1 className="route-title" id="route-title" ref={headingRef} tabIndex={-1}>
           Análisis lingüístico
         </h1>
@@ -295,6 +296,14 @@ export function LinguisticAnalysisStructurePage({
             </div>
           </dl>
         </section>
+      ) : null}
+
+      {data?.lyricsRevisionId ? (
+        <ContextualReadingStatus
+          sourceTokenCount={data.sourceLines.reduce((total, line) => total + line.tokens.length, 0)}
+          readingCoveredTokens={revision?.readingCoveredTokens ?? 0}
+          revisionNo={revision?.revisionNo ?? null}
+        />
       ) : null}
 
       {revision ? (
@@ -383,25 +392,13 @@ export function LinguisticAnalysisStructurePage({
                                   </summary>
                                   <div className="linguistic-analysis__token-body">
                                     <section aria-label={`Lecturas de ${token.surface}`}>
-                                      <h3>Lectura</h3>
-                                      {readings.length > 0 ? (
-                                        <ul>
-                                          {readings.map((item) => (
-                                            <li key={item.tokenReadingId}>
-                                              <strong lang="ja">{item.readingKana}</strong>
-                                              {item.furigana ? (
-                                                <span>Furigana: {item.furigana}</span>
-                                              ) : null}
-                                              {item.romaji ? (
-                                                <span>Romaji: {item.romaji}</span>
-                                              ) : null}
-                                              <small>{displayCode(item.readingType)}</small>
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      ) : (
-                                        <p>Sin lectura registrada.</p>
-                                      )}
+                                      <h3>Lectura contextual</h3>
+                                      <ContextualReading
+                                        surface={token.surface}
+                                        readings={readings}
+                                        analysisRevisionId={revision.analysisRevisionId}
+                                        revisionNo={revision.revisionNo}
+                                      />
                                     </section>
 
                                     <section aria-label={`Vocabulario de ${token.surface}`}>

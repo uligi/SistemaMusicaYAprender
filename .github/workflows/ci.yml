@@ -611,6 +611,17 @@ jobs:
           BL064_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/content/verify-linguistic-analysis-revision-model.sh
 
+      - name: Verify contextual readings furigana and romaji
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL065_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/content/verify-contextual-reading-resolution.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:
