@@ -61,6 +61,31 @@ type VocabularyOccurrence = {
   senses: VocabularySense[];
 };
 
+type KanjiReading = {
+  kanjiReadingId: string;
+  reading: string;
+  readingType: string;
+  languageTag: string;
+  meaning: string;
+  displayOrder: number;
+};
+
+type KanjiOccurrence = {
+  occurrenceId: string;
+  tokenId: string;
+  lineId: string;
+  lineNo: number;
+  surface: string;
+  kanjiId: string;
+  character: string;
+  charOffset: number;
+  gradeCode: string | null;
+  jlptCode: string | null;
+  statusCode: string;
+  version: number;
+  readings: KanjiReading[];
+};
+
 type Morphology = {
   annotationId: string;
   tokenId: string;
@@ -111,10 +136,12 @@ type AnalysisRevision = {
   sourceTokenCount: number;
   readingCoveredTokens: number;
   vocabularyCoveredTokens: number;
+  kanjiCoveredTokens?: number;
   morphologyCoveredTokens: number;
   grammarCoveredLines: number;
   readings: TokenReading[];
   vocabulary: VocabularyOccurrence[];
+  kanji?: KanjiOccurrence[];
   morphology: Morphology[];
   grammar: GrammarOccurrence[];
   provenance: Provenance[];
@@ -141,6 +168,10 @@ export type LinguisticAnalysisStructurePageProps = {
 
 function displayCode(value: string | null) {
   return value ? value.replaceAll('_', ' ') : '—';
+}
+
+function shortId(value: string) {
+  return value.slice(0, 8);
 }
 
 export function LinguisticAnalysisStructurePage({
@@ -198,6 +229,16 @@ export function LinguisticAnalysisStructurePage({
     return map;
   }, [revision]);
 
+  const kanjiByToken = useMemo(() => {
+    const map = new Map<string, KanjiOccurrence[]>();
+    for (const item of revision?.kanji ?? []) {
+      const current = map.get(item.tokenId) ?? [];
+      current.push(item);
+      map.set(item.tokenId, current);
+    }
+    return map;
+  }, [revision]);
+
   const morphologyByToken = useMemo(() => {
     const map = new Map<string, Morphology[]>();
     for (const item of revision?.morphology ?? []) {
@@ -221,7 +262,7 @@ export function LinguisticAnalysisStructurePage({
   return (
     <article className="route-surface linguistic-analysis" data-route-id="UI-MVP-024">
       <header className="linguistic-analysis__header">
-        <p className="eyebrow">BL-MVP-064–065 · UI-MVP-024</p>
+        <p className="eyebrow">BL-MVP-064–066 · UI-MVP-024</p>
         <h1 className="route-title" id="route-title" ref={headingRef} tabIndex={-1}>
           Análisis lingüístico
         </h1>
@@ -330,6 +371,12 @@ export function LinguisticAnalysisStructurePage({
                 </dd>
               </div>
               <div>
+                <dt>Kanji</dt>
+                <dd>
+                  {revision.kanjiCoveredTokens ?? 0}/{revision.sourceTokenCount} tokens
+                </dd>
+              </div>
+              <div>
                 <dt>Morfología</dt>
                 <dd>
                   {revision.morphologyCoveredTokens}/{revision.sourceTokenCount} tokens
@@ -379,13 +426,18 @@ export function LinguisticAnalysisStructurePage({
                             {line.tokens.map((token) => {
                               const readings = readingsByToken.get(token.tokenId) ?? [];
                               const vocabulary = vocabularyByToken.get(token.tokenId) ?? [];
+                              const kanji = kanjiByToken.get(token.tokenId) ?? [];
                               const morphology = morphologyByToken.get(token.tokenId) ?? [];
                               return (
                                 <details key={token.tokenId} className="linguistic-analysis__token">
                                   <summary>
                                     <span lang="ja">{token.surface}</span>
                                     <span>
-                                      {readings.length + vocabulary.length + morphology.length > 0
+                                      {readings.length +
+                                        vocabulary.length +
+                                        kanji.length +
+                                        morphology.length >
+                                      0
                                         ? 'Ver análisis'
                                         : 'Pendiente'}
                                     </span>
@@ -412,17 +464,71 @@ export function LinguisticAnalysisStructurePage({
                                                 <span lang="ja">{item.reading}</span>
                                               ) : null}
                                               <span>{displayCode(item.partOfSpeech)}</span>
+                                              <small>
+                                                Entrada estable {shortId(item.vocabularyId)} ·
+                                                sentido {item.senseKey}
+                                              </small>
                                               {item.senses.map((sense) => (
                                                 <p key={sense.senseId} lang={sense.languageTag}>
                                                   {sense.definition}
                                                 </p>
                                               ))}
+                                              {item.inflection ? (
+                                                <small>Forma contextual: {item.inflection}</small>
+                                              ) : null}
                                               <small>{displayCode(item.confidenceCode)}</small>
                                             </li>
                                           ))}
                                         </ul>
                                       ) : (
                                         <p>Sin sentido contextual registrado.</p>
+                                      )}
+                                    </section>
+
+                                    <section aria-label={`Kanji de ${token.surface}`}>
+                                      <h3>Kanji contextual</h3>
+                                      {kanji.length > 0 ? (
+                                        <ul>
+                                          {kanji.map((item) => (
+                                            <li key={item.occurrenceId}>
+                                              <strong lang="ja">{item.character}</strong>
+                                              <span>Posición {item.charOffset + 1} del token</span>
+                                              <small>
+                                                Entrada estable {shortId(item.kanjiId)} · versión{' '}
+                                                {item.version} · {displayCode(item.statusCode)}
+                                              </small>
+                                              {item.gradeCode ? (
+                                                <span>Grado orientativo: {item.gradeCode}</span>
+                                              ) : null}
+                                              {item.jlptCode ? (
+                                                <span>JLPT orientativo: {item.jlptCode}</span>
+                                              ) : null}
+                                              {item.readings.length > 0 ? (
+                                                <ul className="linguistic-analysis__kanji-readings">
+                                                  {item.readings.map((reading) => (
+                                                    <li key={reading.kanjiReadingId}>
+                                                      <span lang="ja">{reading.reading}</span>
+                                                      <span>
+                                                        {displayCode(reading.readingType)}
+                                                      </span>
+                                                      <p lang={reading.languageTag}>
+                                                        {reading.meaning}
+                                                      </p>
+                                                    </li>
+                                                  ))}
+                                                </ul>
+                                              ) : (
+                                                <p>Sin lectura general localizada.</p>
+                                              )}
+                                              <small>
+                                                La ficha general no sustituye la lectura contextual
+                                                del token.
+                                              </small>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      ) : (
+                                        <p>Sin kanji contextual registrado.</p>
                                       )}
                                     </section>
 
@@ -461,9 +567,17 @@ export function LinguisticAnalysisStructurePage({
                                   <li key={item.occurrenceId}>
                                     <strong>{item.title}</strong>
                                     <span>{displayCode(item.grammarCode)}</span>
-                                    {item.levelCode ? <span>Nivel: {item.levelCode}</span> : null}
+                                    <small>Entrada estable {shortId(item.grammarPointId)}</small>
+                                    {item.levelCode ? (
+                                      <span>Nivel orientativo: {item.levelCode}</span>
+                                    ) : null}
                                     {item.explanation ? (
                                       <p lang={data.explanationLanguage}>{item.explanation}</p>
+                                    ) : (
+                                      <p>Sin explicación localizada.</p>
+                                    )}
+                                    {item.levelCode ? (
+                                      <small>Orientativo, no certificación oficial.</small>
                                     ) : null}
                                     {item.note ? <small>{item.note}</small> : null}
                                   </li>
@@ -508,8 +622,9 @@ export function LinguisticAnalysisStructurePage({
 
           <footer className="linguistic-analysis__footer">
             <p>
-              BL-MVP-064 modela y consulta revisiones. La edición pertenece a BL-MVP-067; esta
-              pantalla no publica, no modifica tokens y no usa servicios lingüísticos externos.
+              BL-MVP-064–066 consulta la revisión exacta y distingue entradas estables de
+              ocurrencias contextuales. La edición integral pertenece a BL-MVP-067; esta pantalla no
+              publica, no modifica tokens y no usa servicios lingüísticos externos.
             </p>
           </footer>
         </>

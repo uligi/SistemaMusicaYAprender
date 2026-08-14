@@ -622,6 +622,17 @@ jobs:
           BL065_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/content/verify-contextual-reading-resolution.sh
 
+      - name: Verify contextual vocabulary kanji and grammar
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL066_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/content/verify-contextual-linguistic-catalogs.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

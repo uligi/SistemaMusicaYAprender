@@ -116,7 +116,7 @@
 }
 
 .linguistic-analysis__summary dl {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .linguistic-analysis__section-heading {
@@ -246,7 +246,7 @@
 
 .linguistic-analysis__token-body {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border-top: var(--ma-border-width-thin) solid var(--ma-color-border);
 }
 
@@ -287,6 +287,22 @@
 .linguistic-analysis__provenance small {
   color: var(--ma-color-muted);
   font-size: var(--ma-font-size-secondary);
+}
+
+.linguistic-analysis__kanji-readings {
+  display: grid;
+  gap: var(--ma-space-2);
+  padding-top: var(--ma-space-2) !important;
+  border-top: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.linguistic-analysis__kanji-readings > li {
+  display: grid;
+  gap: var(--ma-space-1);
+}
+
+.linguistic-analysis__kanji-readings p {
+  margin: 0;
 }
 
 .linguistic-analysis__grammar {

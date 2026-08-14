@@ -53,6 +53,29 @@ public sealed record VocabularyOccurrenceAnalysisSnapshot(
     string ConfidenceCode,
     List<VocabularySenseAnalysisSnapshot> Senses);
 
+public sealed record KanjiReadingAnalysisSnapshot(
+    Guid KanjiReadingId,
+    string Reading,
+    string ReadingType,
+    string LanguageTag,
+    string Meaning,
+    int DisplayOrder);
+
+public sealed record KanjiOccurrenceAnalysisSnapshot(
+    Guid OccurrenceId,
+    Guid TokenId,
+    Guid LineId,
+    int LineNo,
+    string Surface,
+    Guid KanjiId,
+    string Character,
+    int CharOffset,
+    string? GradeCode,
+    string? JlptCode,
+    string StatusCode,
+    long Version,
+    List<KanjiReadingAnalysisSnapshot> Readings);
+
 public sealed record MorphologyAnalysisSnapshot(
     Guid AnnotationId,
     Guid TokenId,
@@ -100,10 +123,12 @@ public sealed record LinguisticAnalysisRevisionSnapshot(
     int SourceTokenCount,
     int ReadingCoveredTokens,
     int VocabularyCoveredTokens,
+    int KanjiCoveredTokens,
     int MorphologyCoveredTokens,
     int GrammarCoveredLines,
     List<TokenReadingAnalysisSnapshot> Readings,
     List<VocabularyOccurrenceAnalysisSnapshot> Vocabulary,
+    List<KanjiOccurrenceAnalysisSnapshot> Kanji,
     List<MorphologyAnalysisSnapshot> Morphology,
     List<GrammarOccurrenceAnalysisSnapshot> Grammar,
     List<LinguisticAnalysisProvenanceSnapshot> Provenance);
@@ -233,6 +258,14 @@ public sealed partial class LinguisticAnalysisRevisionAdministrationService(
             language,
             cancellationToken);
 
+        var kanji = await ReadKanjiAsync(
+            connection,
+            transaction,
+            analysisHeader.AnalysisRevisionId,
+            latestLyrics.LyricsRevisionId,
+            language,
+            cancellationToken);
+
         var morphology = await ReadMorphologyAsync(
             connection,
             transaction,
@@ -268,10 +301,12 @@ public sealed partial class LinguisticAnalysisRevisionAdministrationService(
             sourceTokenCount,
             readings.Select(item => item.TokenId).Distinct().Count(),
             vocabulary.Select(item => item.TokenId).Distinct().Count(),
+            kanji.Select(item => item.TokenId).Distinct().Count(),
             morphology.Select(item => item.TokenId).Distinct().Count(),
             grammar.Select(item => item.LineId).Distinct().Count(),
             readings,
             vocabulary,
+            kanji,
             morphology,
             grammar,
             provenance);
@@ -657,6 +692,121 @@ public sealed partial class LinguisticAnalysisRevisionAdministrationService(
             .ToList();
     }
 
+    private static async Task<List<KanjiOccurrenceAnalysisSnapshot>> ReadKanjiAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        Guid analysisRevisionId,
+        Guid lyricsRevisionId,
+        string language,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT
+                occurrence.occurrence_id,
+                occurrence.token_id,
+                line.line_id,
+                line.line_no,
+                token.surface,
+                entry.kanji_id,
+                entry.character,
+                occurrence.char_offset,
+                entry.grade_code,
+                entry.jlpt_code,
+                entry.status_code,
+                entry.version,
+                reading.kanji_reading_id,
+                reading.reading,
+                reading.reading_type,
+                reading.language_tag,
+                reading.meaning,
+                reading.display_order
+            FROM content.kanji_occurrence AS occurrence
+            JOIN content.lyric_token AS token
+              ON token.token_id = occurrence.token_id
+            JOIN content.lyric_line AS line
+              ON line.line_id = token.line_id
+            JOIN content.lyric_section AS section
+              ON section.section_id = line.section_id
+            JOIN content.kanji_entry AS entry
+              ON entry.kanji_id = occurrence.kanji_id
+            LEFT JOIN content.kanji_reading AS reading
+              ON reading.kanji_id = entry.kanji_id
+             AND reading.language_tag = @language
+            WHERE occurrence.analysis_revision_id = @analysis_revision_id
+              AND section.lyrics_revision_id = @lyrics_revision_id
+              AND substring(
+                    token.surface
+                    FROM occurrence.char_offset + 1
+                    FOR char_length(entry.character)
+                  ) = entry.character
+            ORDER BY
+                section.display_order,
+                section.section_id,
+                line.line_no,
+                line.line_id,
+                token.token_no,
+                token.token_id,
+                occurrence.char_offset,
+                occurrence.occurrence_id,
+                reading.display_order,
+                reading.kanji_reading_id;
+            """;
+
+        var builders = new Dictionary<Guid, KanjiBuilder>();
+        var order = new List<Guid>();
+
+        await using var command = new NpgsqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue(
+            "analysis_revision_id",
+            NpgsqlDbType.Uuid,
+            analysisRevisionId);
+        command.Parameters.AddWithValue(
+            "lyrics_revision_id",
+            NpgsqlDbType.Uuid,
+            lyricsRevisionId);
+        command.Parameters.AddWithValue("language", NpgsqlDbType.Varchar, language);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var occurrenceId = reader.GetGuid(0);
+            if (!builders.TryGetValue(occurrenceId, out var builder))
+            {
+                builder = new KanjiBuilder(
+                    occurrenceId,
+                    reader.GetGuid(1),
+                    reader.GetGuid(2),
+                    reader.GetInt32(3),
+                    reader.GetString(4),
+                    reader.GetGuid(5),
+                    reader.GetString(6),
+                    reader.GetInt32(7),
+                    reader.IsDBNull(8) ? null : reader.GetString(8),
+                    reader.IsDBNull(9) ? null : reader.GetString(9),
+                    reader.GetString(10),
+                    reader.GetInt64(11));
+                builders.Add(occurrenceId, builder);
+                order.Add(occurrenceId);
+            }
+
+            if (!reader.IsDBNull(12))
+            {
+                builder.Readings.Add(
+                    new KanjiReadingAnalysisSnapshot(
+                        reader.GetGuid(12),
+                        reader.GetString(13),
+                        reader.GetString(14),
+                        reader.GetString(15),
+                        reader.GetString(16),
+                        reader.GetInt32(17)));
+            }
+        }
+
+        return order
+            .Select(occurrenceId => builders[occurrenceId].ToSnapshot())
+            .ToList();
+    }
+
     private static async Task<List<MorphologyAnalysisSnapshot>> ReadMorphologyAsync(
         NpgsqlConnection connection,
         NpgsqlTransaction transaction,
@@ -964,6 +1114,51 @@ public sealed partial class LinguisticAnalysisRevisionAdministrationService(
                 SectionLabel,
                 JapaneseText,
                 Tokens);
+    }
+
+    private sealed class KanjiBuilder(
+        Guid occurrenceId,
+        Guid tokenId,
+        Guid lineId,
+        int lineNo,
+        string surface,
+        Guid kanjiId,
+        string character,
+        int charOffset,
+        string? gradeCode,
+        string? jlptCode,
+        string statusCode,
+        long version)
+    {
+        public Guid OccurrenceId { get; } = occurrenceId;
+        public Guid TokenId { get; } = tokenId;
+        public Guid LineId { get; } = lineId;
+        public int LineNo { get; } = lineNo;
+        public string Surface { get; } = surface;
+        public Guid KanjiId { get; } = kanjiId;
+        public string Character { get; } = character;
+        public int CharOffset { get; } = charOffset;
+        public string? GradeCode { get; } = gradeCode;
+        public string? JlptCode { get; } = jlptCode;
+        public string StatusCode { get; } = statusCode;
+        public long Version { get; } = version;
+        public List<KanjiReadingAnalysisSnapshot> Readings { get; } = [];
+
+        public KanjiOccurrenceAnalysisSnapshot ToSnapshot() =>
+            new(
+                OccurrenceId,
+                TokenId,
+                LineId,
+                LineNo,
+                Surface,
+                KanjiId,
+                Character,
+                CharOffset,
+                GradeCode,
+                JlptCode,
+                StatusCode,
+                Version,
+                Readings);
     }
 
     private sealed class VocabularyBuilder(

@@ -179,7 +179,9 @@ test.describe('BL-MVP-064 · revisiones de análisis lingüístico', () => {
 
     await page.goto(`/editorial/canciones/${recordingId}/analisis`);
 
-    await expect(page.getByRole('heading', { name: 'Análisis lingüístico' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Análisis lingüístico', exact: true }),
+    ).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Letra japonesa · revisión 4' })).toBeVisible();
     await expect(page.getByText('1/2 tokens').first()).toBeVisible();
 
@@ -229,7 +231,9 @@ test.describe('BL-MVP-064 · revisiones de análisis lingüístico', () => {
     await mockAnalysis(page, currentContext);
 
     await page.goto(`/editorial/canciones/${recordingId}/analisis`);
-    await expect(page.getByRole('heading', { name: 'Análisis lingüístico' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Análisis lingüístico', exact: true }),
+    ).toBeVisible();
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
