@@ -8,7 +8,8 @@ public sealed class ContentAdministrationTransactionExecutor(
     BackofficeSecurityTransactionExecutor inner)
     : ILyricsStructureAdministrationTransactionExecutor,
       ITimingAdministrationTransactionExecutor,
-      ITranslationAdministrationTransactionExecutor
+      ITranslationAdministrationTransactionExecutor,
+      ILinguisticAnalysisAdministrationTransactionExecutor
 {
     public Task<TResult> ExecuteAsync<TResult>(
         Guid actorAccountId,

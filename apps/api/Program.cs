@@ -83,6 +83,10 @@ builder.Services.AddSingleton<ITranslationAdministrationTransactionExecutor>(
     static services =>
         new ContentAdministrationTransactionExecutor(
             services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
+builder.Services.AddSingleton<ILinguisticAnalysisAdministrationTransactionExecutor>(
+    static services =>
+        new ContentAdministrationTransactionExecutor(
+            services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
 builder.Services.AddSingleton<IRightsAdministrationTransactionExecutor>(
     static services =>
         new EditorialRightsAdministrationTransactionExecutor(
@@ -96,6 +100,7 @@ builder.Services.AddSingleton<RecordingDraftAutosaveService>();
 builder.Services.AddSingleton<LyricsStructureAdministrationService>();
 builder.Services.AddSingleton<TimingRevisionAdministrationService>();
 builder.Services.AddSingleton<TranslationRevisionAdministrationService>();
+builder.Services.AddSingleton<LinguisticAnalysisRevisionAdministrationService>();
 builder.Services.AddSingleton<PublicSongSynchronizationService>();
 builder.Services.AddSingleton<RightsAdministrationService>();
 builder.Services.AddSingleton<PublicCatalogProjectionService>();
@@ -260,6 +265,7 @@ app.MapRecordingDraftAutosave();
 app.MapLyricsStructureAdministration();
 app.MapTimingRevisionAdministration();
 app.MapTranslationRevisionAdministration();
+app.MapLinguisticAnalysisRevisionAdministration();
 app.MapCreditProvenanceAdministration();
 app.MapRightsAdministration();
 app.MapPublicCatalogProjection();

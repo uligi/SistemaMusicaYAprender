@@ -1,0 +1,397 @@
+.linguistic-analysis {
+  display: grid;
+  gap: var(--ma-space-5);
+  min-width: 0;
+}
+
+.route-surface.linguistic-analysis {
+  width: 100%;
+  max-width: 96rem;
+}
+
+.linguistic-analysis__header {
+  display: grid;
+  gap: var(--ma-space-2);
+  max-width: 58rem;
+}
+
+.linguistic-analysis__header p,
+.linguistic-analysis__context p,
+.linguistic-analysis__section-heading p,
+.linguistic-analysis__line p,
+.linguistic-analysis__footer p {
+  margin: 0;
+}
+
+.linguistic-analysis__context,
+.linguistic-analysis__summary,
+.linguistic-analysis__line,
+.linguistic-analysis__provenance {
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.linguistic-analysis__context {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(20rem, 0.8fr);
+  gap: var(--ma-space-4);
+  padding: var(--ma-space-4);
+}
+
+.linguistic-analysis__context > div {
+  display: grid;
+  gap: var(--ma-space-2);
+}
+
+.linguistic-analysis__context h2,
+.linguistic-analysis__summary h2,
+.linguistic-analysis__section-heading h2,
+.linguistic-analysis__line h3 {
+  margin: 0;
+}
+
+.linguistic-analysis__context > div > p:last-child,
+.linguistic-analysis__section-heading > p,
+.linguistic-analysis__footer p {
+  color: var(--ma-color-muted);
+}
+
+.linguistic-analysis__context dl,
+.linguistic-analysis__summary dl {
+  display: grid;
+  gap: var(--ma-space-2);
+  margin: 0;
+}
+
+.linguistic-analysis__context dl {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.linguistic-analysis__context dl > div,
+.linguistic-analysis__summary dl > div {
+  min-width: 0;
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-canvas);
+}
+
+.linguistic-analysis dt {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.linguistic-analysis dd {
+  margin: var(--ma-space-1) 0 0;
+  font-weight: var(--ma-font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.linguistic-analysis__summary {
+  display: grid;
+  gap: var(--ma-space-3);
+  padding: var(--ma-space-4);
+}
+
+.linguistic-analysis__summary > header {
+  display: flex;
+  gap: var(--ma-space-3);
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.linguistic-analysis__summary > header > div {
+  display: grid;
+  gap: var(--ma-space-1);
+}
+
+.linguistic-analysis__summary > header > span {
+  padding: var(--ma-space-1) var(--ma-space-2);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: 999px;
+  background: var(--ma-color-canvas);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.linguistic-analysis__summary dl {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.linguistic-analysis__section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.8fr);
+  gap: var(--ma-space-4);
+  align-items: end;
+}
+
+.linguistic-analysis__section-heading > div {
+  display: grid;
+  gap: var(--ma-space-1);
+}
+
+.linguistic-analysis__lines > ol,
+.linguistic-analysis__token ul,
+.linguistic-analysis__grammar ul,
+.linguistic-analysis__provenance ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.linguistic-analysis__lines > ol {
+  display: grid;
+  gap: var(--ma-space-3);
+  margin-top: var(--ma-space-3);
+}
+
+.linguistic-analysis__line {
+  overflow: hidden;
+}
+
+.linguistic-analysis__line > header {
+  display: flex;
+  gap: var(--ma-space-3);
+  align-items: start;
+  justify-content: space-between;
+  padding: var(--ma-space-4);
+  background: var(--ma-color-canvas);
+}
+
+.linguistic-analysis__line > header > div {
+  display: grid;
+  gap: var(--ma-space-2);
+  min-width: 0;
+}
+
+.linguistic-analysis__line > header p[lang='ja'] {
+  font-family: var(--ma-font-japanese);
+  font-size: var(--ma-font-size-japanese);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.linguistic-analysis__line > header > span {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+  white-space: nowrap;
+}
+
+.linguistic-analysis__tokens {
+  display: grid;
+  gap: var(--ma-space-2);
+  padding: var(--ma-space-3);
+}
+
+.linguistic-analysis__token {
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-canvas);
+}
+
+.linguistic-analysis__token summary,
+.linguistic-analysis__provenance summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.linguistic-analysis__token summary::-webkit-details-marker,
+.linguistic-analysis__provenance summary::-webkit-details-marker {
+  display: none;
+}
+
+.linguistic-analysis__token summary {
+  display: flex;
+  min-height: var(--ma-touch-target);
+  gap: var(--ma-space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ma-space-3);
+}
+
+.linguistic-analysis__token summary > span:first-child {
+  font-family: var(--ma-font-japanese);
+  font-size: var(--ma-font-size-japanese);
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.linguistic-analysis__token summary > span:last-child {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.linguistic-analysis__token summary::before,
+.linguistic-analysis__provenance summary::before {
+  content: '+';
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 1.5rem;
+  place-items: center;
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: 999px;
+  color: var(--ma-color-muted);
+}
+
+.linguistic-analysis__token[open] summary::before,
+.linguistic-analysis__provenance[open] summary::before {
+  content: '−';
+}
+
+.linguistic-analysis__token summary > span:first-of-type,
+.linguistic-analysis__provenance summary > span:first-of-type {
+  margin-right: auto;
+}
+
+.linguistic-analysis__token-body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.linguistic-analysis__token-body > section {
+  display: grid;
+  align-content: start;
+  gap: var(--ma-space-2);
+  min-width: 0;
+  padding: var(--ma-space-3);
+}
+
+.linguistic-analysis__token-body > section + section {
+  border-left: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.linguistic-analysis__token-body h3 {
+  font-size: 1rem;
+}
+
+.linguistic-analysis__token-body ul,
+.linguistic-analysis__grammar ul {
+  display: grid;
+  gap: var(--ma-space-2);
+}
+
+.linguistic-analysis__token-body li,
+.linguistic-analysis__grammar li,
+.linguistic-analysis__provenance li {
+  display: grid;
+  gap: var(--ma-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.linguistic-analysis__token-body section > p,
+.linguistic-analysis__token-body small,
+.linguistic-analysis__grammar small,
+.linguistic-analysis__provenance small {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.linguistic-analysis__grammar {
+  display: grid;
+  gap: var(--ma-space-3);
+  padding: var(--ma-space-4);
+  border-top: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.linguistic-analysis__grammar li {
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-canvas);
+}
+
+.linguistic-analysis__provenance {
+  overflow: hidden;
+}
+
+.linguistic-analysis__provenance summary {
+  display: flex;
+  min-height: var(--ma-touch-target);
+  gap: var(--ma-space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ma-space-4);
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.linguistic-analysis__provenance summary > span:last-child {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.linguistic-analysis__provenance > div {
+  display: grid;
+  gap: var(--ma-space-3);
+  padding: 0 var(--ma-space-4) var(--ma-space-4);
+  border-top: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.linguistic-analysis__provenance > div > p {
+  margin-top: var(--ma-space-3);
+  margin-bottom: 0;
+}
+
+.linguistic-analysis__provenance ul {
+  display: grid;
+  gap: var(--ma-space-2);
+}
+
+.linguistic-analysis__provenance li {
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-canvas);
+}
+
+.linguistic-analysis__token summary:focus-visible,
+.linguistic-analysis__provenance summary:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: var(--ma-focus-ring);
+}
+
+.linguistic-analysis__footer {
+  padding-top: var(--ma-space-3);
+  border-top: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+@media (max-width: 64rem) {
+  .linguistic-analysis__context,
+  .linguistic-analysis__section-heading,
+  .linguistic-analysis__token-body {
+    grid-template-columns: 1fr;
+  }
+
+  .linguistic-analysis__token-body > section + section {
+    border-left: 0;
+    border-top: var(--ma-border-width-thin) solid var(--ma-color-border);
+  }
+}
+
+@media (max-width: 48rem) {
+  .linguistic-analysis {
+    gap: var(--ma-space-4);
+  }
+
+  .linguistic-analysis__context dl,
+  .linguistic-analysis__summary dl {
+    grid-template-columns: 1fr;
+  }
+
+  .linguistic-analysis__context,
+  .linguistic-analysis__summary,
+  .linguistic-analysis__line > header,
+  .linguistic-analysis__provenance summary {
+    padding: var(--ma-space-3);
+  }
+
+  .linguistic-analysis__line > header {
+    flex-direction: column;
+  }
+
+  .linguistic-analysis__provenance > div {
+    padding-inline: var(--ma-space-3);
+  }
+}
