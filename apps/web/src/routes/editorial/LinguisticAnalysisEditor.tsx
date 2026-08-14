@@ -93,6 +93,86 @@ type ValidationReport = {
 
 type EditorPhase = 'idle' | 'validating' | 'saving' | 'saved';
 
+const gradeOptions = [
+  { value: '', label: 'Sin clasificar' },
+  { value: 'G1', label: 'Grado 1' },
+  { value: 'G2', label: 'Grado 2' },
+  { value: 'G3', label: 'Grado 3' },
+  { value: 'G4', label: 'Grado 4' },
+  { value: 'G5', label: 'Grado 5' },
+  { value: 'G6', label: 'Grado 6' },
+] as const;
+
+const allowedGradeCodes = new Set<string>(
+  gradeOptions.map((option) => option.value).filter(Boolean),
+);
+
+function localDraftProblems(draft: AnalysisDraft): string[] {
+  const problems: string[] = [];
+
+  if (!draft.provenanceCitation.trim()) {
+    problems.push('Completa la procedencia de la revisión antes de validar.');
+  }
+
+  draft.readings.forEach((item) => {
+    if (!item.readingKana.trim()) {
+      problems.push('Una pronunciación añadida necesita su lectura en kana o debe quitarse.');
+    }
+  });
+
+  draft.vocabulary.forEach((item) => {
+    if (!item.definition.trim()) {
+      problems.push(
+        'Completa «Significado contextual en español» en cada sentido añadido o quita el sentido que no conozcas.',
+      );
+    }
+  });
+
+  draft.kanji.forEach((item) => {
+    if (item.gradeCode && !allowedGradeCodes.has(item.gradeCode)) {
+      problems.push(
+        'El nivel escolar debe elegirse de la lista «Sin clasificar» o «Grado 1» a «Grado 6».',
+      );
+    }
+    const hasReading = Boolean(item.reading.trim());
+    const hasMeaning = Boolean(item.meaning.trim());
+    if (hasReading !== hasMeaning) {
+      problems.push(
+        `El kanji ${item.character} necesita lectura general y significado educativo juntos, o ambos vacíos.`,
+      );
+    }
+  });
+
+  draft.morphology.forEach((item) => {
+    if (!item.lemma.trim()) {
+      problems.push('Una morfología añadida necesita un lema o debe quitarse.');
+    }
+  });
+
+  draft.grammar.forEach((item) => {
+    if (!item.title.trim()) {
+      problems.push('Un punto gramatical añadido necesita un nombre claro o debe quitarse.');
+    }
+  });
+
+  return [...new Set(problems)];
+}
+
+function actionableProblemCorrection(problem: ClientProblem): string {
+  switch (problem.code) {
+    case 'content.analysis.vocabulary.definition.invalid':
+      return 'Completa «Significado contextual en español» en el sentido que añadiste o pulsa «Quitar este sentido» si no conoces el dato.';
+    case 'content.analysis.kanji.grade.invalid':
+      return 'En «Nivel escolar», elige «Sin clasificar» o uno de los grados disponibles. No escribas códigos internos.';
+    case 'content.analysis.kanji.reading-pair.invalid':
+      return 'Completa juntos «Lectura general» y «Significado educativo», o deja ambos vacíos.';
+    case 'content.analysis.provenance.invalid':
+      return 'Completa «Procedencia de esta revisión» antes de validar.';
+    default:
+      return problem.correction;
+  }
+}
+
 function fromContext(context: AnalysisContext): AnalysisDraft {
   const revision = context.revision;
 
@@ -230,6 +310,9 @@ export function LinguisticAnalysisEditor({
   const [validation, setValidation] = useState<ValidationReport | null>(null);
   const [phase, setPhase] = useState<EditorPhase>('idle');
   const [problem, setProblem] = useState<ClientProblem | null>(null);
+  const [showLocalErrors, setShowLocalErrors] = useState(false);
+
+  const localProblems = useMemo(() => localDraftProblems(draft), [draft]);
 
   useEffect(() => {
     setDraft(fromContext(context));
@@ -239,6 +322,7 @@ export function LinguisticAnalysisEditor({
     setValidation(null);
     setPhase((current) => (current === 'saved' ? current : 'idle'));
     setProblem(null);
+    setShowLocalErrors(false);
   }, [context, etag]);
 
   const selectedLine =
@@ -505,7 +589,16 @@ export function LinguisticAnalysisEditor({
 
   async function validateDraft() {
     if (!baseEtag || !draft.lyricsRevisionId) return;
+
+    setShowLocalErrors(true);
     setProblem(null);
+    setValidation(null);
+
+    if (localProblems.length > 0) {
+      setPhase('idle');
+      return;
+    }
+
     setPhase('validating');
 
     const token = await getCsrf();
@@ -775,14 +868,33 @@ export function LinguisticAnalysisEditor({
                           </label>
                         </div>
                         <label>
-                          Significado contextual en español
+                          Significado contextual en español{' '}
+                          <strong className="analysis-editor__required-note">obligatorio</strong>
                           <textarea
                             value={item.definition}
                             onChange={(event) =>
                               updateVocabulary(index, 'definition', event.target.value)
                             }
                             placeholder="Escribe una explicación breve y útil."
+                            required
+                            aria-invalid={
+                              showLocalErrors && !item.definition.trim() ? true : undefined
+                            }
+                            aria-describedby={
+                              showLocalErrors && !item.definition.trim()
+                                ? `analysis-vocabulary-definition-error-${index}`
+                                : undefined
+                            }
                           />
+                          {showLocalErrors && !item.definition.trim() ? (
+                            <span
+                              className="ma-field__error"
+                              id={`analysis-vocabulary-definition-error-${index}`}
+                              role="alert"
+                            >
+                              Completa este significado o quita el sentido si no conoces el dato.
+                            </span>
+                          ) : null}
                         </label>
                         <div className="analysis-editor__two-cols">
                           <label>
@@ -875,10 +987,19 @@ export function LinguisticAnalysisEditor({
                           <input
                             value={tokenMorphology.conjugationCode}
                             onChange={(event) =>
-                              updateMorphology('conjugationCode', event.target.value)
+                              updateMorphology(
+                                'conjugationCode',
+                                event.target.value.toUpperCase().replace(/[^A-Z0-9._-]/g, ''),
+                              )
                             }
                             placeholder="Ej.: PAST, TE_FORM"
+                            pattern="[A-Z0-9][A-Z0-9._-]{0,63}"
+                            maxLength={64}
                           />
+                          <small>
+                            Mientras este catálogo no tenga selector publicado, solo se permiten los
+                            caracteres que acepta el contrato interno.
+                          </small>
                         </label>
                         <details className="analysis-editor__advanced">
                           <summary>Detalles avanzados</summary>
@@ -958,12 +1079,23 @@ export function LinguisticAnalysisEditor({
                           </label>
                           <label>
                             Nivel escolar <span>opcional</span>
-                            <input
+                            <select
+                              aria-label="Nivel escolar"
                               value={item.gradeCode}
                               onChange={(event) =>
                                 updateKanji(index, 'gradeCode', event.target.value)
                               }
-                            />
+                            >
+                              {gradeOptions.map((option) => (
+                                <option key={option.value || 'UNCLASSIFIED'} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            <small>
+                              Elige una etiqueta humana; el sistema guarda el código interno
+                              automáticamente.
+                            </small>
                           </label>
                         </div>
                         <small>
@@ -1111,16 +1243,37 @@ export function LinguisticAnalysisEditor({
         </div>
 
         <label className="analysis-editor__provenance">
-          Procedencia de esta revisión
+          Procedencia de esta revisión{' '}
+          <strong className="analysis-editor__required-note">obligatorio</strong>
           <input
             value={draft.provenanceCitation}
             onChange={(event) => changed({ ...draft, provenanceCitation: event.target.value })}
             placeholder="Ej.: Curaduría editorial interna"
+            required
+            aria-invalid={showLocalErrors && !draft.provenanceCitation.trim() ? true : undefined}
+            aria-describedby={
+              showLocalErrors && !draft.provenanceCitation.trim()
+                ? 'analysis-provenance-error'
+                : undefined
+            }
           />
           <small>
             Describe quién o qué fuente respalda el análisis. No se envía fuera del sistema.
           </small>
+          {showLocalErrors && !draft.provenanceCitation.trim() ? (
+            <span className="ma-field__error" id="analysis-provenance-error" role="alert">
+              Completa la procedencia antes de validar.
+            </span>
+          ) : null}
         </label>
+
+        {showLocalErrors && localProblems.length > 0 ? (
+          <StateMessage
+            state="UI-EST-04"
+            title="Hay campos por completar"
+            description={`${localProblems[0]}${localProblems.length > 1 ? ` Hay ${localProblems.length - 1} corrección(es) adicional(es) marcada(s) en el formulario.` : ''}`}
+          />
+        ) : null}
 
         <div className="analysis-editor__review-actions" aria-label="Validación y guardado">
           <div>
@@ -1230,7 +1383,7 @@ export function LinguisticAnalysisEditor({
             description={
               problem.status === 412
                 ? `${problem.correction} Lo que escribiste sigue en pantalla; recarga solo cuando estés listo para reanclarlo.`
-                : problem.correction
+                : actionableProblemCorrection(problem)
             }
           />
         ) : null}

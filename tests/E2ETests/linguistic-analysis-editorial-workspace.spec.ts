@@ -431,6 +431,13 @@ test.describe('BL-MVP-067 · espacio editorial de análisis lingüístico', () =
     await mockCsrf(page);
     await mockContext(page);
 
+    let validationRequests = 0;
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.url().includes('/analysis-revisions/validate')) {
+        validationRequests += 1;
+      }
+    });
+
     await page.route(
       '**/api/v1/editorial/song-drafts/*/analysis-revisions/validate',
       async (route) => {
@@ -484,8 +491,9 @@ test.describe('BL-MVP-067 · espacio editorial de análisis lingüístico', () =
     await page.getByRole('button', { name: 'Validar borrador' }).click();
 
     await expect(
-      page.getByText(/Completa lectura general y significado educativo juntos/),
+      page.getByText(/necesita lectura general y significado educativo juntos, o ambos vacíos/),
     ).toBeVisible();
+    expect(validationRequests).toBe(0);
     await expect(page.getByRole('button', { name: 'Guardar nueva revisión' })).toBeDisabled();
   });
 
@@ -595,7 +603,7 @@ test.describe('BL-MVP-067 · espacio editorial de análisis lingüístico', () =
     await expect(page.getByLabel(/Lectura general/)).toHaveValue('がく');
     await expect(page.getByLabel(/Significado educativo/)).toHaveValue('estudio');
     await page.getByLabel(/Significado educativo/).fill('aprendizaje');
-    await page.getByLabel(/Nivel escolar/).fill('G2');
+    await page.getByLabel(/Nivel escolar/).selectOption('G2');
     await page.getByLabel('JLPT orientativo', { exact: true }).selectOption('N4');
 
     await page.getByText('Gramática de la línea').click();

@@ -429,7 +429,9 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
               label="Territorio"
               helpText="Código gobernado de país o región. La evaluación es estricta."
               value={evalTerritory}
-              onChange={(event) => setEvalTerritory(event.target.value.toUpperCase())}
+              onChange={(event) =>
+                setEvalTerritory(event.target.value.toUpperCase().replace(/[^A-Z0-9._-]/g, ''))
+              }
               pattern="[A-Z0-9][A-Z0-9._-]{0,63}"
               required
             />
@@ -438,22 +440,35 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
               label="Idioma"
               helpText="Opcional, por ejemplo es o ja."
               value={evalLanguage}
-              onChange={(event) => setEvalLanguage(event.target.value)}
+              onChange={(event) =>
+                setEvalLanguage(event.target.value.replace(/[^A-Za-z0-9-]/g, ''))
+              }
+              pattern="[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*"
+              maxLength={35}
             />
-            <Field
+            <SelectField
               id="rights-eval-channel"
               label="Canal"
               value={evalChannel}
-              onChange={(event) => setEvalChannel(event.target.value.toUpperCase())}
+              onChange={(event) => setEvalChannel(event.target.value)}
               required
-            />
-            <Field
+            >
+              <option value="WEB">Web</option>
+            </SelectField>
+            <SelectField
               id="rights-eval-use"
               label="Uso"
               value={evalUse}
-              onChange={(event) => setEvalUse(event.target.value.toUpperCase())}
+              onChange={(event) => setEvalUse(event.target.value)}
               required
-            />
+            >
+              <option value="DISPLAY">Mostrar contenido</option>
+              <option value="PLAYBACK">Reproducción</option>
+              <option value="TRANSLATION">Traducción</option>
+              <option value="ADAPTATION">Adaptación</option>
+              <option value="DISTRIBUTION">Distribución</option>
+              <option value="EXPORT">Exportación</option>
+            </SelectField>
             <Button type="submit" variant="secondary" disabled={busy}>
               Evaluar alcance
             </Button>
@@ -554,7 +569,7 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
               helpText="Obligatorio. No se interpreta un valor vacío como autorización mundial."
               value={territoryCode}
               onChange={(event) => {
-                setTerritoryCode(event.target.value.toUpperCase());
+                setTerritoryCode(event.target.value.toUpperCase().replace(/[^A-Z0-9._-]/g, ''));
                 renewRequestKey();
               }}
               pattern="[A-Z0-9][A-Z0-9._-]{0,63}"
@@ -567,33 +582,45 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
               helpText="Opcional. Vacío significa que esta autorización no restringe por idioma."
               value={languageTag}
               onChange={(event) => {
-                setLanguageTag(event.target.value);
+                setLanguageTag(event.target.value.replace(/[^A-Za-z0-9-]/g, ''));
                 renewRequestKey();
               }}
+              pattern="[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*"
+              maxLength={35}
             />
 
-            <Field
+            <SelectField
               id="rights-channel"
               label="Canal autorizado"
+              helpText="El MVP publica únicamente en el canal web; el código técnico no se escribe a mano."
               value={channelCode}
               onChange={(event) => {
-                setChannelCode(event.target.value.toUpperCase());
+                setChannelCode(event.target.value);
                 renewRequestKey();
               }}
               required
-            />
+            >
+              <option value="WEB">Web</option>
+            </SelectField>
 
-            <Field
+            <SelectField
               id="rights-use"
               label="Uso autorizado"
-              helpText="Ejemplos: DISPLAY, PLAYBACK, TRANSLATION, ADAPTATION, DISTRIBUTION, EXPORT."
+              helpText="Elige el uso cubierto por la evidencia adjunta."
               value={useCode}
               onChange={(event) => {
-                setUseCode(event.target.value.toUpperCase());
+                setUseCode(event.target.value);
                 renewRequestKey();
               }}
               required
-            />
+            >
+              <option value="DISPLAY">Mostrar contenido</option>
+              <option value="PLAYBACK">Reproducción</option>
+              <option value="TRANSLATION">Traducción</option>
+              <option value="ADAPTATION">Adaptación</option>
+              <option value="DISTRIBUTION">Distribución</option>
+              <option value="EXPORT">Exportación</option>
+            </SelectField>
 
             <Field
               id="rights-supersedes"

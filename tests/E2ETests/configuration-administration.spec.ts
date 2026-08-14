@@ -207,7 +207,7 @@ test.describe('BL-MVP-036 · administración versionada de configuración', () =
 
     await page.goto('/administracion/configuracion');
 
-    await page.getByLabel('Etiquetas JSON').fill('{"es":"Español"}');
+    await page.getByLabel('Nombre visible en español').fill('Español');
     await page.getByLabel('Motivo del catálogo').fill('Localización visible');
     await page
       .getByLabel('Impacto y dependencias del catálogo')

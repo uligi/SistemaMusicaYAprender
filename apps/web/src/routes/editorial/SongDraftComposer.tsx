@@ -317,12 +317,13 @@ export function SongDraftComposer({ artist }: SongDraftComposerProps) {
         <Field
           id="song-work-language"
           label="Idioma principal de la obra"
-          helpText="Etiqueta BCP-47, por ejemplo ja."
+          helpText="Etiqueta de idioma, por ejemplo ja, es, en o it. Los caracteres fuera de BCP-47 se bloquean."
           value={languageTag}
           onChange={(event) => {
-            setLanguageTag(event.target.value);
+            setLanguageTag(event.target.value.replace(/[^A-Za-z0-9-]/g, ''));
             markChanged();
           }}
+          pattern="[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*"
           maxLength={35}
           required
         />

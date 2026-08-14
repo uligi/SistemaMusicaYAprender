@@ -121,7 +121,10 @@ export function RoleManagementPage() {
   }, [privilegedReady]);
 
   const targetValid = useMemo(
-    () => /^[0-9a-fA-F-]{36}$/.test(targetAccount.trim()),
+    () =>
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+        targetAccount.trim(),
+      ),
     [targetAccount],
   );
 
@@ -299,9 +302,14 @@ export function RoleManagementPage() {
             <Field
               id="role-target-account"
               label="Cuenta objetivo"
-              helpText="UUID de la cuenta. Este flujo no busca ni expone correos."
+              helpText="Pega el UUID de la cuenta. Este flujo no busca ni expone correos; hace falta un directorio administrativo separado para reemplazar este identificador de forma segura."
               value={targetAccount}
-              onChange={(event) => setTargetAccount(event.target.value)}
+              onChange={(event) =>
+                setTargetAccount(event.target.value.replace(/[^0-9a-fA-F-]/g, '').slice(0, 36))
+              }
+              pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+              maxLength={36}
+              spellCheck={false}
               required
             />
 

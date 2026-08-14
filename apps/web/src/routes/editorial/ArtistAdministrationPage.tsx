@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Button, Field, StateMessage } from '../../components/ui';
+import { Button, Field, SelectField, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import { SongDraftComposer, type SelectedArtist } from './SongDraftComposer';
 import './artist-administration.css';
@@ -340,59 +340,55 @@ export function ArtistAdministrationPage() {
             maxLength={512}
           />
 
-          <Field
+          <SelectField
             id="artist-type"
             label="Tipo de artista"
-            helpText="Código administrable. Ejemplos: PERSON, GROUP, PROJECT, BAND, TEMPORARY_UNIT, VIRTUAL."
-            list="artist-type-options"
+            helpText="Elige la categoría visible; el código interno se envía automáticamente."
             value={artistType}
             onChange={(event) => {
-              setArtistType(event.target.value.toUpperCase());
+              setArtistType(event.target.value);
               markDraftChanged();
             }}
-            maxLength={64}
             required
-          />
-          <datalist id="artist-type-options">
-            <option value="PERSON" />
-            <option value="GROUP" />
-            <option value="PROJECT" />
-            <option value="BAND" />
-            <option value="TEMPORARY_UNIT" />
-            <option value="VIRTUAL" />
-          </datalist>
+          >
+            <option value="PERSON">Persona</option>
+            <option value="GROUP">Grupo</option>
+            <option value="PROJECT">Proyecto</option>
+            <option value="BAND">Banda</option>
+            <option value="TEMPORARY_UNIT">Unidad temporal</option>
+            <option value="VIRTUAL">Artista virtual</option>
+          </SelectField>
 
           <div className="artist-administration__two-columns">
             <Field
               id="artist-language"
               label="Idioma del nombre principal"
+              helpText="Usa una etiqueta de idioma válida, por ejemplo ja, es, en o it. Los caracteres fuera del formato BCP-47 se bloquean."
               value={canonicalLanguageTag}
               onChange={(event) => {
-                setCanonicalLanguageTag(event.target.value);
+                setCanonicalLanguageTag(event.target.value.replace(/[^A-Za-z0-9-]/g, ''));
                 markDraftChanged();
               }}
+              pattern="[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*"
               maxLength={35}
               required
             />
-            <Field
+            <SelectField
               id="artist-script"
               label="Sistema de escritura"
-              helpText="Ejemplos: JPAN, HIRA, KANA, LATN."
-              list="artist-script-options"
+              helpText="Elige cómo está escrito el nombre principal; no escribas el código técnico."
               value={canonicalScriptCode}
               onChange={(event) => {
-                setCanonicalScriptCode(event.target.value.toUpperCase());
+                setCanonicalScriptCode(event.target.value);
                 markDraftChanged();
               }}
-              maxLength={64}
               required
-            />
-            <datalist id="artist-script-options">
-              <option value="JPAN" />
-              <option value="HIRA" />
-              <option value="KANA" />
-              <option value="LATN" />
-            </datalist>
+            >
+              <option value="JPAN">Japonés mixto (kanji/kana)</option>
+              <option value="HIRA">Hiragana</option>
+              <option value="KANA">Katakana</option>
+              <option value="LATN">Alfabeto latino</option>
+            </SelectField>
           </div>
 
           <Field

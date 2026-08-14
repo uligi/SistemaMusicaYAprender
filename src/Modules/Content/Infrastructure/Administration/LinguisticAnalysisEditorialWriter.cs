@@ -378,7 +378,7 @@ public sealed partial class LinguisticAnalysisEditorialWriter(
         {
             var lemma = NormalizeRequired(x.Lemma, MaxTextLength, "content.analysis.vocabulary.lemma.invalid", "El lema no es válido.");
             var reading = NormalizeRequired(x.Reading, MaxTextLength, "content.analysis.vocabulary.reading.invalid", "La lectura del vocabulario no es válida.");
-            var definition = NormalizeRequired(x.Definition, MaxTextLength, "content.analysis.vocabulary.definition.invalid", "El significado contextual no es válido.");
+            var definition = NormalizeRequired(x.Definition, MaxTextLength, "content.analysis.vocabulary.definition.invalid", "Completa el significado contextual en español o elimina este sentido.");
             var senseKey = string.IsNullOrWhiteSpace(x.SenseKey) ? $"editorial.{ShortHash($"{lemma}|{reading}|{definition}")}" : x.SenseKey.Trim();
 
             return new PreparedVocabulary(
@@ -400,8 +400,8 @@ public sealed partial class LinguisticAnalysisEditorialWriter(
             NormalizeOptional(x.Reading, MaxTextLength),
             NormalizeCode(string.IsNullOrWhiteSpace(x.ReadingType) ? "GENERAL" : x.ReadingType, "content.analysis.kanji.reading-type.invalid"),
             NormalizeOptional(x.Meaning, MaxTextLength),
-            NormalizeOptionalCode(x.GradeCode),
-            NormalizeOptionalCode(x.JlptCode)))
+            NormalizeOptionalGradeCode(x.GradeCode),
+            NormalizeOptionalJlptCode(x.JlptCode, "content.analysis.kanji.jlpt.invalid")))
             .OrderBy(x => x.TokenId).ThenBy(x => x.CharOffset).ThenBy(x => x.Character, StringComparer.Ordinal).ToList();
 
         var morphology = (input.Morphology ?? []).Select(x => new PreparedMorphology(
@@ -425,7 +425,7 @@ public sealed partial class LinguisticAnalysisEditorialWriter(
                 x.EndTokenId,
                 code,
                 title,
-                NormalizeOptionalCode(x.LevelCode),
+                NormalizeOptionalJlptCode(x.LevelCode, "content.analysis.grammar.level.invalid"),
                 NormalizeOptional(x.Note, MaxTextLength),
                 NormalizeOptional(x.Explanation, MaxTextLength),
                 NormalizeOptional(x.Examples, MaxTextLength));
@@ -1001,6 +1001,28 @@ public sealed partial class LinguisticAnalysisEditorialWriter(
 
     private static string? NormalizeOptionalCode(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : NormalizeCode(value, "content.analysis.code.invalid");
+
+    private static string? NormalizeOptionalGradeCode(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var normalized = value.Trim().ToUpperInvariant();
+        if (normalized is not ("G1" or "G2" or "G3" or "G4" or "G5" or "G6"))
+            throw new LinguisticAnalysisAdministrationException(
+                "content.analysis.kanji.grade.invalid",
+                "El nivel escolar debe ser Sin clasificar o uno de los grados 1 a 6.");
+        return normalized;
+    }
+
+    private static string? NormalizeOptionalJlptCode(string? value, string code)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var normalized = value.Trim().ToUpperInvariant();
+        if (normalized is not ("N5" or "N4" or "N3" or "N2" or "N1"))
+            throw new LinguisticAnalysisAdministrationException(
+                code,
+                "El nivel JLPT debe ser Sin clasificar o uno de N5, N4, N3, N2 o N1.");
+        return normalized;
+    }
 
     private static string ShortHash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)))[..16].ToLowerInvariant();

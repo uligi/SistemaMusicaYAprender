@@ -98,7 +98,7 @@ test.describe('BL-MVP-037 · identidad estable de artista', () => {
 
     await page.locator('#artist-canonical-name').fill('サカナクション');
     await page.locator('#artist-sort-name').fill('Sakanaction');
-    await page.locator('#artist-type').fill('BAND');
+    await page.locator('#artist-type').selectOption('BAND');
     await page.locator('#artist-kana-reading').fill('さかなくしょん');
     await page.locator('#artist-romaji').fill('Sakanaction');
     await page.locator('#artist-spanish-name').fill('Sakanaction ES');

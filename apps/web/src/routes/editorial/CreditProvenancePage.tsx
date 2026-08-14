@@ -275,7 +275,7 @@ export function CreditProvenancePage({ recordingId }: CreditProvenancePageProps)
         <h1 id="credit-provenance-title">Créditos, participantes y procedencia</h1>
         <p>
           Registra quién participa, en qué orden se acredita y de dónde proviene la información. Los
-          Los derechos, territorios, usos y vigencias se administran en esta misma pantalla.
+          derechos, territorios, usos y vigencias se administran en esta misma pantalla.
         </p>
         <p>
           Grabación: <code>{recordingId}</code>
@@ -427,26 +427,23 @@ export function CreditProvenancePage({ recordingId }: CreditProvenancePageProps)
                 required
               />
 
-              <Field
+              <SelectField
                 id="credit-role-code"
                 label="Rol del crédito"
-                helpText="Código extensible, por ejemplo PERFORMER, COMPOSER, LYRICIST, ARRANGER o PRODUCER."
+                helpText="Elige el rol visible; el sistema conserva el código estable internamente."
                 value={roleCode}
                 onChange={(event) => {
-                  setRoleCode(event.target.value.toUpperCase());
+                  setRoleCode(event.target.value);
                   setRequestKey(crypto.randomUUID());
                 }}
-                pattern="[A-Z0-9][A-Z0-9._-]{0,63}"
-                list="credit-role-suggestions"
                 required
-              />
-              <datalist id="credit-role-suggestions">
-                <option value="PERFORMER" />
-                <option value="COMPOSER" />
-                <option value="LYRICIST" />
-                <option value="ARRANGER" />
-                <option value="PRODUCER" />
-              </datalist>
+              >
+                <option value="PERFORMER">Intérprete</option>
+                <option value="COMPOSER">Compositor/a</option>
+                <option value="LYRICIST">Letrista</option>
+                <option value="ARRANGER">Arreglista</option>
+                <option value="PRODUCER">Productor/a</option>
+              </SelectField>
 
               <Field
                 id="credit-display-order"
@@ -462,18 +459,21 @@ export function CreditProvenancePage({ recordingId }: CreditProvenancePageProps)
                 required
               />
 
-              <Field
+              <SelectField
                 id="credit-source-type"
                 label="Tipo de fuente"
-                helpText="Código estable de la procedencia; por ejemplo OFFICIAL_CREDIT, BOOKLET o OFFICIAL_SITE."
+                helpText="Elige la clase de fuente; el código estable no se escribe a mano."
                 value={sourceType}
                 onChange={(event) => {
-                  setSourceType(event.target.value.toUpperCase());
+                  setSourceType(event.target.value);
                   setRequestKey(crypto.randomUUID());
                 }}
-                pattern="[A-Z0-9][A-Z0-9._-]{0,63}"
                 required
-              />
+              >
+                <option value="OFFICIAL_CREDIT">Crédito oficial</option>
+                <option value="BOOKLET">Folleto / booklet oficial</option>
+                <option value="OFFICIAL_SITE">Sitio oficial</option>
+              </SelectField>
 
               <Field
                 id="credit-citation"

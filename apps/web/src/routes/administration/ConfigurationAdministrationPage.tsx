@@ -107,6 +107,173 @@ async function csrfHeaders(): Promise<Readonly<Record<string, string>> | null> {
   };
 }
 
+type SimpleJsonSchema = {
+  type?: string;
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  enum?: unknown[];
+};
+
+function parseSchema(schemaJson: string): SimpleJsonSchema {
+  try {
+    const parsed = JSON.parse(schemaJson) as unknown;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as SimpleJsonSchema)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function parseJsonScalar(valueJson: string): unknown {
+  try {
+    return JSON.parse(valueJson);
+  } catch {
+    return valueJson;
+  }
+}
+
+function scalarLabel(value: unknown): string {
+  if (value === true) return 'Sí';
+  if (value === false) return 'No';
+  if (value === null) return 'Vacío';
+  return String(value);
+}
+
+function GuidedJsonValueField({
+  id,
+  label,
+  value,
+  schemaJson,
+  valueType,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  schemaJson: string;
+  valueType?: string;
+  onChange: (next: string) => void;
+}) {
+  const schema = parseSchema(schemaJson);
+  const current = parseJsonScalar(value);
+  const effectiveType = (valueType ?? schema.type ?? '').toUpperCase();
+
+  if (schema.enum && schema.enum.length > 0) {
+    return (
+      <SelectField
+        id={id}
+        label={label}
+        helpText="Elige uno de los valores publicados; no escribas JSON ni códigos arbitrarios."
+        value={JSON.stringify(current)}
+        onChange={(event) => onChange(event.target.value)}
+        required
+      >
+        {schema.enum.map((option) => {
+          const serialized = JSON.stringify(option);
+          return (
+            <option key={serialized} value={serialized}>
+              {scalarLabel(option)}
+            </option>
+          );
+        })}
+      </SelectField>
+    );
+  }
+
+  if (effectiveType === 'BOOLEAN') {
+    return (
+      <SelectField
+        id={id}
+        label={label}
+        helpText="Selecciona Sí o No."
+        value={current === true ? 'true' : 'false'}
+        onChange={(event) => onChange(event.target.value)}
+        required
+      >
+        <option value="true">Sí</option>
+        <option value="false">No</option>
+      </SelectField>
+    );
+  }
+
+  if (['INTEGER', 'DECIMAL', 'NUMBER'].includes(effectiveType)) {
+    return (
+      <Field
+        id={id}
+        label={label}
+        helpText="Solo se aceptan números dentro del rango publicado."
+        type="number"
+        step={effectiveType === 'INTEGER' ? 1 : 'any'}
+        min={schema.minimum}
+        max={schema.maximum}
+        value={typeof current === 'number' ? String(current) : ''}
+        onChange={(event) => onChange(event.target.value)}
+        required
+      />
+    );
+  }
+
+  if (['STRING', 'REFERENCE'].includes(effectiveType) || schema.type === 'string') {
+    return (
+      <Field
+        id={id}
+        label={label}
+        helpText="Escribe únicamente el valor visible; el sistema serializa el JSON internamente."
+        value={typeof current === 'string' ? current : ''}
+        minLength={schema.minLength}
+        maxLength={schema.maxLength ?? 8192}
+        onChange={(event) => onChange(JSON.stringify(event.target.value))}
+        required
+      />
+    );
+  }
+
+  return (
+    <label className="configuration-administration__field" htmlFor={id}>
+      <span>{label}</span>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={4}
+        maxLength={8192}
+        spellCheck={false}
+        required
+      />
+      <small>
+        Este valor es estructurado y todavía requiere edición avanzada. La simulación del servidor
+        sigue siendo obligatoria antes de activar.
+      </small>
+    </label>
+  );
+}
+
+function spanishLabelFromJson(labelsJson: string): string {
+  try {
+    const parsed = JSON.parse(labelsJson) as Record<string, unknown>;
+    return typeof parsed.es === 'string' ? parsed.es : '';
+  } catch {
+    return '';
+  }
+}
+
+function withSpanishLabel(labelsJson: string, value: string): string {
+  let parsed: Record<string, unknown> = {};
+  try {
+    const current = JSON.parse(labelsJson) as unknown;
+    if (current && typeof current === 'object' && !Array.isArray(current)) {
+      parsed = { ...(current as Record<string, unknown>) };
+    }
+  } catch {
+    parsed = {};
+  }
+  parsed.es = value;
+  return JSON.stringify(parsed);
+}
+
 function toIsoOrNull(value: string): string | null {
   if (!value) return null;
   const parsed = new Date(value);
@@ -479,20 +646,19 @@ export function ConfigurationAdministrationPage() {
               </p>
             ) : null}
 
-            <label className="configuration-administration__field" htmlFor="parameter-value">
-              <span>Valor JSON</span>
-              <textarea
+            {selectedParameter ? (
+              <GuidedJsonValueField
                 id="parameter-value"
+                label="Nuevo valor"
                 value={parameterValue}
-                onChange={(event) => {
-                  setParameterValue(event.target.value);
+                schemaJson={selectedParameter.validationSchemaJson}
+                valueType={selectedParameter.valueType}
+                onChange={(next) => {
+                  setParameterValue(next);
                   setParameterSimulation(null);
                 }}
-                rows={4}
-                maxLength={8192}
-                required
               />
-            </label>
+            ) : null}
 
             <Field
               id="parameter-valid-until"
@@ -588,36 +754,31 @@ export function ConfigurationAdministrationPage() {
               ))}
             </SelectField>
 
-            <label className="configuration-administration__field" htmlFor="catalog-labels">
-              <span>Etiquetas JSON</span>
-              <textarea
-                id="catalog-labels"
-                value={catalogLabels}
-                onChange={(event) => {
-                  setCatalogLabels(event.target.value);
-                  setCatalogSimulation(null);
-                }}
-                rows={4}
-                maxLength={8192}
-                required
-              />
-              <small>Debe conservar como mínimo una etiqueta española no vacía.</small>
-            </label>
+            <Field
+              id="catalog-labels"
+              label="Nombre visible en español"
+              helpText="Edita la etiqueta humana; las demás localizaciones se conservan automáticamente."
+              value={spanishLabelFromJson(catalogLabels)}
+              onChange={(event) => {
+                setCatalogLabels(withSpanishLabel(catalogLabels, event.target.value));
+                setCatalogSimulation(null);
+              }}
+              maxLength={512}
+              required
+            />
 
-            <label className="configuration-administration__field" htmlFor="catalog-value">
-              <span>Valor JSON</span>
-              <textarea
+            {selectedCatalog ? (
+              <GuidedJsonValueField
                 id="catalog-value"
+                label="Valor de la entrada"
                 value={catalogValue}
-                onChange={(event) => {
-                  setCatalogValue(event.target.value);
+                schemaJson={selectedCatalog.valueSchemaJson}
+                onChange={(next) => {
+                  setCatalogValue(next);
                   setCatalogSimulation(null);
                 }}
-                rows={4}
-                maxLength={8192}
-                required
               />
-            </label>
+            ) : null}
 
             <Field
               id="catalog-valid-until"

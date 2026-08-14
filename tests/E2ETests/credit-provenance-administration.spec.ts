@@ -167,8 +167,8 @@ test.describe('BL-MVP-039 · créditos, participantes y procedencia', () => {
 
     await page.locator('#credit-participant-mode').selectOption('PENDING');
     await page.locator('#credit-display-name').fill('Participante no confirmado');
-    await page.locator('#credit-role-code').fill('LYRICIST');
-    await page.locator('#credit-source-type').fill('BOOKLET');
+    await page.locator('#credit-role-code').selectOption('LYRICIST');
+    await page.locator('#credit-source-type').selectOption('BOOKLET');
     await page.locator('#credit-citation').fill('Folleto pendiente de contraste');
     await page.getByRole('button', { name: 'Guardar crédito y procedencia' }).click();
 
