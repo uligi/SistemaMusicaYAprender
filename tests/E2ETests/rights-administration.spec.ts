@@ -119,9 +119,16 @@ test.describe('BL-MVP-040 · derechos, usos, territorios y vigencias', () => {
   }) => {
     await page.goto(`/editorial/canciones/${recordingId}/derechos`);
 
+    const guide = page.getByRole('navigation', { name: 'Guía rápida de derechos y procedencia' });
+    await expect(guide).toBeVisible();
+    await expect(guide.getByRole('button', { name: /Derechos y disponibilidad/ })).toBeVisible();
+
     await expect(
       page.getByRole('heading', { name: 'Derechos, usos, territorios y vigencias' }),
     ).toBeVisible();
+    await expect(page.getByText('Titular y base de autorización')).toBeVisible();
+    await expect(page.getByText('Alcance y vigencia')).toBeVisible();
+    await expect(page.getByText('Motivo, versión y evidencia')).toBeVisible();
 
     await page.getByLabel('Titular declarado').fill('Titular de prueba');
     await page.getByLabel('Inicio de vigencia').fill('2026-08-01T00:00');

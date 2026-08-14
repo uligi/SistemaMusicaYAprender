@@ -1,0 +1,100 @@
+.rights-provenance {
+  display: grid;
+  gap: var(--ma-space-6);
+  min-width: 0;
+}
+
+.rights-provenance__navigator {
+  position: sticky;
+  inset-block-start: var(--ma-space-2);
+  z-index: 3;
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.7fr) minmax(0, 1.3fr);
+  gap: var(--ma-space-4);
+  align-items: center;
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-surface);
+  background: var(--ma-color-canvas);
+  box-shadow: var(--ma-elevation-floating);
+}
+
+.rights-provenance__navigator-copy {
+  display: grid;
+  gap: var(--ma-space-1);
+}
+
+.rights-provenance__navigator-copy p {
+  margin: 0;
+}
+
+.rights-provenance__navigator-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ma-space-2);
+}
+
+.rights-provenance__navigator-actions button {
+  display: grid;
+  grid-template-columns: var(--ma-touch-target) minmax(0, 1fr);
+  gap: var(--ma-space-2);
+  align-items: center;
+  min-height: var(--ma-touch-target);
+  padding: var(--ma-space-2);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  color: var(--ma-color-ink);
+  background: var(--ma-color-surface);
+  text-align: start;
+  cursor: pointer;
+}
+
+.rights-provenance__navigator-actions button > span:first-child {
+  display: inline-grid;
+  width: var(--ma-touch-target);
+  height: var(--ma-touch-target);
+  place-items: center;
+  border-radius: 999px;
+  color: var(--ma-color-canvas);
+  background: var(--ma-color-primary);
+  font-weight: var(--ma-font-weight-bold);
+}
+
+.rights-provenance__navigator-actions button > span:last-child {
+  display: grid;
+  gap: var(--ma-space-1);
+  min-width: 0;
+}
+
+.rights-provenance__navigator-actions small {
+  color: var(--ma-color-muted);
+  line-height: 1.35;
+}
+
+.rights-provenance__navigator-actions button:hover {
+  border-color: var(--ma-color-primary);
+}
+
+.rights-provenance__navigator-actions button:focus-visible {
+  outline: calc(var(--ma-border-width-thin) * 2) solid var(--ma-color-primary);
+  outline-offset: var(--ma-space-1);
+  box-shadow: var(--ma-focus-ring);
+}
+
+.rights-provenance .rights-admin {
+  margin-top: 0;
+}
+
+@media (max-width: 64rem) {
+  .rights-provenance__navigator {
+    position: static;
+    grid-template-columns: 1fr;
+    box-shadow: var(--ma-elevation-none);
+  }
+}
+
+@media (max-width: 40rem) {
+  .rights-provenance__navigator-actions {
+    grid-template-columns: 1fr;
+  }
+}

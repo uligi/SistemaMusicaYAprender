@@ -255,3 +255,17 @@
     transition-duration: var(--ma-motion-duration-instant);
   }
 }
+
+.app-back-to-top {
+  position: fixed;
+  inset-inline-end: var(--ma-space-4);
+  inset-block-end: var(--ma-space-4);
+  z-index: 9;
+  gap: var(--ma-space-2);
+  box-shadow: var(--ma-elevation-floating);
+}
+
+.app-back-to-top > span {
+  font-size: 1.125rem;
+  line-height: 1;
+}

@@ -54,12 +54,34 @@ type DossierState =
   | { phase: 'ready'; data: DossierResponse }
   | { phase: 'failed'; problem: ClientProblem };
 
+type ComponentFilter = 'ALL' | 'READY' | 'PENDING';
+
 export type SongEditorialDossierPageProps = {
   recordingId: string;
 };
 
+const stateLabels: Record<string, string> = {
+  ACTIVE: 'Activo',
+  BLOCKED: 'Bloqueado',
+  DRAFT: 'Borrador',
+  NOT_STARTED: 'Sin iniciar',
+  PUBLISHED: 'Publicado',
+  READY: 'Listo',
+  REVIEW: 'En revisión',
+};
+
+const severityLabels: Record<string, string> = {
+  ERROR: 'Error',
+  WARNING: 'Advertencia',
+  INFO: 'Información',
+};
+
 function displayState(value: string) {
-  return value.replaceAll('_', ' ');
+  return stateLabels[value] ?? value.replaceAll('_', ' ').toLocaleLowerCase('es');
+}
+
+function displaySeverity(value: string) {
+  return severityLabels[value] ?? displayState(value);
 }
 
 function formatDate(value: string) {
@@ -69,12 +91,25 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function scrollToSection(id: string) {
+  const target = document.getElementById(id);
+  if (!target) return;
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  target.scrollIntoView({
+    behavior: reducedMotion ? 'auto' : 'smooth',
+    block: 'start',
+  });
+}
+
 export function SongEditorialDossierPage({ recordingId }: SongEditorialDossierPageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [state, setState] = useState<DossierState>({ phase: 'loading' });
+  const [componentFilter, setComponentFilter] = useState<ComponentFilter>('ALL');
 
   useEffect(() => {
     headingRef.current?.focus();
+    setComponentFilter('ALL');
 
     const controller = new AbortController();
 
@@ -103,6 +138,22 @@ export function SongEditorialDossierPage({ recordingId }: SongEditorialDossierPa
     return () => controller.abort();
   }, [recordingId]);
 
+  const data = state.phase === 'ready' ? state.data : null;
+  const readyComponents = data?.components.filter((component) => component.exists).length ?? 0;
+  const totalComponents = data?.components.length ?? 0;
+  const pendingComponents = totalComponents - readyComponents;
+  const completion =
+    totalComponents === 0 ? 0 : Math.round((readyComponents / totalComponents) * 100);
+  const filteredComponents =
+    data?.components.filter((component) => {
+      if (componentFilter === 'READY') return component.exists;
+      if (componentFilter === 'PENDING') return !component.exists;
+      return true;
+    }) ?? [];
+  const recommendedComponent =
+    data?.components.find((component) => !component.exists && component.href) ?? null;
+  const rightsAccess = data?.allowedAccesses.find((access) => access.code === 'RIGHTS') ?? null;
+
   return (
     <article className="route-surface song-dossier" data-route-id="UI-MVP-019">
       <header className="song-dossier__header">
@@ -111,8 +162,8 @@ export function SongEditorialDossierPage({ recordingId }: SongEditorialDossierPa
           Expediente editorial de canción
         </h1>
         <p>
-          Reúne el estado editorial de la grabación sin congelar ni publicar nada. Las revisiones,
-          incidencias y accesos se vuelven a resolver desde el servidor.
+          Usa este panel como centro de control: identifica qué está listo, qué falta y abre
+          directamente la siguiente tarea sin recorrer todo el expediente.
         </p>
       </header>
 
@@ -132,112 +183,246 @@ export function SongEditorialDossierPage({ recordingId }: SongEditorialDossierPa
         />
       ) : null}
 
-      {state.phase === 'ready' ? (
+      {data ? (
         <>
           <section className="song-dossier__identity" aria-labelledby="song-dossier-identity">
             <div>
-              <p className="song-dossier__artist">{state.data.artistName}</p>
+              <p className="song-dossier__artist">{data.artistName}</p>
               <h2 id="song-dossier-identity" lang="ja">
-                {state.data.canonicalTitle}
+                {data.canonicalTitle}
               </h2>
-              <p>{state.data.recordingTitle ?? 'Sin título adicional de grabación'}</p>
+              <p>{data.recordingTitle ?? 'Sin título adicional de grabación'}</p>
             </div>
             <dl>
               <div>
                 <dt>Grabación</dt>
-                <dd>{displayState(state.data.recordingStatusCode)}</dd>
+                <dd>
+                  <span className="song-dossier__status-pill">
+                    {displayState(data.recordingStatusCode)}
+                  </span>
+                </dd>
               </div>
               <div>
                 <dt>Fuente</dt>
                 <dd>
-                  {state.data.providerCode ?? 'Sin fuente'} ·{' '}
-                  {state.data.sourceStatusCode
-                    ? displayState(state.data.sourceStatusCode)
-                    : 'sin estado'}
+                  {data.providerCode ?? 'Sin fuente'} ·{' '}
+                  {data.sourceStatusCode ? displayState(data.sourceStatusCode) : 'sin estado'}
                 </dd>
               </div>
             </dl>
           </section>
 
+          <section className="song-dossier__overview" aria-label="Resumen operativo del expediente">
+            <button type="button" onClick={() => scrollToSection('song-dossier-components')}>
+              <strong>
+                {readyComponents}/{totalComponents}
+              </strong>
+              <span>componentes con revisión</span>
+            </button>
+            <button type="button" onClick={() => scrollToSection('song-dossier-rights')}>
+              <strong>{data.rights.activeRecords}</strong>
+              <span>derechos activos</span>
+            </button>
+            <button type="button" onClick={() => scrollToSection('song-dossier-incidents')}>
+              <strong>{data.incidents.length}</strong>
+              <span>incidencias abiertas</span>
+            </button>
+            <button type="button" onClick={() => scrollToSection('song-dossier-access')}>
+              <strong>{data.allowedAccesses.length}</strong>
+              <span>accesos disponibles</span>
+            </button>
+          </section>
+
+          <section className="song-dossier__progress-card" aria-labelledby="song-dossier-progress">
+            <div className="song-dossier__progress-copy">
+              <div>
+                <p className="eyebrow">Avance visible</p>
+                <h2 id="song-dossier-progress">Estado del expediente</h2>
+              </div>
+              <strong>{completion}%</strong>
+            </div>
+            <div
+              className="song-dossier__progress-track"
+              role="progressbar"
+              aria-label="Componentes con revisión disponible"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={completion}
+            >
+              <span style={{ width: `${completion}%` }} />
+            </div>
+            <p>
+              {pendingComponents === 0
+                ? 'Todos los componentes visibles tienen una revisión o registro asociado.'
+                : `Quedan ${pendingComponents} componente(s) sin revisión visible.`}
+            </p>
+          </section>
+
+          <section className="song-dossier__next-step" aria-labelledby="song-dossier-next-step">
+            <div>
+              <p className="eyebrow">Siguiente paso sugerido</p>
+              <h2 id="song-dossier-next-step">
+                {recommendedComponent
+                  ? `Continuar con ${recommendedComponent.label}`
+                  : data.incidents.length > 0
+                    ? 'Revisar incidencias abiertas'
+                    : 'Expediente sin tareas pendientes visibles'}
+              </h2>
+              <p>
+                {recommendedComponent
+                  ? 'Es el primer componente navegable que todavía no tiene revisión.'
+                  : data.incidents.length > 0
+                    ? 'Los componentes tienen revisión; quedan hallazgos de calidad por atender.'
+                    : 'No hay componentes pendientes ni incidencias abiertas en este resumen.'}
+              </p>
+            </div>
+            {recommendedComponent?.href ? (
+              <a className="ma-button ma-button--primary" href={recommendedComponent.href}>
+                Abrir {recommendedComponent.label.toLocaleLowerCase('es')}
+              </a>
+            ) : data.incidents.length > 0 ? (
+              <button
+                type="button"
+                className="ma-button ma-button--secondary"
+                onClick={() => scrollToSection('song-dossier-incidents')}
+              >
+                Ver incidencias
+              </button>
+            ) : null}
+          </section>
+
+          <nav className="song-dossier__quick-nav" aria-label="Navegación rápida del expediente">
+            <span>Ir a</span>
+            <a href="#song-dossier-components">Componentes</a>
+            <a href="#song-dossier-rights">Derechos</a>
+            <a href="#song-dossier-incidents">Incidencias</a>
+            <a href="#song-dossier-access">Accesos</a>
+          </nav>
+
           <RecordingAutosavePanel recordingId={recordingId} />
 
           <section aria-labelledby="song-dossier-components">
             <header className="song-dossier__section-heading">
-              <h2 id="song-dossier-components">Componentes por revisión</h2>
-              <p>
-                Una ausencia queda visible como “Sin revisión”; no se inventa contenido faltante.
-              </p>
+              <div>
+                <h2 id="song-dossier-components">Componentes por revisión</h2>
+                <p>Filtra la lista para concentrarte solo en lo pendiente o en lo ya preparado.</p>
+              </div>
+              <div className="song-dossier__filters" role="group" aria-label="Filtrar componentes">
+                <button
+                  type="button"
+                  aria-pressed={componentFilter === 'ALL'}
+                  onClick={() => setComponentFilter('ALL')}
+                >
+                  Todos ({totalComponents})
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={componentFilter === 'PENDING'}
+                  onClick={() => setComponentFilter('PENDING')}
+                >
+                  Pendientes ({pendingComponents})
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={componentFilter === 'READY'}
+                  onClick={() => setComponentFilter('READY')}
+                >
+                  Con revisión ({readyComponents})
+                </button>
+              </div>
             </header>
 
-            <ul className="song-dossier__components">
-              {state.data.components.map((component) => (
-                <li key={component.code}>
-                  <article className="song-dossier__component">
-                    <header>
-                      <h3>{component.label}</h3>
-                      <span>{component.revisionLabel}</span>
-                    </header>
-                    <dl>
-                      <div>
-                        <dt>Estado</dt>
-                        <dd>{displayState(component.stateCode)}</dd>
-                      </div>
-                      <div>
-                        <dt>Propietario</dt>
-                        <dd>{component.ownerLabel}</dd>
-                      </div>
-                    </dl>
-                    {component.href ? (
-                      <a className="ma-link" href={component.href}>
-                        Abrir {component.label.toLocaleLowerCase('es')}
-                      </a>
-                    ) : component.code === 'CATALOG' ? (
-                      <p className="song-dossier__restricted">
-                        Resumen incluido en este expediente.
-                      </p>
-                    ) : (
-                      <p className="song-dossier__restricted">
-                        Sin acceso navegable para tu alcance actual.
-                      </p>
-                    )}
-                  </article>
-                </li>
-              ))}
-            </ul>
+            {filteredComponents.length === 0 ? (
+              <StateMessage
+                state="UI-EST-12"
+                title="No hay componentes en este filtro"
+                description="Cambia el filtro para ver el resto del expediente."
+              />
+            ) : (
+              <ul className="song-dossier__components">
+                {filteredComponents.map((component) => (
+                  <li key={component.code}>
+                    <article
+                      className="song-dossier__component"
+                      data-complete={component.exists ? 'true' : 'false'}
+                    >
+                      <header>
+                        <h3>{component.label}</h3>
+                        <span className="song-dossier__revision-pill">
+                          {component.revisionLabel}
+                        </span>
+                      </header>
+                      <dl>
+                        <div>
+                          <dt>Estado</dt>
+                          <dd>{displayState(component.stateCode)}</dd>
+                        </div>
+                        <div>
+                          <dt>Responsable</dt>
+                          <dd>{component.ownerLabel}</dd>
+                        </div>
+                      </dl>
+                      {component.href ? (
+                        <a className="ma-link" href={component.href}>
+                          Abrir {component.label.toLocaleLowerCase('es')}
+                        </a>
+                      ) : component.code === 'CATALOG' ? (
+                        <p className="song-dossier__restricted">
+                          Resumen incluido en este expediente.
+                        </p>
+                      ) : (
+                        <p className="song-dossier__restricted">
+                          Sin acceso navegable para tu alcance actual.
+                        </p>
+                      )}
+                    </article>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <section className="song-dossier__rights" aria-labelledby="song-dossier-rights">
             <header className="song-dossier__section-heading">
-              <h2 id="song-dossier-rights">Derechos y procedencia</h2>
-              <p>Resumen editorial; la vigencia efectiva se vuelve a validar al publicar.</p>
+              <div>
+                <h2 id="song-dossier-rights">Derechos y procedencia</h2>
+                <p>Resumen editorial; la vigencia efectiva se vuelve a validar al publicar.</p>
+              </div>
+              {rightsAccess ? (
+                <a className="ma-button ma-button--secondary" href={rightsAccess.href}>
+                  Gestionar derechos
+                </a>
+              ) : null}
             </header>
             <dl>
               <div>
                 <dt>Registros de derechos</dt>
-                <dd>{state.data.rights.totalRecords}</dd>
+                <dd>{data.rights.totalRecords}</dd>
               </div>
               <div>
                 <dt>Derechos activos ahora</dt>
-                <dd>{state.data.rights.activeRecords}</dd>
+                <dd>{data.rights.activeRecords}</dd>
               </div>
               <div>
                 <dt>Registros de procedencia</dt>
-                <dd>{state.data.rights.provenanceRecords}</dd>
+                <dd>{data.rights.provenanceRecords}</dd>
               </div>
               <div>
                 <dt>Responsable</dt>
-                <dd>{state.data.rights.ownerLabel}</dd>
+                <dd>{data.rights.ownerLabel}</dd>
               </div>
             </dl>
           </section>
 
           <section aria-labelledby="song-dossier-incidents">
             <header className="song-dossier__section-heading">
-              <h2 id="song-dossier-incidents">Incidencias abiertas</h2>
-              <p>Hallazgos de calidad vinculados a la grabación o a sus revisiones visibles.</p>
+              <div>
+                <h2 id="song-dossier-incidents">Incidencias abiertas</h2>
+                <p>Hallazgos de calidad vinculados a la grabación o a sus revisiones visibles.</p>
+              </div>
             </header>
 
-            {state.data.incidents.length === 0 ? (
+            {data.incidents.length === 0 ? (
               <StateMessage
                 state="UI-EST-12"
                 title="Sin incidencias abiertas"
@@ -245,13 +430,14 @@ export function SongEditorialDossierPage({ recordingId }: SongEditorialDossierPa
               />
             ) : (
               <ul className="song-dossier__incidents">
-                {state.data.incidents.map((incident, index) => (
+                {data.incidents.map((incident, index) => (
                   <li key={`${incident.componentCode}-${incident.ruleCode}-${index}`}>
-                    <strong>
-                      {incident.componentCode} · {incident.ruleCode}
-                    </strong>
+                    <div>
+                      <strong>{incident.ruleCode}</strong>
+                      <span>{incident.componentCode}</span>
+                    </div>
                     <span>
-                      {incident.severityCode} · {displayState(incident.statusCode)}
+                      {displaySeverity(incident.severityCode)} · {displayState(incident.statusCode)}
                     </span>
                     <time dateTime={incident.detectedAt}>{formatDate(incident.detectedAt)}</time>
                   </li>
@@ -262,13 +448,15 @@ export function SongEditorialDossierPage({ recordingId }: SongEditorialDossierPa
 
           <section aria-labelledby="song-dossier-access">
             <header className="song-dossier__section-heading">
-              <h2 id="song-dossier-access">Accesos permitidos</h2>
-              <p>Esta lista la deriva el servidor de capacidad y alcance por grabación.</p>
+              <div>
+                <h2 id="song-dossier-access">Accesos permitidos</h2>
+                <p>Abre directamente una herramienta autorizada para esta grabación.</p>
+              </div>
             </header>
 
             <nav aria-label="Accesos permitidos del expediente">
               <ul className="song-dossier__access">
-                {state.data.allowedAccesses.map((access) => (
+                {data.allowedAccesses.map((access) => (
                   <li key={access.code}>
                     <a className="ma-button ma-button--secondary" href={access.href}>
                       {access.label}

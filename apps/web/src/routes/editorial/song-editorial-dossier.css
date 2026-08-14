@@ -1,28 +1,35 @@
 .song-dossier {
   gap: var(--ma-space-5);
+  max-width: 72rem;
 }
 
 .song-dossier__header,
 .song-dossier__section-heading,
 .song-dossier__component,
-.song-dossier__identity {
+.song-dossier__identity,
+.song-dossier__progress-card,
+.song-dossier__next-step {
   display: grid;
   gap: var(--ma-space-3);
 }
 
 .song-dossier__header {
-  max-width: 56rem;
+  max-width: 60rem;
 }
 
 .song-dossier__header p,
 .song-dossier__section-heading p,
 .song-dossier__artist,
-.song-dossier__restricted {
+.song-dossier__restricted,
+.song-dossier__progress-card p,
+.song-dossier__next-step p {
   margin: 0;
 }
 
 .song-dossier__identity,
-.song-dossier__rights {
+.song-dossier__rights,
+.song-dossier__progress-card,
+.song-dossier__next-step {
   padding: var(--ma-space-4);
   border: var(--ma-border-width-thin) solid var(--ma-color-border);
   border-radius: var(--ma-radius-panel);
@@ -34,7 +41,10 @@
   align-items: start;
 }
 
-.song-dossier__identity h2 {
+.song-dossier__identity h2,
+.song-dossier__progress-card h2,
+.song-dossier__next-step h2,
+.song-dossier__section-heading h2 {
   margin: 0;
 }
 
@@ -72,6 +82,155 @@
   overflow-wrap: anywhere;
 }
 
+.song-dossier__status-pill,
+.song-dossier__revision-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: var(--ma-space-1) var(--ma-space-2);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: 999px;
+  background: var(--ma-color-canvas);
+  font-size: var(--ma-font-size-secondary);
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.song-dossier__overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ma-space-3);
+}
+
+.song-dossier__overview button {
+  display: grid;
+  gap: var(--ma-space-1);
+  min-height: var(--ma-touch-target);
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  color: var(--ma-color-ink);
+  background: var(--ma-color-canvas);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    transform var(--ma-motion-duration-fast) var(--ma-motion-easing-standard),
+    border-color var(--ma-motion-duration-fast) var(--ma-motion-easing-standard);
+}
+
+.song-dossier__overview button:hover {
+  border-color: var(--ma-color-primary);
+  transform: translateY(calc(var(--ma-motion-distance) * -0.25));
+}
+
+.song-dossier__overview button:focus-visible,
+.song-dossier__filters button:focus-visible,
+.song-dossier__next-step button:focus-visible {
+  outline: calc(var(--ma-border-width-thin) * 2) solid var(--ma-color-primary);
+  outline-offset: var(--ma-space-1);
+  box-shadow: var(--ma-focus-ring);
+}
+
+.song-dossier__overview strong {
+  color: var(--ma-color-primary);
+  font-size: 1.5rem;
+  font-variant-numeric: var(--ma-font-variant-data);
+}
+
+.song-dossier__overview span {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.song-dossier__progress-copy,
+.song-dossier__section-heading,
+.song-dossier__next-step {
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+}
+
+.song-dossier__progress-copy {
+  display: grid;
+  gap: var(--ma-space-3);
+}
+
+.song-dossier__progress-copy > strong {
+  color: var(--ma-color-primary);
+  font-size: 1.35rem;
+  font-variant-numeric: var(--ma-font-variant-data);
+}
+
+.song-dossier__progress-track {
+  height: 0.75rem;
+  overflow: hidden;
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: 999px;
+  background: var(--ma-color-canvas);
+}
+
+.song-dossier__progress-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ma-color-primary);
+  transition: width var(--ma-motion-duration-standard) var(--ma-motion-easing-standard);
+}
+
+.song-dossier__next-step {
+  border-inline-start: calc(var(--ma-border-width-thin) * 4) solid var(--ma-color-primary);
+}
+
+.song-dossier__quick-nav {
+  position: sticky;
+  inset-block-start: var(--ma-space-2);
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ma-space-2);
+  padding: var(--ma-space-2) var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-canvas);
+  box-shadow: var(--ma-elevation-floating);
+}
+
+.song-dossier__quick-nav span {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.song-dossier__quick-nav a {
+  min-height: var(--ma-touch-target);
+  display: inline-flex;
+  align-items: center;
+  padding-inline: var(--ma-space-2);
+}
+
+.song-dossier__filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--ma-space-2);
+}
+
+.song-dossier__filters button {
+  min-height: var(--ma-touch-target);
+  padding: var(--ma-space-2) var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: 999px;
+  color: var(--ma-color-ink);
+  background: var(--ma-color-canvas);
+  font-weight: var(--ma-font-weight-semibold);
+  cursor: pointer;
+}
+
+.song-dossier__filters button[aria-pressed='true'] {
+  border-color: var(--ma-color-primary);
+  color: var(--ma-color-canvas);
+  background: var(--ma-color-primary);
+}
+
 .song-dossier__components,
 .song-dossier__incidents,
 .song-dossier__access {
@@ -88,10 +247,19 @@
 
 .song-dossier__component {
   height: 100%;
-  padding: var(--ma-space-3);
+  padding: var(--ma-space-4);
   border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-inline-start-width: calc(var(--ma-border-width-thin) * 4);
   border-radius: var(--ma-radius-panel);
   background: var(--ma-color-surface);
+}
+
+.song-dossier__component[data-complete='true'] {
+  border-inline-start-color: var(--ma-color-success);
+}
+
+.song-dossier__component[data-complete='false'] {
+  border-inline-start-color: var(--ma-color-warning);
 }
 
 .song-dossier__component header {
@@ -104,10 +272,6 @@
 
 .song-dossier__component h3 {
   margin: 0;
-}
-
-.song-dossier__component header span {
-  color: var(--ma-color-muted);
 }
 
 .song-dossier__rights dl {
@@ -123,9 +287,22 @@
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) max-content;
   gap: var(--ma-space-3);
+  align-items: center;
   padding: var(--ma-space-3);
   border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-inline-start: calc(var(--ma-border-width-thin) * 4) solid var(--ma-color-warning);
   border-radius: var(--ma-radius-control);
+}
+
+.song-dossier__incidents li > div {
+  display: grid;
+  gap: var(--ma-space-1);
+}
+
+.song-dossier__incidents li > div span,
+.song-dossier__incidents time {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
 }
 
 .song-dossier__access {
@@ -134,22 +311,54 @@
   gap: var(--ma-space-2);
 }
 
+@media (max-width: 64rem) {
+  .song-dossier__overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 48rem) {
   .song-dossier__identity,
   .song-dossier__components,
   .song-dossier__identity dl,
   .song-dossier__rights dl,
-  .song-dossier__incidents li {
+  .song-dossier__incidents li,
+  .song-dossier__progress-copy,
+  .song-dossier__section-heading,
+  .song-dossier__next-step {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .song-dossier__filters {
+    justify-content: flex-start;
+  }
+
+  .song-dossier__quick-nav {
+    position: static;
+    box-shadow: var(--ma-elevation-none);
   }
 }
 
-@media (max-width: 24rem) {
-  .song-dossier__access {
+@media (max-width: 29.9375rem) {
+  .song-dossier__overview {
+    grid-template-columns: 1fr;
+  }
+
+  .song-dossier__access,
+  .song-dossier__filters {
     display: grid;
   }
 
-  .song-dossier__access .ma-button {
+  .song-dossier__access .ma-button,
+  .song-dossier__filters button,
+  .song-dossier__next-step .ma-button {
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .song-dossier__overview button,
+  .song-dossier__progress-track > span {
+    transition-duration: var(--ma-motion-duration-instant);
   }
 }

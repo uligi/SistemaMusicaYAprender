@@ -88,6 +88,34 @@ async function csrfHeaders(): Promise<Readonly<Record<string, string>> | null> {
     [result.data.headerName]: result.data.requestToken,
   };
 }
+function displayCreditRole(value: string) {
+  const labels: Record<string, string> = {
+    PERFORMER: 'Intérprete',
+    COMPOSER: 'Compositor/a',
+    LYRICIST: 'Letrista',
+    ARRANGER: 'Arreglista',
+    PRODUCER: 'Productor/a',
+  };
+  return labels[value] ?? value.replaceAll('_', ' ');
+}
+
+function displayCreditSource(value: string) {
+  const labels: Record<string, string> = {
+    OFFICIAL_CREDIT: 'Crédito oficial',
+    BOOKLET: 'Folleto / booklet oficial',
+    OFFICIAL_SITE: 'Sitio oficial',
+  };
+  return labels[value] ?? value.replaceAll('_', ' ');
+}
+
+function displayVerification(value: CreditEntry['verificationCode']) {
+  const labels: Record<CreditEntry['verificationCode'], string> = {
+    VERIFIED: 'Verificado',
+    UNVERIFIED: 'Sin verificar',
+    PENDING_IDENTITY: 'Identidad pendiente',
+  };
+  return labels[value];
+}
 
 export type CreditProvenancePageProps = {
   recordingId: string;
@@ -277,9 +305,10 @@ export function CreditProvenancePage({ recordingId }: CreditProvenancePageProps)
           Registra quién participa, en qué orden se acredita y de dónde proviene la información. Los
           derechos, territorios, usos y vigencias se administran en esta misma pantalla.
         </p>
-        <p>
-          Grabación: <code>{recordingId}</code>
-        </p>
+        <details className="credit-provenance__technical-id">
+          <summary>Ver identificador técnico de la grabación</summary>
+          <code>{recordingId}</code>
+        </details>
       </header>
 
       {error ? (
@@ -290,6 +319,25 @@ export function CreditProvenancePage({ recordingId }: CreditProvenancePageProps)
         <p className="credit-provenance__status" role="status">
           {message}
         </p>
+      ) : null}
+
+      {!loading ? (
+        <section className="credit-provenance__summary" aria-label="Resumen de créditos">
+          <div>
+            <strong>{credits.length}</strong>
+            <span>créditos registrados</span>
+          </div>
+          <div>
+            <strong>
+              {credits.filter((credit) => credit.verificationCode === 'VERIFIED').length}
+            </strong>
+            <span>verificados</span>
+          </div>
+          <div>
+            <strong>{credits.filter((credit) => credit.pendingIdentity).length}</strong>
+            <span>identidades pendientes</span>
+          </div>
+        </section>
       ) : null}
 
       <div className="credit-provenance__layout">
@@ -321,7 +369,7 @@ export function CreditProvenancePage({ recordingId }: CreditProvenancePageProps)
                 <div className="credit-provenance__credit-title">
                   <strong>{credit.displayName}</strong>
                   <span>
-                    {credit.roleCode} · orden {credit.displayOrder}
+                    {displayCreditRole(credit.roleCode)} · orden {credit.displayOrder}
                   </span>
                 </div>
                 <dl>
@@ -331,12 +379,12 @@ export function CreditProvenancePage({ recordingId }: CreditProvenancePageProps)
                   </div>
                   <div>
                     <dt>Verificación</dt>
-                    <dd>{credit.verificationCode}</dd>
+                    <dd>{displayVerification(credit.verificationCode)}</dd>
                   </div>
                   <div>
                     <dt>Fuente</dt>
                     <dd>
-                      {credit.sourceType}: {credit.citation}
+                      {displayCreditSource(credit.sourceType)}: {credit.citation}
                     </dd>
                   </div>
                   {credit.locator ? (

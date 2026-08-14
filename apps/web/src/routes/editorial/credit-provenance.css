@@ -145,3 +145,48 @@
     grid-template-columns: 1fr;
   }
 }
+
+.credit-provenance__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ma-space-3);
+}
+
+.credit-provenance__summary > div {
+  display: grid;
+  gap: var(--ma-space-1);
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-canvas);
+}
+
+.credit-provenance__summary strong {
+  color: var(--ma-color-primary);
+  font-size: 1.35rem;
+  font-variant-numeric: var(--ma-font-variant-data);
+}
+
+.credit-provenance__summary span,
+.credit-provenance__technical-id {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.credit-provenance__technical-id summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: var(--ma-font-weight-semibold);
+}
+
+.credit-provenance__technical-id code {
+  display: block;
+  margin-top: var(--ma-space-2);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .credit-provenance__summary {
+    grid-template-columns: 1fr;
+  }
+}

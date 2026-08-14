@@ -144,6 +144,23 @@ test.describe('BL-MVP-046 · expediente editorial de canción', () => {
     expect(accessibility.violations).toEqual([]);
   });
 
+  test('filtra tareas y ofrece volver arriba desde el shell global', async ({ page }) => {
+    await page.goto(`/editorial/canciones/${recordingId}`);
+
+    await expect(page.getByText('3/4', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Pendientes (1)' }).click();
+
+    await expect(page.getByRole('heading', { level: 3, name: 'Sincronización' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 3, name: 'Letra japonesa' })).toHaveCount(0);
+
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const backToTop = page.getByRole('button', { name: 'Volver al inicio de la página' });
+    await expect(backToTop).toBeVisible();
+    await backToTop.click();
+
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(5);
+  });
+
   test('mantiene el expediente a 320px sin desbordamiento horizontal', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 1000 });
     await page.goto(`/editorial/canciones/${recordingId}`);

@@ -150,3 +150,94 @@
     gap: var(--ma-space-1);
   }
 }
+
+.rights-admin__guide {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ma-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rights-admin__guide li {
+  display: grid;
+  gap: var(--ma-space-1);
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-surface);
+}
+
+.rights-admin__guide li span {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.rights-admin__records {
+  padding: 0;
+  list-style: none;
+}
+
+.rights-admin__record {
+  padding: var(--ma-space-4);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-inline-start: calc(var(--ma-border-width-thin) * 4) solid var(--ma-color-success);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.rights-admin__scope-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rights-admin__scope-badges li {
+  padding: var(--ma-space-1) var(--ma-space-2);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: 999px;
+  background: var(--ma-color-canvas);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.rights-admin__form-step {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--ma-space-1);
+  margin-top: var(--ma-space-2);
+  padding-top: var(--ma-space-3);
+  border-top: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.rights-admin__form-step:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.rights-admin__form-step span,
+.rights-admin__technical-code,
+.rights-admin__selected-file {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
+.rights-admin__selected-file {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .rights-admin__guide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 34rem) {
+  .rights-admin__guide {
+    grid-template-columns: 1fr;
+  }
+}

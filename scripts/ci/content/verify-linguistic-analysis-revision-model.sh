@@ -84,8 +84,11 @@ if grep -Eiq 'openai|anthropic|gemini|deepl|google[[:space:]_-]*translate|micros
   fail_check "BL064 no debe usar servicios lingüísticos externos."
 fi
 
-if grep -Eiq 'MapPost|INSERT INTO|UPDATE content\.|DELETE FROM' "$endpoint" "$service"; then
-  fail_check "BL064 es read-only y no debe escribir análisis."
+# BL064 verifica que su lector siga siendo read-only. BL067 añade legítimamente
+# rutas POST al mismo archivo de endpoints, por lo que MapPost ya no puede ser
+# usado como señal de regresión de BL064.
+if grep -Eiq 'INSERT INTO|UPDATE content\.|DELETE FROM' "$service"; then
+  fail_check "El lector BL064 debe seguir siendo read-only; las escrituras editoriales posteriores se validan en BL067."
 fi
 
 if grep -Eiq 'Publicar|publish' "$page"; then

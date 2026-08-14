@@ -117,6 +117,55 @@ function toUtcOrNull(value: string): string | null {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
+function formatDateTime(value: string | null) {
+  if (!value) return 'Sin fecha declarada';
+  return new Intl.DateTimeFormat('es-CR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function formatBytes(value: number) {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KiB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
+function displayBasis(value: string) {
+  const labels: Record<string, string> = {
+    AUTHORIZATION: 'Autorización',
+    LICENSE: 'Licencia',
+    PUBLIC_DOMAIN: 'Dominio público documentado',
+    PERMITTED_USE: 'Uso permitido documentado',
+  };
+  return labels[value] ?? value.replaceAll('_', ' ');
+}
+
+function displayStatus(value: string) {
+  const labels: Record<string, string> = {
+    ACTIVE: 'Activa',
+    EXPIRED: 'Vencida',
+    REVOKED: 'Revocada',
+    SUPERSEDED: 'Sustituida',
+  };
+  return labels[value] ?? value.replaceAll('_', ' ');
+}
+
+function displayChannel(value: string) {
+  return value === 'WEB' ? 'Web' : value.replaceAll('_', ' ');
+}
+
+function displayUse(value: string) {
+  const labels: Record<string, string> = {
+    DISPLAY: 'Mostrar contenido',
+    PLAYBACK: 'Reproducción',
+    TRANSLATION: 'Traducción',
+    ADAPTATION: 'Adaptación',
+    DISTRIBUTION: 'Distribución',
+    EXPORT: 'Exportación',
+  };
+  return labels[value] ?? value.replaceAll('_', ' ');
+}
 
 async function fileToBase64(file: File): Promise<string> {
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -334,6 +383,24 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
           territorios declarados; la ausencia de territorio no significa permiso mundial.
         </p>
       </header>
+      <ol className="rights-admin__guide" aria-label="Qué necesitas para registrar derechos">
+        <li>
+          <strong>1. Titular</strong>
+          <span>Quién concede o sustenta el permiso.</span>
+        </li>
+        <li>
+          <strong>2. Alcance</strong>
+          <span>Territorio, idioma, canal y uso exactos.</span>
+        </li>
+        <li>
+          <strong>3. Vigencia</strong>
+          <span>Desde cuándo y, si aplica, hasta cuándo.</span>
+        </li>
+        <li>
+          <strong>4. Evidencia</strong>
+          <span>Documento privado que respalda la decisión.</span>
+        </li>
+      </ol>
 
       {error ? (
         <StateMessage state="UI-EST-04" title="No se confirmó el cambio" description={error} />
@@ -374,7 +441,7 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
                 <div className="rights-admin__record-title">
                   <strong>{right.holderDisplayName}</strong>
                   <span>
-                    {right.basisCode} · {right.statusCode}
+                    {displayBasis(right.basisCode)} · {displayStatus(right.statusCode)}
                   </span>
                 </div>
                 <dl>
@@ -387,25 +454,26 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
                   <div>
                     <dt>Vigencia</dt>
                     <dd>
-                      {right.validFrom ?? 'Sin inicio declarado'} →{' '}
-                      {right.validTo ?? 'Sin vencimiento declarado'}
+                      {right.validFrom ? formatDateTime(right.validFrom) : 'Sin inicio declarado'} →{' '}
+                      {right.validTo ? formatDateTime(right.validTo) : 'Sin vencimiento declarado'}
                     </dd>
                   </div>
                   <div>
                     <dt>Evidencia privada</dt>
                     <dd>
                       <code>{right.evidenceObjectId}</code> · {right.evidenceMediaType} ·{' '}
-                      {right.evidenceSizeBytes} bytes
+                      {formatBytes(right.evidenceSizeBytes)}
                     </dd>
                   </div>
                   <div>
                     <dt>Alcance</dt>
                     <dd>
-                      <ul className="rights-admin__scopes">
+                      <ul className="rights-admin__scope-badges">
                         {right.scopes.map((scope) => (
                           <li key={scope.rightsScopeId}>
-                            {scope.territoryCode} · {scope.languageTag ?? 'cualquier idioma'} ·{' '}
-                            {scope.channelCode} · {scope.useCode}
+                            Territorio {scope.territoryCode} ·{' '}
+                            {scope.languageTag ?? 'cualquier idioma'} ·{' '}
+                            {displayChannel(scope.channelCode)} · {displayUse(scope.useCode)}
                           </li>
                         ))}
                       </ul>
@@ -481,7 +549,7 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
               role="status"
             >
               <strong>{evaluation.allowed ? 'Uso autorizado' : 'Uso bloqueado'}</strong>
-              <span>{evaluation.code}</span>
+              <code className="rights-admin__technical-code">{evaluation.code}</code>
               <p>{evaluation.description}</p>
             </div>
           ) : null}
@@ -499,6 +567,12 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
           </div>
 
           <form className="rights-admin__form rights-admin__form--grid" onSubmit={createRights}>
+            <div className="rights-admin__form-step">
+              <span>Paso 1</span>
+              <strong>Titular y base de autorización</strong>
+              <small>Identifica quién respalda la decisión y bajo qué figura.</small>
+            </div>
+
             <SelectField
               id="rights-holder-type"
               label="Tipo de titular"
@@ -540,6 +614,12 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
               <option value="PUBLIC_DOMAIN">Dominio público documentado</option>
               <option value="PERMITTED_USE">Uso permitido documentado</option>
             </SelectField>
+
+            <div className="rights-admin__form-step">
+              <span>Paso 2</span>
+              <strong>Alcance y vigencia</strong>
+              <small>Define exactamente dónde, cómo y durante cuánto tiempo aplica.</small>
+            </div>
 
             <Field
               id="rights-valid-from"
@@ -622,6 +702,14 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
               <option value="EXPORT">Exportación</option>
             </SelectField>
 
+            <div className="rights-admin__form-step">
+              <span>Paso 3</span>
+              <strong>Motivo, versión y evidencia</strong>
+              <small>
+                Deja una justificación auditable y adjunta el documento que la sustenta.
+              </small>
+            </div>
+
             <Field
               id="rights-supersedes"
               label="Sustituye expediente"
@@ -655,13 +743,22 @@ export function RightsAdministrationPanel({ recordingId }: RightsAdministrationP
                 id="rights-evidence"
                 type="file"
                 accept="application/pdf,text/plain,image/png,image/jpeg"
-                aria-describedby="rights-evidence-help"
+                aria-describedby="rights-evidence-help rights-evidence-selected"
                 onChange={(event) => {
                   setEvidenceFile(event.target.files?.[0] ?? null);
                   renewRequestKey();
                 }}
                 required
               />
+              <p
+                className="rights-admin__selected-file"
+                id="rights-evidence-selected"
+                role="status"
+              >
+                {evidenceFile
+                  ? `Archivo seleccionado: ${evidenceFile.name} · ${formatBytes(evidenceFile.size)}`
+                  : 'Todavía no has seleccionado evidencia.'}
+              </p>
             </div>
 
             <div className="rights-admin__actions">
