@@ -3,6 +3,7 @@ import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
 import { ContextualReading, ContextualReadingStatus } from './ContextualReading';
+import { LinguisticAnalysisEditor } from './LinguisticAnalysisEditor';
 import './linguistic-analysis-structure.css';
 
 const client = createHttpClient();
@@ -147,7 +148,7 @@ type AnalysisRevision = {
   provenance: Provenance[];
 };
 
-type AnalysisContext = {
+export type AnalysisContext = {
   recordingId: string;
   lyricsRevisionId: string | null;
   lyricsRevisionNo: number | null;
@@ -159,7 +160,7 @@ type AnalysisContext = {
 
 type PageState =
   | { phase: 'loading' }
-  | { phase: 'ready'; data: AnalysisContext }
+  | { phase: 'ready'; data: AnalysisContext; etag: string }
   | { phase: 'failed'; problem: ClientProblem };
 
 export type LinguisticAnalysisStructurePageProps = {
@@ -198,7 +199,7 @@ export function LinguisticAnalysisStructurePage({
       if (result.kind === 'cancelled') return;
       setState(
         result.ok
-          ? { phase: 'ready', data: result.data }
+          ? { phase: 'ready', data: result.data, etag: result.etag ?? '' }
           : { phase: 'failed', problem: result.problem },
       );
     };
@@ -208,6 +209,7 @@ export function LinguisticAnalysisStructurePage({
   }, [recordingId]);
 
   const data = state.phase === 'ready' ? state.data : null;
+  const etag = state.phase === 'ready' ? state.etag : '';
   const revision = data?.revision ?? null;
   const readingsByToken = useMemo(() => {
     const map = new Map<string, TokenReading[]>();
@@ -262,13 +264,13 @@ export function LinguisticAnalysisStructurePage({
   return (
     <article className="route-surface linguistic-analysis" data-route-id="UI-MVP-024">
       <header className="linguistic-analysis__header">
-        <p className="eyebrow">BL-MVP-064–066 · UI-MVP-024</p>
+        <p className="eyebrow">BL-MVP-064–067 · UI-MVP-024</p>
         <h1 className="route-title" id="route-title" ref={headingRef} tabIndex={-1}>
           Análisis lingüístico
         </h1>
         <p>
-          Consulta la revisión de análisis compatible con la letra japonesa vigente. Lecturas,
-          sentidos, morfología y gramática permanecen anclados a tokens y líneas canónicos.
+          Prepara el análisis paso a paso sobre la letra japonesa vigente. La fuente permanece
+          bloqueada y el servidor comprueba cada ancla antes de guardar una nueva revisión.
         </p>
       </header>
 
@@ -293,22 +295,6 @@ export function LinguisticAnalysisStructurePage({
           state="UI-EST-12"
           title="Falta una letra japonesa tokenizada"
           description="El análisis necesita una revisión estructurada de letra antes de poder asociar lecturas y anotaciones."
-        />
-      ) : null}
-
-      {data?.lyricsRevisionId && !revision ? (
-        <StateMessage
-          state={data.hasStaleRevision ? 'UI-EST-09' : 'UI-EST-12'}
-          title={
-            data.hasStaleRevision
-              ? 'La fuente japonesa cambió'
-              : 'Sin revisión de análisis compatible'
-          }
-          description={
-            data.hasStaleRevision
-              ? 'Existe análisis para una revisión japonesa anterior. No se mezclan ni migran automáticamente sus tokens, lecturas o explicaciones.'
-              : 'La revisión japonesa vigente todavía no tiene un análisis lingüístico asociado.'
-          }
         />
       ) : null}
 
@@ -337,6 +323,31 @@ export function LinguisticAnalysisStructurePage({
             </div>
           </dl>
         </section>
+      ) : null}
+
+      {data?.lyricsRevisionId && !revision ? (
+        <StateMessage
+          state={data.hasStaleRevision ? 'UI-EST-09' : 'UI-EST-12'}
+          title={
+            data.hasStaleRevision ? 'La fuente japonesa cambió' : 'Listo para empezar el análisis'
+          }
+          description={
+            data.hasStaleRevision
+              ? 'Existe análisis para una revisión japonesa anterior. No se mezclan ni migran automáticamente sus tokens, lecturas o explicaciones.'
+              : 'Todavía no hay una revisión guardada. Usa el espacio editorial para analizar solo las líneas o palabras que conozcas.'
+          }
+        />
+      ) : null}
+
+      {data?.lyricsRevisionId ? (
+        <LinguisticAnalysisEditor
+          recordingId={recordingId}
+          context={data}
+          etag={etag}
+          onSaved={(nextContext, nextEtag) =>
+            setState({ phase: 'ready', data: nextContext, etag: nextEtag })
+          }
+        />
       ) : null}
 
       {data?.lyricsRevisionId ? (

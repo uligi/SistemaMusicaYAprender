@@ -633,6 +633,17 @@ jobs:
           BL066_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/content/verify-contextual-linguistic-catalogs.sh
 
+      - name: Verify linguistic analysis editorial workspace
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL067_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/content/verify-linguistic-analysis-editorial-workspace.sh
+
       - name: Verify encrypted private object storage
         shell: bash
         env:

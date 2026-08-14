@@ -101,6 +101,7 @@ builder.Services.AddSingleton<LyricsStructureAdministrationService>();
 builder.Services.AddSingleton<TimingRevisionAdministrationService>();
 builder.Services.AddSingleton<TranslationRevisionAdministrationService>();
 builder.Services.AddSingleton<LinguisticAnalysisRevisionAdministrationService>();
+builder.Services.AddSingleton<LinguisticAnalysisEditorialWriter>();
 builder.Services.AddSingleton<PublicSongSynchronizationService>();
 builder.Services.AddSingleton<RightsAdministrationService>();
 builder.Services.AddSingleton<PublicCatalogProjectionService>();

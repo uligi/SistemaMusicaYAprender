@@ -185,7 +185,7 @@ test.describe('BL-MVP-064 · revisiones de análisis lingüístico', () => {
     await expect(page.getByRole('heading', { name: 'Letra japonesa · revisión 4' })).toBeVisible();
     await expect(page.getByText('1/2 tokens').first()).toBeVisible();
 
-    await page.getByText('叫ぶ', { exact: true }).first().click();
+    await page.locator('.linguistic-analysis__token > summary').filter({ hasText: '叫ぶ' }).click();
     await expect(
       page.getByLabel('Lecturas de 叫ぶ').getByText('さけぶ', { exact: true }),
     ).toBeVisible();
@@ -193,13 +193,17 @@ test.describe('BL-MVP-064 · revisiones de análisis lingüístico', () => {
     await expect(page.getByText('DICTIONARY FORM')).toBeVisible();
     await expect(page.getByText('でも enfático')).toBeVisible();
     await expect(
-      page.getByText('でも puede aportar énfasis en esta construcción contextual.'),
+      page
+        .getByLabel('Líneas y tokens')
+        .getByText('でも puede aportar énfasis en esta construcción contextual.', {
+          exact: true,
+        }),
     ).toBeVisible();
 
     await page.getByText('Procedencia y revisión').click();
     await expect(page.getByText('Revisión lingüística del equipo')).toBeVisible();
     await expect(page.getByText('Publicar', { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /guardar/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Guardar nueva revisión' })).toBeVisible();
 
     const accessibility = await new AxeBuilder({ page }).analyze();
     expect(accessibility.violations).toEqual([]);
