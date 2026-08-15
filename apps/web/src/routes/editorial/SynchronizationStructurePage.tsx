@@ -11,6 +11,7 @@ import type {
   YouTubePlayerController,
   YouTubePlayerState,
 } from '../../integrations/youtube/YouTubeIframeAdapter';
+import { EditorialKaraokePreview } from './EditorialKaraokePreview';
 import {
   SynchronizationTimelineEditor,
   type TimingRevisionEditorSnapshot,
@@ -183,6 +184,7 @@ function SourceSynchronizationWorkspace({
 export function SynchronizationStructurePage({ recordingId }: SynchronizationStructurePageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [state, setState] = useState<PageState>({ phase: 'loading' });
+  const [activePanel, setActivePanel] = useState<'synchronization' | 'karaoke'>('synchronization');
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -224,6 +226,29 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
         </p>
       </header>
 
+      {state.phase === 'ready' && state.data.lyricsRevisionId ? (
+        <div
+          className="synchronization-structure__view-switcher"
+          role="group"
+          aria-label="Vista de trabajo de sincronización"
+        >
+          <button
+            type="button"
+            aria-pressed={activePanel === 'synchronization'}
+            onClick={() => setActivePanel('synchronization')}
+          >
+            Revisión de sincronización
+          </button>
+          <button
+            type="button"
+            aria-pressed={activePanel === 'karaoke'}
+            onClick={() => setActivePanel('karaoke')}
+          >
+            Previsualización de Karaoke
+          </button>
+        </div>
+      ) : null}
+
       {state.phase === 'loading' ? (
         <StateMessage
           state="UI-EST-01"
@@ -256,7 +281,9 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
         />
       ) : null}
 
-      {state.phase === 'ready' && state.data.lyricsRevisionId ? (
+      {state.phase === 'ready' &&
+      state.data.lyricsRevisionId &&
+      activePanel === 'synchronization' ? (
         <section aria-labelledby="synchronization-sources">
           <header className="synchronization-structure__section-heading">
             <div>
@@ -424,11 +451,17 @@ export function SynchronizationStructurePage({ recordingId }: SynchronizationStr
         </section>
       ) : null}
 
-      <StateMessage
-        state="UI-EST-11"
-        title="Sincronización editable con seguimiento local"
-        description="BL-MVP-057 guarda revisiones DRAFT y BL-MVP-059 puede seguirlas durante la previsualización. El editor mantiene video, línea y controles juntos; esta pantalla no publica."
-      />
+      {state.phase === 'ready' && state.data.lyricsRevisionId && activePanel === 'karaoke' ? (
+        <EditorialKaraokePreview recordingId={recordingId} sources={state.data.sources} />
+      ) : null}
+
+      {activePanel === 'synchronization' ? (
+        <StateMessage
+          state="UI-EST-11"
+          title="Sincronización editable con seguimiento local"
+          description="BL-MVP-057 guarda revisiones DRAFT y BL-MVP-059 puede seguirlas durante la previsualización. El editor mantiene video, línea y controles juntos; esta pantalla no publica."
+        />
+      ) : null}
     </article>
   );
 }

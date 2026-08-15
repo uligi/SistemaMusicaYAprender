@@ -185,3 +185,35 @@
     display: grid;
   }
 }
+.synchronization-structure__view-switcher {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-2);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--ma-space-1);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+  background: var(--ma-color-surface);
+}
+
+.synchronization-structure__view-switcher button {
+  min-height: 2.75rem;
+}
+
+.synchronization-structure__view-switcher button[aria-pressed='true'] {
+  font-weight: var(--ma-font-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+@media (max-width: 30rem) {
+  .synchronization-structure__view-switcher {
+    display: grid;
+    width: 100%;
+  }
+
+  .synchronization-structure__view-switcher button {
+    width: 100%;
+  }
+}

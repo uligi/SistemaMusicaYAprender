@@ -594,6 +594,10 @@ jobs:
           BL063_API_URL: https://localhost:5464
         run: bash scripts/ci/content/verify-educational-layers.sh
 
+      - name: Verify editorial karaoke preview without publishing
+        shell: bash
+        run: bash scripts/ci/content/verify-editorial-karaoke-preview.sh
+
       - name: Verify translation revisions and alignments
         shell: bash
         env:
