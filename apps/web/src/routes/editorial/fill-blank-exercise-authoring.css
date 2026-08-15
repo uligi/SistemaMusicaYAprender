@@ -3,9 +3,9 @@
   gap: 1.25rem;
   margin-block: 1.5rem;
   padding: clamp(1rem, 2vw, 1.5rem);
-  border: 1px solid var(--ma-border-subtle, #d8deea);
+  border: 1px solid var(--ma-color-border);
   border-radius: 1rem;
-  background: var(--ma-surface, #fff);
+  background: var(--ma-color-canvas);
 }
 
 .fill-author__header {
@@ -25,9 +25,9 @@
   gap: 0.2rem;
   min-width: 10rem;
   padding: 0.75rem 1rem;
-  border: 1px solid #f0b429;
+  border: 1px solid var(--ma-color-warning);
   border-radius: 0.75rem;
-  background: #fff8e6;
+  background: var(--ma-color-surface);
 }
 
 .fill-author__draft-badge strong {
@@ -45,10 +45,10 @@
   min-width: 0;
   gap: 0.5rem;
   align-items: center;
-  border: 1px solid #cfd6e4;
+  border: 1px solid var(--ma-color-border);
   border-radius: 0.75rem;
   padding: 0.7rem 0.8rem;
-  background: #fff;
+  background: var(--ma-color-canvas);
   text-align: left;
 }
 
@@ -58,13 +58,13 @@
   flex: 0 0 1.7rem;
   height: 1.7rem;
   border-radius: 999px;
-  background: #edf2ff;
+  background: var(--ma-color-surface);
   font-weight: 700;
 }
 
 .fill-author__steps button.is-active {
-  border-color: #3157c8;
-  box-shadow: 0 0 0 2px rgb(49 87 200 / 12%);
+  border-color: var(--ma-color-primary);
+  box-shadow: var(--ma-focus-ring);
 }
 
 .fill-author__panel {
@@ -84,9 +84,9 @@
   display: grid;
   gap: 0.35rem;
   padding: 0.9rem 1rem;
-  border: 1px solid #d7deea;
+  border: 1px solid var(--ma-color-border);
   border-radius: 0.8rem;
-  background: #fff;
+  background: var(--ma-color-canvas);
   text-align: left;
 }
 
@@ -96,9 +96,9 @@
 
 .fill-author__lines > button.is-selected,
 .fill-author__tokens button.is-selected {
-  border-color: #3157c8;
-  background: #f3f6ff;
-  box-shadow: 0 0 0 2px rgb(49 87 200 / 10%);
+  border-color: var(--ma-color-primary);
+  background: var(--ma-color-surface);
+  box-shadow: var(--ma-focus-ring);
 }
 
 .fill-author__tokens {
@@ -118,9 +118,9 @@
 
 .fill-author__tokens button {
   padding: 0.55rem 0.75rem;
-  border: 1px solid #cfd6e4;
+  border: 1px solid var(--ma-color-border);
   border-radius: 0.65rem;
-  background: #fff;
+  background: var(--ma-color-canvas);
   font-size: 1rem;
 }
 
@@ -129,9 +129,9 @@
   display: grid;
   gap: 0.35rem;
   padding: 1rem;
-  border-left: 4px solid #16835f;
+  border-left: 4px solid var(--ma-color-success);
   border-radius: 0.7rem;
-  background: #f0faf6;
+  background: var(--ma-color-surface);
 }
 
 .fill-author__selection-summary strong {
@@ -155,10 +155,10 @@
 .fill-author select {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #bfc8d8;
+  border: 1px solid var(--ma-color-border);
   border-radius: 0.6rem;
   padding: 0.7rem 0.8rem;
-  background: #fff;
+  background: var(--ma-color-canvas);
   color: inherit;
   font: inherit;
 }
@@ -177,15 +177,15 @@
   justify-self: start;
   border: 0;
   background: transparent;
-  color: #2447a8;
+  color: var(--ma-color-primary);
   font-weight: 700;
 }
 
 .fill-author__validation {
   padding: 0.9rem 1rem;
-  border: 1px solid #d36b6b;
+  border: 1px solid var(--ma-color-danger);
   border-radius: 0.7rem;
-  background: #fff4f4;
+  background: var(--ma-color-surface);
 }
 
 .fill-author__validation ul {
@@ -193,7 +193,7 @@
 }
 
 .fill-author__ok {
-  color: #126746;
+  color: var(--ma-color-success);
   font-weight: 700;
 }
 
@@ -206,23 +206,23 @@
 
 .fill-author__hint {
   margin: 0;
-  color: #5d6472;
+  color: var(--ma-color-muted);
 }
 
 .fill-author__preview {
   display: grid;
   gap: 1rem;
   padding: clamp(1rem, 3vw, 1.5rem);
-  border: 1px solid #cfd6e4;
+  border: 1px solid var(--ma-color-border);
   border-radius: 1rem;
-  background: #fafbff;
+  background: var(--ma-color-surface);
 }
 
 .fill-author__preview-badge {
   justify-self: start;
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
-  background: #fff0c2;
+  background: var(--ma-color-surface);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -242,22 +242,22 @@
 
 .fill-author__preview-options button {
   min-height: 3rem;
-  border: 1px solid #bcc6d8;
+  border: 1px solid var(--ma-color-border);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--ma-color-canvas);
   font: inherit;
 }
 
 .fill-author__preview-options button[aria-pressed='true'] {
-  border-color: #3157c8;
-  background: #eef2ff;
-  box-shadow: 0 0 0 2px rgb(49 87 200 / 12%);
+  border-color: var(--ma-color-primary);
+  background: var(--ma-color-surface);
+  box-shadow: var(--ma-focus-ring);
 }
 
 .fill-author__preview-feedback {
   padding: 0.9rem 1rem;
-  border-left: 4px solid #3157c8;
-  background: #f3f6ff;
+  border-left: 4px solid var(--ma-color-primary);
+  background: var(--ma-color-surface);
 }
 
 .fill-author__actions {
