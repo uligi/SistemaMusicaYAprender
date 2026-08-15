@@ -1,5 +1,6 @@
 import type { RouteMatch } from '../../app/router/match-route';
 import { RoutePlaceholder } from '../shared/RoutePlaceholder';
+import { ContextualAnalysisPage } from './ContextualAnalysisPage';
 import { EducationalPlayerPage } from './EducationalPlayerPage';
 import { PersonalPreferencesPage } from './PersonalPreferencesPage';
 import './student-area.css';
@@ -15,6 +16,10 @@ export default function StudentArea({ match }: StudentAreaProps) {
 
   if (match.route.id === 'UI-MVP-009') {
     return <EducationalPlayerPage slug={match.params.slug!} />;
+  }
+
+  if (match.route.id === 'UI-MVP-010') {
+    return <ContextualAnalysisPage slug={match.params.slug!} token={match.params.token!} />;
   }
 
   return (

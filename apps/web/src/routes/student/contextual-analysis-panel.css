@@ -1,0 +1,162 @@
+.contextual-analysis {
+  display: grid;
+  align-content: start;
+  gap: var(--ma-space-4);
+  min-inline-size: 0;
+  padding: var(--ma-space-5);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-panel);
+  background: var(--ma-color-surface);
+}
+
+.contextual-analysis__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-3);
+  align-items: start;
+  justify-content: space-between;
+}
+
+.contextual-analysis__header > div {
+  display: grid;
+  gap: var(--ma-space-2);
+  min-inline-size: 0;
+}
+
+.contextual-analysis__header h2,
+.contextual-analysis__header p,
+.contextual-analysis__selection p,
+.contextual-analysis__card p,
+.contextual-analysis__kanji p {
+  margin: 0;
+}
+
+.contextual-analysis__close {
+  min-block-size: 2.75rem;
+}
+
+.contextual-analysis__prompt,
+.contextual-analysis__empty,
+.contextual-analysis__alternatives {
+  display: grid;
+  gap: var(--ma-space-2);
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) dashed var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+}
+
+.contextual-analysis__selection,
+.contextual-analysis__section {
+  display: grid;
+  gap: var(--ma-space-3);
+}
+
+.contextual-analysis__selection h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--ma-font-japanese);
+  font-size: clamp(1.8rem, 1.4rem + 2vw, 2.8rem);
+}
+
+.contextual-analysis__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ma-space-2);
+  margin: 0;
+}
+
+.contextual-analysis__facts > div,
+.contextual-analysis__card,
+.contextual-analysis__kanji {
+  min-inline-size: 0;
+  padding: var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-border);
+  border-radius: var(--ma-radius-control);
+}
+
+.contextual-analysis__facts dt {
+  font-size: var(--ma-font-size-secondary);
+  font-weight: 700;
+}
+
+.contextual-analysis__facts dd {
+  margin: var(--ma-space-1) 0 0;
+  overflow-wrap: anywhere;
+}
+
+.contextual-analysis__context-meaning {
+  font-size: 1.05em;
+}
+
+.contextual-analysis__card {
+  display: grid;
+  gap: var(--ma-space-2);
+}
+
+.contextual-analysis__card h4,
+.contextual-analysis__kanji h3 {
+  margin: 0;
+}
+
+.contextual-analysis__grid,
+.contextual-analysis__kanji-grid {
+  display: grid;
+  gap: var(--ma-space-3);
+  margin-block-start: var(--ma-space-3);
+}
+
+.contextual-analysis__kanji-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.contextual-analysis__kanji {
+  display: grid;
+  gap: var(--ma-space-2);
+}
+
+.contextual-analysis__kanji h3 {
+  font-family: var(--ma-font-japanese);
+  font-size: 2rem;
+}
+
+.contextual-analysis__details {
+  min-inline-size: 0;
+  padding-block: var(--ma-space-2);
+  border-block-start: var(--ma-border-width-thin) solid var(--ma-color-border);
+}
+
+.contextual-analysis__details > summary {
+  min-block-size: 2.75rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.contextual-analysis__provenance,
+.contextual-analysis__alternatives ul,
+.contextual-analysis__kanji ul {
+  margin: 0;
+  padding-inline-start: 1.4rem;
+}
+
+.contextual-analysis code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 48rem) {
+  .contextual-analysis {
+    padding: var(--ma-space-3);
+  }
+
+  .contextual-analysis__facts,
+  .contextual-analysis__kanji-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contextual-analysis__header {
+    display: grid;
+  }
+
+  .contextual-analysis__close {
+    inline-size: 100%;
+  }
+}

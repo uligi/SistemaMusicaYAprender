@@ -15,6 +15,7 @@ export type EducationalToken = {
   surface: string;
   startOffset: number;
   endOffset: number;
+  analysisKey?: string | null;
   readings: EducationalReading[];
 };
 
@@ -62,11 +63,21 @@ type FuriganaSegment = {
   reading?: string;
 };
 
+export type EducationalAnalysisSelection = {
+  analysisKey: string;
+  surface: string;
+  sectionOrder: number;
+  lineNo: number;
+  tokenNo: number;
+};
+
 export type EducationalKaraokeProps = {
   layers: EducationalLayers;
   snapshot: LocalSynchronizationSnapshot;
   visibleLayers: VisibleEducationalLayers;
   onVisibleLayersChange: (next: VisibleEducationalLayers) => void;
+  selectedAnalysisKey?: string | null;
+  onTokenAnalysis?: (selection: EducationalAnalysisSelection) => void;
 };
 
 function lineKey(sectionOrder: number, lineNo: number) {
@@ -181,6 +192,8 @@ function renderJapaneseLine(
   line: EducationalLine,
   showFurigana: boolean,
   activeTokenNo: number | null,
+  selectedAnalysisKey: string | null,
+  onTokenAnalysis: ((selection: EducationalAnalysisSelection) => void) | undefined,
 ) {
   if (line.tokens.length === 0) {
     return <span lang="ja">{line.japaneseText}</span>;
@@ -208,29 +221,57 @@ function renderJapaneseLine(
     const surface = characters.slice(start, end).join('') || token.surface;
     const readings = orderedReadings(token.readings);
     const active = activeTokenNo === token.tokenNo;
+    const selected = Boolean(token.analysisKey && token.analysisKey === selectedAnalysisKey);
+    const content =
+      readings.length === 1 && showFurigana
+        ? renderRuby(resolveFurigana(surface, readings[0]!))
+        : surface;
+    const className = [
+      'educational-karaoke__token',
+      active ? 'is-active' : '',
+      selected ? 'is-selected' : '',
+      token.analysisKey && onTokenAnalysis ? 'is-analyzable' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
-    if (readings.length === 1 && showFurigana) {
+    if (token.analysisKey && onTokenAnalysis) {
       nodes.push(
-        <span
+        <button
+          type="button"
           key={`token-${token.tokenNo}`}
-          className={active ? 'educational-karaoke__token is-active' : 'educational-karaoke__token'}
+          className={className}
           data-karaoke-token={token.tokenNo}
+          data-analysis-key={token.analysisKey}
           data-active={active ? 'true' : 'false'}
+          aria-label={`Analizar ${surface}`}
+          aria-pressed={selected}
+          aria-controls="contextual-analysis-panel"
+          title={readings.length > 1 ? 'Lectura contextual ambigua' : 'Abrir análisis contextual'}
+          onClick={() =>
+            onTokenAnalysis({
+              analysisKey: token.analysisKey!,
+              surface,
+              sectionOrder: line.sectionOrder,
+              lineNo: line.lineNo,
+              tokenNo: token.tokenNo,
+            })
+          }
         >
-          {renderRuby(resolveFurigana(surface, readings[0]!))}
-        </span>,
+          {content}
+        </button>,
       );
     } else {
       nodes.push(
         <span
           key={`token-${token.tokenNo}`}
-          className={active ? 'educational-karaoke__token is-active' : 'educational-karaoke__token'}
+          className={className}
           data-karaoke-token={token.tokenNo}
           data-active={active ? 'true' : 'false'}
           title={readings.length > 1 ? 'Lectura contextual ambigua' : undefined}
           lang="ja"
         >
-          {surface}
+          {content}
         </span>,
       );
     }
@@ -248,7 +289,6 @@ function renderJapaneseLine(
 
   return nodes;
 }
-
 function romajiForLine(line: EducationalLine) {
   if (line.tokens.length === 0) return null;
 
@@ -295,6 +335,8 @@ export function EducationalKaraoke({
   snapshot,
   visibleLayers,
   onVisibleLayersChange,
+  selectedAnalysisKey = null,
+  onTokenAnalysis,
 }: EducationalKaraokeProps) {
   const activeLineKey = snapshot.line
     ? lineKey(snapshot.line.sectionOrder, snapshot.line.lineNo)
@@ -403,6 +445,8 @@ export function EducationalKaraoke({
                       line,
                       visibleLayers.furigana && layers.hasFurigana,
                       active ? activeTokenNo : null,
+                      selectedAnalysisKey,
+                      onTokenAnalysis,
                     )}
                   </p>
                 ) : null}

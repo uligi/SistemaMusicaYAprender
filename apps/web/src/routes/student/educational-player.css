@@ -59,3 +59,20 @@
     padding: var(--ma-space-3);
   }
 }
+.educational-player__learning-layout {
+  display: grid;
+  grid-template-columns: minmax(24rem, 1.15fr) minmax(19rem, 0.85fr);
+  gap: var(--ma-space-4);
+  align-items: start;
+  min-inline-size: 0;
+}
+
+.educational-player__learning-layout > * {
+  min-inline-size: 0;
+}
+
+@media (max-width: 64rem) {
+  .educational-player__learning-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

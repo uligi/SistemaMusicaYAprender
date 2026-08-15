@@ -15,6 +15,7 @@ public sealed record PublicLearningToken(
     string Surface,
     int StartOffset,
     int EndOffset,
+    string? AnalysisKey,
     IReadOnlyList<PublicLearningReading> Readings);
 
 public sealed record PublicLearningTranslation(
@@ -184,6 +185,9 @@ public sealed class PublicSongLearningLayersService
                         token.Surface,
                         token.StartOffset,
                         token.EndOffset,
+                        header.AnalysisRevisionId is null
+                            ? null
+                            : PublicAnalysisTokenKey.FromTokenId(token.TokenId),
                         readingsByToken.TryGetValue(token.TokenId, out var tokenReadings)
                             ? tokenReadings
                             : Array.Empty<PublicLearningReading>()))

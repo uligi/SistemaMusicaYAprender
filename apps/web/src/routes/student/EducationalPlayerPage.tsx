@@ -12,9 +12,11 @@ import { SynchronizedYouTubePreview } from '../../features/player/synchronizatio
 import {
   defaultVisibleEducationalLayers,
   EducationalKaraoke,
+  type EducationalAnalysisSelection,
   type EducationalLayers,
   type VisibleEducationalLayers,
 } from './EducationalKaraoke';
+import { ContextualAnalysisPanel } from './ContextualAnalysisPanel';
 import './educational-player.css';
 
 const httpClient = createHttpClient();
@@ -95,6 +97,9 @@ export function EducationalPlayerPage({ slug }: EducationalPlayerPageProps) {
   const [visibleLayers, setVisibleLayers] = useState<VisibleEducationalLayers>({
     ...defaultVisibleEducationalLayers,
   });
+  const [analysisSelection, setAnalysisSelection] = useState<EducationalAnalysisSelection | null>(
+    null,
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -103,6 +108,7 @@ export function EducationalPlayerPage({ slug }: EducationalPlayerPageProps) {
     setLayersState({ phase: 'loading' });
     setSnapshot(emptySnapshot());
     setVisibleLayers({ ...defaultVisibleEducationalLayers });
+    setAnalysisSelection(null);
 
     const load = async () => {
       const params = new URLSearchParams({ territory, language });
@@ -209,12 +215,23 @@ export function EducationalPlayerPage({ slug }: EducationalPlayerPageProps) {
             </p>
           </section>
 
-          <EducationalKaraoke
-            layers={learningLayers}
-            snapshot={snapshot}
-            visibleLayers={visibleLayers}
-            onVisibleLayersChange={setVisibleLayers}
-          />
+          <div className="educational-player__learning-layout">
+            <EducationalKaraoke
+              layers={learningLayers}
+              snapshot={snapshot}
+              visibleLayers={visibleLayers}
+              onVisibleLayersChange={setVisibleLayers}
+              selectedAnalysisKey={analysisSelection?.analysisKey ?? null}
+              onTokenAnalysis={setAnalysisSelection}
+            />
+
+            <ContextualAnalysisPanel
+              slug={slug}
+              tokenKey={analysisSelection?.analysisKey ?? null}
+              surfaceHint={analysisSelection?.surface ?? null}
+              onClose={() => setAnalysisSelection(null)}
+            />
+          </div>
 
           {layersState.phase === 'loading' ? (
             <p className="educational-player__layer-status" role="status">

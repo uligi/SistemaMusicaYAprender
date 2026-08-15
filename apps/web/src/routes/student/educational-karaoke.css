@@ -182,3 +182,26 @@
   white-space: nowrap;
   border: 0;
 }
+.educational-karaoke__token.is-analyzable {
+  display: inline;
+  padding: 0.08em 0.12em;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.educational-karaoke__token.is-analyzable:hover {
+  background: var(--ma-color-canvas);
+}
+
+.educational-karaoke__token.is-analyzable:focus-visible {
+  outline: 0.15rem solid var(--ma-color-primary);
+  outline-offset: 0.12rem;
+}
+
+.educational-karaoke__token.is-selected {
+  box-shadow: inset 0 -0.16em 0 var(--ma-color-primary);
+}
