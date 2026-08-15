@@ -690,6 +690,17 @@ jobs:
           BL070_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/learning/verify-exercise-bank-model.sh
 
+      - name: Verify fill-blank DRAFT authoring
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL071_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/learning/verify-fill-blank-exercise-authoring.sh
+
       - name: Verify linguistic analysis editorial workspace
         shell: bash
         env:

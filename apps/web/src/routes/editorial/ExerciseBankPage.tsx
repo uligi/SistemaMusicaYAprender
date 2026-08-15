@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
+import { FillBlankExerciseAuthoringWizard } from './FillBlankExerciseAuthoringWizard';
 import './exercise-bank.css';
 
 const client = createHttpClient();
@@ -122,6 +123,8 @@ function RequirementMark({ ok, children }: { ok: boolean; children: string }) {
 export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [state, setState] = useState<PageState>({ phase: 'loading' });
+  const [authoringOpen, setAuthoringOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -147,7 +150,7 @@ export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
 
     void load();
     return () => controller.abort();
-  }, [recordingId]);
+  }, [recordingId, refreshKey]);
 
   const data = state.phase === 'ready' ? state.data : null;
 
@@ -164,6 +167,39 @@ export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
           trazables.
         </p>
       </header>
+
+      <section className="exercise-bank__authoring-entry" aria-label="Autoría de ejercicios">
+        <div>
+          <p className="eyebrow">BL-MVP-071 · AUTORÍA DRAFT</p>
+          <h2>Crear completar espacios</h2>
+          <p>
+            Elige una línea, toca lo que quieres ocultar, añade distractores y pruébalo antes de
+            guardar.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="exercise-bank__authoring-button"
+          onClick={() => setAuthoringOpen((current) => !current)}
+        >
+          {authoringOpen
+            ? 'Cerrar creador'
+            : !data || data.exerciseCount === 0
+              ? 'Crear mi primer ejercicio'
+              : 'Crear otro ejercicio'}
+        </button>
+      </section>
+
+      {authoringOpen ? (
+        <FillBlankExerciseAuthoringWizard
+          recordingId={recordingId}
+          onCancel={() => setAuthoringOpen(false)}
+          onSaved={() => {
+            setAuthoringOpen(false);
+            setRefreshKey((current) => current + 1);
+          }}
+        />
+      ) : null}
 
       {state.phase === 'loading' ? (
         <StateMessage
@@ -407,8 +443,8 @@ export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
 
       <footer className="exercise-bank__footer">
         <p>
-          BL-MVP-070 materializa el banco y sus revisiones. La creación guiada de completar
-          espacios, distractores y validación de ambigüedad corresponde a BL-MVP-071.
+          BL-MVP-070 conserva el banco y sus revisiones. BL-MVP-071 permite crear y probar
+          borradores de completar espacios; la publicación continúa fuera de esta pantalla.
         </p>
       </footer>
     </article>

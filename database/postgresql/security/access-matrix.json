@@ -56,7 +56,8 @@
       "SELECT/INSERT/UPDATE: security,catalog,content,editorial,configuration",
       "SELECT: identity,learning,progress,ops",
       "INSERT: security.audit_event,ops.outbox_message",
-      "EXECUTE: ops.register_rights_evidence_object (M15 rights evidence only)"
+      "EXECUTE: ops.register_rights_evidence_object (M15 rights evidence only)",
+      "EXECUTE: learning.save_fill_blank_exercise_draft (M08 DRAFT authoring only)"
     ],
     "jp_worker": [
       "USAGE: identity,security,catalog,content,learning,progress,editorial,configuration,ops",
