@@ -679,6 +679,16 @@ jobs:
           BL069_USE_DOCKER_PSQL: 'false'
           BL069_API_URL: https://localhost:5465
         run: bash scripts/ci/content/verify-public-educational-package.sh
+      - name: Verify exercise bank and versioned revision model
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL070_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/learning/verify-exercise-bank-model.sh
 
       - name: Verify linguistic analysis editorial workspace
         shell: bash

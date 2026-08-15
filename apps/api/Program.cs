@@ -11,6 +11,7 @@ using MusicaAprender.Api.Endpoints.Identity;
 using MusicaAprender.Api.Endpoints.PublicCatalog;
 using MusicaAprender.Api.Endpoints.Security;
 using MusicaAprender.Api.Health;
+using MusicaAprender.Api.Learning;
 using MusicaAprender.Api.Observability;
 using MusicaAprender.Api.Security;
 using MusicaAprender.BuildingBlocks.Infrastructure.Configuration;
@@ -28,6 +29,7 @@ using MusicaAprender.Modules.Content.Infrastructure.PublicPlayback;
 using MusicaAprender.Modules.Editorial.Infrastructure.Administration;
 using MusicaAprender.Modules.Editorial.Infrastructure.PublicCatalog;
 using MusicaAprender.Modules.Identity.Infrastructure.Preferences;
+using MusicaAprender.Modules.Learning.Infrastructure.Administration;
 using MusicaAprender.Modules.Security.Infrastructure.Administration;
 using MusicaAprender.Modules.Security.Infrastructure.Authentication;
 using MusicaAprender.Modules.Security.Infrastructure.Authorization;
@@ -87,6 +89,10 @@ builder.Services.AddSingleton<ILinguisticAnalysisAdministrationTransactionExecut
     static services =>
         new ContentAdministrationTransactionExecutor(
             services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
+builder.Services.AddSingleton<IExerciseBankAdministrationTransactionExecutor>(
+    static services =>
+        new LearningAdministrationTransactionExecutor(
+            services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
 builder.Services.AddSingleton<IRightsAdministrationTransactionExecutor>(
     static services =>
         new EditorialRightsAdministrationTransactionExecutor(
@@ -104,6 +110,7 @@ builder.Services.AddSingleton<EditorialContextualAnalysisPreviewService>();
 builder.Services.AddSingleton<TranslationRevisionAdministrationService>();
 builder.Services.AddSingleton<LinguisticAnalysisRevisionAdministrationService>();
 builder.Services.AddSingleton<LinguisticAnalysisEditorialWriter>();
+builder.Services.AddSingleton<ExerciseBankAdministrationService>();
 builder.Services.AddSingleton<PublicSongSynchronizationService>();
 builder.Services.AddSingleton<PublicSongLearningLayersService>();
 builder.Services.AddSingleton<PublicContextualAnalysisService>();
@@ -274,6 +281,7 @@ app.MapEditorialKaraokePreview();
 app.MapEditorialContextualAnalysisPreview();
 app.MapTranslationRevisionAdministration();
 app.MapLinguisticAnalysisRevisionAdministration();
+app.MapExerciseBankAdministration();
 app.MapCreditProvenanceAdministration();
 app.MapRightsAdministration();
 app.MapPublicCatalogProjection();
