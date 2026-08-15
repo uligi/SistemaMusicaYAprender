@@ -668,6 +668,18 @@ jobs:
         shell: bash
         run: bash scripts/ci/content/verify-editorial-contextual-analysis-preview.sh
 
+      - name: Verify published educational package read model
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL069_USE_DOCKER_PSQL: 'false'
+          BL069_API_URL: https://localhost:5465
+        run: bash scripts/ci/content/verify-public-educational-package.sh
+
       - name: Verify linguistic analysis editorial workspace
         shell: bash
         env:

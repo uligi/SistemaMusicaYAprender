@@ -107,6 +107,7 @@ builder.Services.AddSingleton<LinguisticAnalysisEditorialWriter>();
 builder.Services.AddSingleton<PublicSongSynchronizationService>();
 builder.Services.AddSingleton<PublicSongLearningLayersService>();
 builder.Services.AddSingleton<PublicContextualAnalysisService>();
+builder.Services.AddSingleton<PublicEducationalPackageService>();
 builder.Services.AddSingleton<RightsAdministrationService>();
 builder.Services.AddSingleton<PublicCatalogProjectionService>();
 builder.Services.AddSingleton<PublicCatalogSearchService>();
@@ -281,6 +282,7 @@ app.MapPublicSongDetail();
 app.MapPublicSongSynchronization();
 app.MapPublicSongLearningLayers();
 app.MapPublicContextualAnalysis();
+app.MapPublicEducationalPackage();
 
 app.Run();
 
