@@ -22,6 +22,7 @@ export type SynchronizedYouTubePreviewProps = {
   title: string;
   timeline: SynchronizationTimeline | null;
   headingLevel?: 2 | 3 | 4;
+  presentation?: 'technical' | 'learning';
   onControllerReady?: (controller: YouTubePlayerController | null) => void;
   onSnapshotChange?: (snapshot: LocalSynchronizationSnapshot) => void;
   onPlayerStateChange?: (state: YouTubePlayerState) => void;
@@ -102,6 +103,7 @@ export function SynchronizedYouTubePreview({
   title,
   timeline,
   headingLevel = 2,
+  presentation = 'technical',
   onControllerReady,
   onSnapshotChange,
   onPlayerStateChange,
@@ -110,6 +112,7 @@ export function SynchronizedYouTubePreview({
   const { snapshot, playerState, onPlayerEvent } = useLocalSynchronization(timeline, controller);
   const Heading = headingLevel === 4 ? 'h4' : headingLevel === 3 ? 'h3' : 'h2';
   const available = Boolean(timeline?.available && timeline.lines.length > 0);
+  const learningPresentation = presentation === 'learning';
 
   const handleControllerReady = useCallback(
     (nextController: YouTubePlayerController | null) => {
@@ -148,16 +151,28 @@ export function SynchronizedYouTubePreview({
         className="local-synchronization__status"
         aria-live="off"
         data-local-synchronization
+        data-presentation={presentation}
         data-sync-level={snapshot.level}
         data-sync-position-ms={snapshot.positionMs}
       >
-        <p className="eyebrow">BL-MVP-059 · MOTOR LOCAL DE SINCRONIZACIÓN</p>
-        <Heading>Sincronización local</Heading>
+        <p className="eyebrow">
+          {learningPresentation
+            ? 'SEGUIMIENTO DE LETRA'
+            : 'BL-MVP-059 · MOTOR LOCAL DE SINCRONIZACIÓN'}
+        </p>
+        <Heading>
+          {learningPresentation ? 'Seguimiento de reproducción' : 'Sincronización local'}
+        </Heading>
 
         {!available ? (
           <p>
             Sin marcas temporales compatibles. El reproductor puede seguir disponible sin activar
             una línea inventada.
+          </p>
+        ) : learningPresentation ? (
+          <p>
+            La línea activa se actualiza con la reproducción sin mover el foco ni interrumpir tus
+            controles.
           </p>
         ) : (
           <p>
@@ -168,10 +183,12 @@ export function SynchronizedYouTubePreview({
 
         {available && snapshot.line ? (
           <>
-            <p>
-              Nivel activo: <strong>{snapshot.level === 'TOKEN' ? 'token' : 'línea'}</strong> ·{' '}
-              {snapshot.positionMs} ms
-            </p>
+            {!learningPresentation ? (
+              <p>
+                Nivel activo: <strong>{snapshot.level === 'TOKEN' ? 'token' : 'línea'}</strong> ·{' '}
+                {snapshot.positionMs} ms
+              </p>
+            ) : null}
             <p className="local-synchronization__line">
               Línea {snapshot.line.lineNo}: <span lang="ja">{snapshot.line.japaneseText}</span>
             </p>

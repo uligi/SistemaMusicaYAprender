@@ -145,9 +145,7 @@ test.describe('BL-MVP-058 · adaptador aislado YouTube IFrame', () => {
     expect(Date.now() - started).toBeLessThanOrEqual(2000);
 
     await expect(page.getByRole('heading', { name: '怪獣' })).toBeVisible();
-    await expect(
-      page.getByText('Esta información, la letra y las demás capas educativas', { exact: false }),
-    ).toBeVisible();
+    await expect(page.locator('.educational-player__owned')).toBeVisible();
   });
 
   test('no usa Data API ni carga iframe antes de la decisión', async ({ page }) => {
