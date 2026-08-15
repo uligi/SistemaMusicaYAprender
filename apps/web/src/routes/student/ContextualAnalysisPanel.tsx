@@ -103,7 +103,8 @@ type AnalysisState =
   | { phase: 'failed'; problem: ClientProblem };
 
 export type ContextualAnalysisPanelProps = {
-  slug: string;
+  slug?: string;
+  editorialRecordingId?: string | null;
   tokenKey: string | null;
   surfaceHint?: string | null;
   onClose?: () => void;
@@ -140,6 +141,7 @@ function EmptyDetail({ children }: { children: string }) {
 
 export function ContextualAnalysisPanel({
   slug,
+  editorialRecordingId = null,
   tokenKey,
   surfaceHint,
   onClose,
@@ -154,18 +156,25 @@ export function ContextualAnalysisPanel({
     }
 
     const controller = new AbortController();
+    const draftPreview = Boolean(editorialRecordingId);
+
+    if (!draftPreview && !slug) {
+      setState({ phase: 'unavailable' });
+      return () => controller.abort();
+    }
+
     setState({ phase: 'loading' });
 
     const load = async () => {
-      const params = new URLSearchParams({ territory, language });
-      const result = await client.get<PublicContextualAnalysis>(
-        `/public/catalog/songs/${encodeURIComponent(slug)}/analysis/${encodeURIComponent(tokenKey)}?${params.toString()}`,
-        {
-          cacheMode: 'no-store',
-          retry: 'safe',
-          signal: controller.signal,
-        },
-      );
+      const params = new URLSearchParams(draftPreview ? { language } : { territory, language });
+      const requestPath = draftPreview
+        ? `/editorial/song-drafts/${encodeURIComponent(editorialRecordingId!)}/analysis-preview/${encodeURIComponent(tokenKey)}?${params.toString()}`
+        : `/public/catalog/songs/${encodeURIComponent(slug!)}/analysis/${encodeURIComponent(tokenKey)}?${params.toString()}`;
+      const result = await client.get<PublicContextualAnalysis>(requestPath, {
+        cacheMode: 'no-store',
+        retry: 'safe',
+        signal: controller.signal,
+      });
 
       if (result.kind === 'cancelled') return;
 
@@ -183,15 +192,17 @@ export function ContextualAnalysisPanel({
 
     void load();
     return () => controller.abort();
-  }, [slug, tokenKey]);
+  }, [editorialRecordingId, slug, tokenKey]);
 
   const readings = useMemo(
     () => (state.phase === 'ready' ? orderedReadings(state.data.readings) : []),
     [state],
   );
+  const draftPreview = Boolean(editorialRecordingId);
+  const PanelRoot = draftPreview ? 'div' : 'aside';
 
   return (
-    <aside
+    <PanelRoot
       className="contextual-analysis"
       id="contextual-analysis-panel"
       aria-labelledby="contextual-analysis-title"
@@ -199,11 +210,16 @@ export function ContextualAnalysisPanel({
     >
       <header className="contextual-analysis__header">
         <div>
-          <p className="eyebrow">BL-MVP-068 · ANÁLISIS CONTEXTUAL</p>
+          <p className="eyebrow">
+            {draftPreview
+              ? 'VISTA PREVIA DRAFT · ANÁLISIS CONTEXTUAL'
+              : 'BL-MVP-068 · ANÁLISIS CONTEXTUAL'}
+          </p>
           <h2 id="contextual-analysis-title">Comprende esta parte</h2>
           <p>
-            Lectura, significado, forma, kanji y gramática proceden del análisis publicado
-            compatible con esta letra.
+            {draftPreview
+              ? 'Lectura, significado, forma, kanji y gramática proceden del análisis DRAFT compatible con esta misma revisión de letra. Nada se publica desde aquí.'
+              : 'Lectura, significado, forma, kanji y gramática proceden del análisis publicado compatible con esta letra.'}
           </p>
         </div>
         {onClose && tokenKey ? (
@@ -227,7 +243,11 @@ export function ContextualAnalysisPanel({
         <StateMessage
           state="UI-EST-01"
           title={`Preparando ${surfaceHint?.trim() || 'el análisis'}`}
-          description="Resolviendo el token dentro de la misma revisión publicada."
+          description={
+            draftPreview
+              ? 'Resolviendo el token dentro de la misma revisión editorial DRAFT.'
+              : 'Resolviendo el token dentro de la misma revisión publicada.'
+          }
         />
       ) : null}
 
@@ -235,7 +255,11 @@ export function ContextualAnalysisPanel({
         <StateMessage
           state="UI-EST-06"
           title="Análisis no disponible"
-          description="Este token ya no pertenece a la publicación activa o no tiene análisis compatible. No se sustituye por otro."
+          description={
+            draftPreview
+              ? 'Este token ya no pertenece al borrador actual o no tiene análisis DRAFT compatible. No se sustituye por otra revisión.'
+              : 'Este token ya no pertenece a la publicación activa o no tiene análisis compatible. No se sustituye por otro.'
+          }
         />
       ) : null}
 
@@ -261,7 +285,7 @@ export function ContextualAnalysisPanel({
             <p lang="ja">{state.data.line.japaneseText}</p>
 
             {readings.length === 0 ? (
-              <EmptyDetail>Sin lectura contextual publicada para este token.</EmptyDetail>
+              <EmptyDetail>Sin lectura contextual registrada para este token.</EmptyDetail>
             ) : readings.length === 1 ? (
               <dl className="contextual-analysis__facts">
                 <div>
@@ -292,7 +316,11 @@ export function ContextualAnalysisPanel({
             <StateMessage
               state="UI-EST-12"
               title="Sin detalle lingüístico adicional"
-              description="El token es válido y pertenece a la publicación, pero todavía no tiene vocabulario, kanji, morfología o gramática autorizados."
+              description={
+                draftPreview
+                  ? 'El token pertenece al borrador actual, pero todavía no tiene vocabulario, kanji, morfología o gramática registrados en el análisis compatible.'
+                  : 'El token es válido y pertenece a la publicación, pero todavía no tiene vocabulario, kanji, morfología o gramática autorizados.'
+              }
             />
           ) : null}
 
@@ -317,7 +345,7 @@ export function ContextualAnalysisPanel({
                         {firstSense.usageNote ? <p>{firstSense.usageNote}</p> : null}
                       </>
                     ) : (
-                      <EmptyDetail>Sin glosa localizada publicada.</EmptyDetail>
+                      <EmptyDetail>Sin glosa localizada registrada.</EmptyDetail>
                     )}
                     <dl className="contextual-analysis__facts">
                       <div>
@@ -335,7 +363,7 @@ export function ContextualAnalysisPanel({
                     </dl>
                     {item.senses.length > 1 ? (
                       <details>
-                        <summary>Ver definiciones adicionales publicadas</summary>
+                        <summary>Ver definiciones adicionales</summary>
                         <ul>
                           {item.senses.slice(1).map((sense) => (
                             <li key={`${sense.displayOrder}-${sense.definition}`}>
@@ -400,7 +428,7 @@ export function ContextualAnalysisPanel({
                         ))}
                       </ul>
                     ) : (
-                      <EmptyDetail>Sin lectura general localizada publicada.</EmptyDetail>
+                      <EmptyDetail>Sin lectura general localizada registrada.</EmptyDetail>
                     )}
                     <p>
                       {item.jlptCode
@@ -432,7 +460,7 @@ export function ContextualAnalysisPanel({
                   {item.note ? <p>{item.note}</p> : null}
                   {item.examples ? (
                     <details>
-                      <summary>Ver ejemplos publicados</summary>
+                      <summary>Ver ejemplos registrados</summary>
                       <p>{item.examples}</p>
                     </details>
                   ) : null}
@@ -444,7 +472,7 @@ export function ContextualAnalysisPanel({
           <details className="contextual-analysis__details">
             <summary>Procedencia</summary>
             {state.data.provenance.length === 0 ? (
-              <EmptyDetail>Sin referencia pública adicional para mostrar.</EmptyDetail>
+              <EmptyDetail>Sin referencia adicional para mostrar.</EmptyDetail>
             ) : (
               <ul className="contextual-analysis__provenance">
                 {state.data.provenance.map((item, index) => (
@@ -457,7 +485,7 @@ export function ContextualAnalysisPanel({
             )}
           </details>
 
-          {showStandaloneLink ? (
+          {showStandaloneLink && slug && !draftPreview ? (
             <AppLink
               href={`/aprender/${encodeURIComponent(slug)}/analisis/${encodeURIComponent(state.data.tokenKey)}`}
             >
@@ -466,6 +494,6 @@ export function ContextualAnalysisPanel({
           ) : null}
         </>
       ) : null}
-    </aside>
+    </PanelRoot>
   );
 }

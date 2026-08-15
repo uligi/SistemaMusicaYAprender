@@ -31,3 +31,19 @@ las capas no disponibles se deshabilitan sin inventar datos. La fuente de YouTub
 el adaptador aislado BL058 y el motor local BL059.
 
 La pantalla muestra siempre `VISTA PREVIA EDITORIAL · NO PUBLICA`.
+
+## Análisis contextual DRAFT
+
+La previsualización editorial también permite seleccionar tokens analizables. El karaoke recibe una referencia opaca derivada del token canónico y abre el mismo panel visual usado por el estudiante, pero con una fuente de datos editorial autenticada.
+
+El panel editorial:
+
+- consulta `/api/v1/editorial/song-drafts/{recordingId}/analysis-preview/{token}`;
+- mantiene el reproductor de YouTube montado;
+- no busca una publicación equivalente;
+- nunca sustituye una revisión incompatible por la más reciente;
+- no expone UUID de tokens a la interfaz;
+- no habilita deep links públicos;
+- conserva explícitamente la etiqueta `VISTA PREVIA DRAFT`.
+
+Esto permite hacer el smoke manual de BL-MVP-068 antes de que exista el flujo de publicación.

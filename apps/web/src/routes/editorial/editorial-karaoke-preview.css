@@ -126,3 +126,13 @@
     min-width: 0;
   }
 }
+
+.editorial-karaoke-preview__learning {
+  display: grid;
+  gap: var(--ma-space-4);
+  min-width: 0;
+}
+
+.editorial-karaoke-preview__learning > * {
+  min-width: 0;
+}

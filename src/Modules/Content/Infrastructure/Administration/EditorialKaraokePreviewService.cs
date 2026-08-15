@@ -1,3 +1,5 @@
+using MusicaAprender.Modules.Content.Infrastructure.PublicPlayback;
+
 namespace MusicaAprender.Modules.Content.Infrastructure.Administration;
 
 public sealed record EditorialKaraokeTimelineToken(
@@ -33,6 +35,7 @@ public sealed record EditorialKaraokeToken(
     string Surface,
     int StartOffset,
     int EndOffset,
+    string? AnalysisKey,
     IReadOnlyList<EditorialKaraokeReading> Readings);
 
 public sealed record EditorialKaraokeTranslation(
@@ -239,6 +242,9 @@ public sealed class EditorialKaraokePreviewService(
                                 token.Surface,
                                 token.StartOffset,
                                 token.EndOffset,
+                                analysisRevision is null
+                                    ? null
+                                    : PublicAnalysisTokenKey.FromTokenId(token.TokenId),
                                 readingsByToken.TryGetValue(
                                     token.TokenId,
                                     out var tokenReadings)

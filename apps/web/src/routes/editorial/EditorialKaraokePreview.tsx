@@ -5,9 +5,11 @@ import type { ClientProblem } from '../../data/http/types';
 import type { LocalSynchronizationSnapshot } from '../../features/player/synchronization/LocalSynchronizationEngine';
 import type { SynchronizationTimeline } from '../../features/player/synchronization/LocalSynchronizationEngine';
 import { SynchronizedYouTubePreview } from '../../features/player/synchronization/SynchronizedYouTubePreview';
+import { ContextualAnalysisPanel } from '../student/ContextualAnalysisPanel';
 import {
   EducationalKaraoke,
   defaultVisibleEducationalLayers,
+  type EducationalAnalysisSelection,
   type EducationalLayers,
   type VisibleEducationalLayers,
 } from '../student/EducationalKaraoke';
@@ -68,6 +70,9 @@ export function EditorialKaraokePreview({ recordingId, sources }: EditorialKarao
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<PreviewState>({ phase: 'idle' });
   const [snapshot, setSnapshot] = useState<LocalSynchronizationSnapshot>(emptySnapshot);
+  const [analysisSelection, setAnalysisSelection] = useState<EducationalAnalysisSelection | null>(
+    null,
+  );
   const [visibleLayers, setVisibleLayers] = useState<VisibleEducationalLayers>({
     ...defaultVisibleEducationalLayers,
   });
@@ -94,6 +99,7 @@ export function EditorialKaraokePreview({ recordingId, sources }: EditorialKarao
     const load = async () => {
       setState({ phase: 'loading' });
       setSnapshot(emptySnapshot);
+      setAnalysisSelection(null);
       setVisibleLayers({ ...defaultVisibleEducationalLayers });
 
       const params = new URLSearchParams({
@@ -225,12 +231,24 @@ export function EditorialKaraokePreview({ recordingId, sources }: EditorialKarao
               />
             </div>
 
-            <div className="editorial-karaoke-preview__lyrics">
-              <EducationalKaraoke
-                layers={state.data.layers}
-                snapshot={snapshot}
-                visibleLayers={visibleLayers}
-                onVisibleLayersChange={setVisibleLayers}
+            <div className="editorial-karaoke-preview__learning">
+              <div className="editorial-karaoke-preview__lyrics">
+                <EducationalKaraoke
+                  layers={state.data.layers}
+                  snapshot={snapshot}
+                  visibleLayers={visibleLayers}
+                  onVisibleLayersChange={setVisibleLayers}
+                  selectedAnalysisKey={analysisSelection?.analysisKey ?? null}
+                  onTokenAnalysis={setAnalysisSelection}
+                />
+              </div>
+
+              <ContextualAnalysisPanel
+                editorialRecordingId={recordingId}
+                tokenKey={analysisSelection?.analysisKey ?? null}
+                surfaceHint={analysisSelection?.surface ?? null}
+                onClose={() => setAnalysisSelection(null)}
+                showStandaloneLink={false}
               />
             </div>
           </div>

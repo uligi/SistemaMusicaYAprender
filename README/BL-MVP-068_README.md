@@ -32,3 +32,23 @@ También existe deep link:
 `/aprender/{slug}/analisis/{token}`
 
 Los niveles JLPT/escolares se muestran como orientación, nunca como certificación oficial.
+
+## Previsualización editorial antes de publicar
+
+La lógica de publicación real todavía no es requisito para probar el panel manualmente.
+
+El dossier editorial reutiliza `ContextualAnalysisPanel` dentro de **Previsualización de Karaoke** y consulta:
+
+`GET /api/v1/editorial/song-drafts/{recordingId}/analysis-preview/{token}?language=es`
+
+Este contrato:
+
+- exige `EDITORIAL.DRAFT`;
+- trabaja sobre la revisión de letra editorial más reciente y el análisis compatible exacto;
+- rechaza análisis `stale` o de otra revisión;
+- usa la misma referencia opaca de token que el reproductor educativo;
+- no crea publicación;
+- no necesita slug público;
+- no consulta el catálogo público;
+- no escribe datos;
+- permite validar manualmente vocabulario, lectura, morfología, kanji, gramática y procedencia antes de implementar publicación.

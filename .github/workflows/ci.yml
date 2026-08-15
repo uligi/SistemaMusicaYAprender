@@ -664,6 +664,10 @@ jobs:
           BL068_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/content/verify-contextual-analysis-panel.sh
 
+      - name: Verify editorial DRAFT contextual analysis preview
+        shell: bash
+        run: bash scripts/ci/content/verify-editorial-contextual-analysis-preview.sh
+
       - name: Verify linguistic analysis editorial workspace
         shell: bash
         env:

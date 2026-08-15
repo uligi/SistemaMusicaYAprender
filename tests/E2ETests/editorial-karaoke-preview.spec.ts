@@ -5,6 +5,7 @@ const recordingId = '16000000-0000-7000-8000-000000000001';
 const lyricsRevisionId = '16000000-0000-7000-8000-000000000002';
 const sourceId = '16000000-0000-7000-8000-000000000003';
 const videoId = 'a8dgNdJVluc';
+const analysisKey = 'A1B2C3D4E5F60718293A';
 
 const synchronizationContext = {
   recordingId,
@@ -87,6 +88,7 @@ const karaokePreview = {
             surface: '怪獣',
             startOffset: 0,
             endOffset: 2,
+            analysisKey,
             readings: [
               {
                 readingKana: 'かいじゅう',
@@ -123,11 +125,95 @@ const karaokePreview = {
   },
 };
 
+const contextualAnalysis = {
+  available: true,
+  tokenKey: analysisKey,
+  surface: '怪獣',
+  tokenNo: 1,
+  targetLanguage: 'es',
+  line: {
+    sectionOrder: 0,
+    sectionLabel: 'Verso 1',
+    lineNo: 1,
+    japaneseText: '怪獣です',
+    speakerLabel: null,
+  },
+  readings: [
+    {
+      readingKana: 'かいじゅう',
+      furigana: 'かいじゅう',
+      romaji: 'kaijū',
+      readingType: 'PRIMARY',
+    },
+  ],
+  vocabulary: [
+    {
+      lemma: '怪獣',
+      reading: 'かいじゅう',
+      partOfSpeech: 'NOUN',
+      senseKey: 'monster',
+      inflection: null,
+      confidenceCode: 'CONFIRMED',
+      senses: [
+        {
+          languageTag: 'es',
+          definition: 'Monstruo o criatura gigantesca.',
+          usageNote: 'Sentido usado en este borrador de la canción.',
+          displayOrder: 1,
+        },
+      ],
+    },
+  ],
+  kanji: [
+    {
+      character: '怪',
+      charOffset: 0,
+      gradeCode: null,
+      jlptCode: 'N1',
+      readings: [
+        {
+          reading: 'かい',
+          readingType: 'ON',
+          languageTag: 'es',
+          meaning: 'misterioso',
+          displayOrder: 1,
+        },
+      ],
+    },
+  ],
+  morphology: [
+    {
+      lemma: '怪獣',
+      partOfSpeechCode: 'NOUN',
+      conjugationCode: null,
+    },
+  ],
+  grammar: [
+    {
+      grammarCode: 'N-です',
+      title: '〜です',
+      levelCode: 'N5',
+      note: null,
+      explanation: 'Marca una afirmación cortés.',
+      examples: null,
+    },
+  ],
+  provenance: [
+    {
+      sourceType: 'EDITORIAL',
+      citation: 'Revisión lingüística interna',
+      locator: 'token 1',
+      contributionType: 'ANALYSIS',
+    },
+  ],
+};
+
 const iframeApi = `
 (() => {
   let currentTime = 0;
   let currentEvents = null;
 
+  window.__editorialKaraokePlayerConstructed = 0;
   window.__karaokePreviewSeek = (seconds) => {
     currentTime = seconds;
     currentEvents?.onStateChange({ data: 3 });
@@ -135,6 +221,7 @@ const iframeApi = `
 
   window.YT = {
     Player: function(element, options) {
+      window.__editorialKaraokePlayerConstructed += 1;
       currentEvents = options.events;
       this.destroy = () => {};
       this.playVideo = () => options.events.onStateChange({ data: 1 });
@@ -187,6 +274,14 @@ async function mockBase(page: import('@playwright/test').Page) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(karaokePreview),
+    });
+  });
+
+  await page.route('**/api/v1/editorial/song-drafts/*/analysis-preview/*?**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(contextualAnalysis),
     });
   });
 
@@ -246,6 +341,25 @@ test.describe('BL-MVP-060/063 · previsualización editorial de karaoke', () => 
     await expect(page.locator('[data-karaoke-line="0:1"]')).toHaveAttribute('data-active', 'true');
     await expect(page.locator('[data-karaoke-token="1"]')).toHaveAttribute('data-active', 'true');
 
+    await page.getByRole('button', { name: 'Analizar 怪獣' }).click();
+    const analysisPanel = page.locator('[data-contextual-analysis-panel]');
+    await expect(analysisPanel).toBeVisible();
+    await expect(analysisPanel.getByText('VISTA PREVIA DRAFT · ANÁLISIS CONTEXTUAL')).toBeVisible();
+    await expect(analysisPanel.getByText('Monstruo o criatura gigantesca.')).toBeVisible();
+    await expect(analysisPanel.getByText('かいじゅう', { exact: true }).first()).toBeVisible();
+
+    await analysisPanel.getByText('Gramática de esta línea', { exact: true }).click();
+    await expect(analysisPanel.getByText('〜です')).toBeVisible();
+
+    const constructedPlayers = await page.evaluate(() => {
+      const target = window as typeof window & {
+        __editorialKaraokePlayerConstructed?: number;
+      };
+      return target.__editorialKaraokePlayerConstructed ?? 0;
+    });
+    expect(constructedPlayers).toBe(1);
+    await expect(page.locator('[data-karaoke-token="1"]')).toHaveAttribute('data-active', 'true');
+
     await page.getByRole('button', { name: 'Español' }).click();
     await expect(page.getByText('Soy un monstruo.')).toHaveCount(0);
 
@@ -259,6 +373,8 @@ test.describe('BL-MVP-060/063 · previsualización editorial de karaoke', () => 
 
     await page.getByRole('button', { name: 'Previsualización de Karaoke' }).click();
     await expect(page.locator('[data-editorial-karaoke-preview]')).toBeVisible();
+    await page.getByRole('button', { name: 'Analizar 怪獣' }).click();
+    await expect(page.locator('[data-contextual-analysis-panel]')).toBeVisible();
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
