@@ -712,6 +712,28 @@ jobs:
           BL072_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/learning/verify-study-session-start.sh
 
+      - name: Verify frozen and resumable exercise instance
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL073_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/learning/verify-exercise-instance-freeze.sh
+
+      - name: Verify idempotent answer submission
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL074_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/learning/verify-answer-submission-idempotency.sh
+
       - name: Verify linguistic analysis editorial workspace
         shell: bash
         env:

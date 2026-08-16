@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppLink } from '../../app/router/navigation';
+import { AppLink, navigate } from '../../app/router/navigation';
 import { Button, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem, MutationState } from '../../data/http/types';
@@ -34,6 +34,12 @@ type StartContext = {
 
 type StartResponse = SessionSummary & {
   publicationNo: number;
+  reusedExisting: boolean;
+  message: string;
+};
+
+type PreparedExercise = {
+  instanceId: string;
   reusedExisting: boolean;
   message: string;
 };
@@ -108,13 +114,7 @@ export function StudyStartPage({ slug }: StudyStartPageProps) {
     headingRef.current?.focus();
   }, [state.phase]);
 
-  async function startSession() {
-    if (state.phase !== 'ready' || !state.context.eligible || state.context.activeSession) {
-      return;
-    }
-
-    setProblem(null);
-
+  async function readCsrf(): Promise<Csrf | null> {
     const csrf = await client.get<Csrf>('/auth/csrf', {
       cacheMode: 'no-store',
       retry: 'never',
@@ -122,8 +122,21 @@ export function StudyStartPage({ slug }: StudyStartPageProps) {
 
     if (!csrf.ok) {
       if (csrf.kind === 'problem') setProblem(csrf.problem);
+      return null;
+    }
+
+    return csrf.data;
+  }
+
+  async function startSession() {
+    if (state.phase !== 'ready' || !state.context.eligible || state.context.activeSession) {
       return;
     }
+
+    setProblem(null);
+
+    const csrf = await readCsrf();
+    if (!csrf) return;
 
     idempotencyKeyRef.current ??= crypto.randomUUID();
 
@@ -133,7 +146,7 @@ export function StudyStartPage({ slug }: StudyStartPageProps) {
       {},
       {
         headers: {
-          [csrf.data.headerName]: csrf.data.requestToken,
+          [csrf.headerName]: csrf.requestToken,
           'Idempotency-Key': idempotencyKeyRef.current,
         },
         retry: 'never',
@@ -165,6 +178,36 @@ export function StudyStartPage({ slug }: StudyStartPageProps) {
             },
           }
         : current,
+    );
+  }
+
+  async function openExercise(studySessionId: string) {
+    setProblem(null);
+
+    const csrf = await readCsrf();
+    if (!csrf) return;
+
+    const result = await client.post<Record<string, never>, PreparedExercise>(
+      `/study/sessions/${encodeURIComponent(studySessionId)}/instances`,
+      {},
+      {
+        headers: {
+          [csrf.headerName]: csrf.requestToken,
+        },
+        retry: 'never',
+        onStateChange: setMutation,
+      },
+    );
+
+    if (result.kind === 'cancelled') return;
+
+    if (!result.ok) {
+      setProblem(result.problem);
+      return;
+    }
+
+    navigate(
+      `/estudiar/${encodeURIComponent(slug)}/ejercicio/${encodeURIComponent(result.data.instanceId)}`,
     );
   }
 
@@ -303,9 +346,19 @@ export function StudyStartPage({ slug }: StudyStartPageProps) {
             <div className="study-start__action">
               <div>
                 <strong>Sesión conservada</strong>
-                <span>Puedes volver a la canción sin perder esta confirmación.</span>
+                <span>
+                  El primer ejercicio se congela una sola vez y conserva su orden al volver.
+                </span>
               </div>
-              <AppLink href={`/aprender/${encodeURIComponent(slug)}`}>Volver a la canción</AppLink>
+              <Button
+                type="button"
+                disabled={mutation?.phase === 'saving'}
+                onClick={() => void openExercise(state.context.activeSession!.studySessionId)}
+              >
+                {mutation?.phase === 'saving'
+                  ? 'Preparando ejercicio…'
+                  : 'Continuar con el ejercicio'}
+              </Button>
             </div>
           ) : null}
         </>

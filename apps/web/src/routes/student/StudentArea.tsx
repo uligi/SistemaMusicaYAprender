@@ -3,6 +3,7 @@ import { RoutePlaceholder } from '../shared/RoutePlaceholder';
 import { ContextualAnalysisPage } from './ContextualAnalysisPage';
 import { EducationalPlayerPage } from './EducationalPlayerPage';
 import { PersonalPreferencesPage } from './PersonalPreferencesPage';
+import { StudyExercisePage } from './StudyExercisePage';
 import { StudyStartPage } from './StudyStartPage';
 import './student-area.css';
 
@@ -25,6 +26,18 @@ export default function StudentArea({ match }: StudentAreaProps) {
 
   if (match.route.id === 'UI-MVP-011') {
     return <StudyStartPage slug={match.params.slug!} />;
+  }
+
+  if (match.route.id === 'UI-MVP-012') {
+    return (
+      <StudyExercisePage slug={match.params.slug!} instanceId={match.params.id!} mode="exercise" />
+    );
+  }
+
+  if (match.route.id === 'UI-MVP-013') {
+    return (
+      <StudyExercisePage slug={match.params.slug!} instanceId={match.params.id!} mode="result" />
+    );
   }
 
   return (
