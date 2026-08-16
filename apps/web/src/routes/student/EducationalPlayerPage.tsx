@@ -173,7 +173,11 @@ export function EducationalPlayerPage({ slug }: EducationalPlayerPageProps) {
         </p>
       </header>
 
-      <AppLink href={`/canciones/${encodeURIComponent(slug)}`}>Volver a la ficha pública</AppLink>
+      <nav aria-label="Acciones de la canción">
+        <AppLink href={`/canciones/${encodeURIComponent(slug)}`}>Volver a la ficha pública</AppLink>
+        {' · '}
+        <AppLink href={`/estudiar/${encodeURIComponent(slug)}`}>Practicar esta canción</AppLink>
+      </nav>
 
       {state.phase === 'loading' ? (
         <StateMessage

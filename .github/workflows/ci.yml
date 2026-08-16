@@ -701,6 +701,17 @@ jobs:
           BL071_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/learning/verify-fill-blank-exercise-authoring.sh
 
+      - name: Verify private published study-session start
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL072_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/learning/verify-study-session-start.sh
+
       - name: Verify linguistic analysis editorial workspace
         shell: bash
         env:
