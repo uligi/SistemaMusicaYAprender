@@ -756,6 +756,17 @@ jobs:
           BL076_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/learning/verify-study-feedback-accessibility.sh
 
+      - name: Verify append-only learning evidence and single progress notification
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL077_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/learning/verify-study-learning-evidence.sh
+
       - name: Verify linguistic analysis editorial workspace
         shell: bash
         env:

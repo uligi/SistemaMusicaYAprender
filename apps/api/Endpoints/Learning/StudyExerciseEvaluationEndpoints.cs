@@ -47,15 +47,30 @@ public static class StudyExerciseEvaluationEndpoints
         HttpContext httpContext,
         IHttpDatabaseSessionContextFactory contextFactory,
         StudyExerciseEvaluationService service,
+        StudyLearningEvidenceService evidenceService,
         CancellationToken cancellationToken)
     {
         try
         {
             var context = contextFactory.CreateRequired(httpContext);
             var result = await service.ReadAsync(context, instanceId, cancellationToken);
+            StudyLearningEvidenceView? evidence = null;
+
+            try
+            {
+                evidence = await evidenceService.ReadAsync(context, instanceId, cancellationToken);
+            }
+            catch (StudyLearningEvidencePendingException)
+            {
+                // Una evaluación histórica puede existir antes de que BL077 confirme su evidencia.
+            }
+            catch (StudyLearningEvidenceDriftException)
+            {
+                return EvidenceReviewableConflict();
+            }
 
             SetPrivateNoStore(httpContext);
-            return Results.Ok(ToResponse(result));
+            return Results.Ok(ToResponse(result, evidence));
         }
         catch (StudyExerciseEvaluationPendingException)
         {
@@ -93,6 +108,7 @@ public static class StudyExerciseEvaluationEndpoints
         IAntiforgery antiforgery,
         IHttpDatabaseSessionContextFactory contextFactory,
         StudyExerciseEvaluationService service,
+        StudyLearningEvidenceService evidenceService,
         CancellationToken cancellationToken)
     {
         try
@@ -101,10 +117,24 @@ public static class StudyExerciseEvaluationEndpoints
 
             var context = contextFactory.CreateRequired(httpContext);
             var result = await service.EnsureAsync(context, instanceId, cancellationToken);
+            StudyLearningEvidenceView evidence;
+
+            try
+            {
+                evidence = await evidenceService.EnsureAsync(context, instanceId, cancellationToken);
+            }
+            catch (StudyLearningEvidencePendingException)
+            {
+                return EvidencePendingConflict();
+            }
+            catch (StudyLearningEvidenceDriftException)
+            {
+                return EvidenceReviewableConflict();
+            }
 
             SetPrivateNoStore(httpContext);
             return Results.Json(
-                ToResponse(result),
+                ToResponse(result, evidence),
                 statusCode: result.ReusedExisting
                     ? StatusCodes.Status200OK
                     : StatusCodes.Status201Created);
@@ -155,7 +185,9 @@ public static class StudyExerciseEvaluationEndpoints
         }
     }
 
-    private static StudyEvaluationResponse ToResponse(StudyEvaluationView result) =>
+    private static StudyEvaluationResponse ToResponse(
+        StudyEvaluationView result,
+        StudyLearningEvidenceView? evidence) =>
         new(
             result.EvaluationId,
             result.SubmissionId,
@@ -172,7 +204,10 @@ public static class StudyExerciseEvaluationEndpoints
                         item.LanguageTag,
                         item.Message,
                         item.DisplayOrder))
-                .ToArray());
+                .ToArray(),
+            evidence is null
+                ? null
+                : StudyLearningEvidenceEndpoints.ToResponse(evidence));
 
     private static IResult ReviewableConflict() =>
         Problem(
@@ -181,11 +216,25 @@ public static class StudyExerciseEvaluationEndpoints
             "No se sobrescribió el resultado histórico. Conservamos la respuesta y la evaluación existente para una corrección trazable posterior.",
             "learning.study-evaluation.drift");
 
+    private static IResult EvidencePendingConflict() =>
+        Problem(
+            StatusCodes.Status409Conflict,
+            "La evaluación quedó guardada y la evidencia sigue pendiente",
+            "Reintenta la operación. La evaluación persistida se reutiliza y BL077 confirmará como máximo una evidencia lógica.",
+            "learning.study-evidence.pending-after-evaluation");
+
+    private static IResult EvidenceReviewableConflict() =>
+        Problem(
+            StatusCodes.Status409Conflict,
+            "La evidencia asociada requiere revisión",
+            "La evaluación no se reescribió. El linaje o la notificación de evidencia existente no coincide y debe revisarse de forma trazable.",
+            "learning.study-evidence.drift");
+
     private static IResult StorageUnavailable() =>
         Problem(
             StatusCodes.Status503ServiceUnavailable,
-            "No pudimos confirmar la corrección",
-            "La respuesta confirmada se conserva y no se creó evidencia ni progreso. Puedes volver a intentarlo cuando el servicio esté disponible.",
+            "No pudimos completar la corrección y su evidencia",
+            "La respuesta confirmada se conserva. Si la evaluación o evidencia ya se persistieron, el reintento reutiliza esos registros; este paso todavía no actualiza progreso.",
             "learning.study-evaluation.unavailable");
 
     private static void SetPrivateNoStore(HttpContext httpContext)
@@ -223,4 +272,5 @@ public sealed record StudyEvaluationResponse(
     DateTimeOffset EvaluatedAt,
     string ResultDigestSha256,
     bool ReusedExisting,
-    IReadOnlyList<StudyEvaluationFeedbackResponse> Feedback);
+    IReadOnlyList<StudyEvaluationFeedbackResponse> Feedback,
+    StudyLearningEvidenceResponse? Evidence);

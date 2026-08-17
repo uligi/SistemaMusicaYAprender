@@ -52,6 +52,17 @@ type EvaluationFeedback = {
   displayOrder: number;
 };
 
+type StudyEvidence = {
+  evidenceId: string;
+  evaluationId: string;
+  competencyId: string;
+  recordingId: string;
+  outcome: number;
+  evidenceVersion: number;
+  confirmedAt: string;
+  reusedExisting: boolean;
+};
+
 type StudyEvaluation = {
   evaluationId: string;
   submissionId: string;
@@ -62,6 +73,7 @@ type StudyEvaluation = {
   resultDigestSha256: string;
   reusedExisting: boolean;
   feedback: EvaluationFeedback[];
+  evidence?: StudyEvidence | null;
 };
 
 type Csrf = {
@@ -117,6 +129,8 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
   const [mutation, setMutation] = useState<MutationState | null>(null);
   const [problem, setProblem] = useState<ClientProblem | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationState>({ phase: 'idle' });
+  const [evidenceSaving, setEvidenceSaving] = useState(false);
+  const [evidenceProblem, setEvidenceProblem] = useState<ClientProblem | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -125,6 +139,8 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
     setMutation(null);
     setProblem(null);
     setEvaluation({ phase: 'idle' });
+    setEvidenceSaving(false);
+    setEvidenceProblem(null);
     idempotencyKeyRef.current = null;
 
     const load = async () => {
@@ -293,6 +309,66 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
     setEvaluation({ phase: 'ready', evaluation: result.data });
   }
 
+  async function confirmEvidence() {
+    if (
+      mode !== 'result' ||
+      evaluation.phase !== 'ready' ||
+      evaluation.evaluation.evidence !== null ||
+      evidenceSaving
+    ) {
+      return;
+    }
+
+    setEvidenceProblem(null);
+    setEvidenceSaving(true);
+
+    const csrf = await client.get<Csrf>('/auth/csrf', {
+      cacheMode: 'no-store',
+      retry: 'never',
+    });
+
+    if (!csrf.ok) {
+      if (csrf.kind === 'problem') setEvidenceProblem(csrf.problem);
+      setEvidenceSaving(false);
+      return;
+    }
+
+    const result = await client.post<Record<string, never>, StudyEvidence>(
+      `/study/exercise-instances/${encodeURIComponent(instanceId)}/evidence`,
+      {},
+      {
+        headers: {
+          [csrf.data.headerName]: csrf.data.requestToken,
+        },
+        retry: 'never',
+        invalidate: [
+          `/study/exercise-instances/${encodeURIComponent(instanceId)}/evaluation`,
+          `/study/exercise-instances/${encodeURIComponent(instanceId)}/evidence`,
+        ],
+      },
+    );
+
+    if (result.kind === 'cancelled') {
+      setEvidenceSaving(false);
+      return;
+    }
+
+    if (!result.ok) {
+      setEvidenceProblem(result.problem);
+      setEvidenceSaving(false);
+      return;
+    }
+
+    setEvaluation({
+      phase: 'ready',
+      evaluation: {
+        ...evaluation.evaluation,
+        evidence: result.data,
+      },
+    });
+    setEvidenceSaving(false);
+  }
+
   const routeId = mode === 'exercise' ? 'UI-MVP-012' : 'UI-MVP-013';
 
   return (
@@ -435,8 +511,8 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
               </p>
               {evaluation.phase === 'idle' ? (
                 <p>
-                  La corrección todavía no se muestra. Puedes calcularla con la regla congelada de
-                  esta revisión sin crear evidencia ni progreso.
+                  La corrección todavía no se muestra. Al evaluarla, el servidor confirmará una
+                  única evidencia append-only; el progreso se deriva en un paso posterior.
                 </p>
               ) : null}
               <p>Recargar esta página conserva la misma entrega; no crea otra respuesta.</p>
@@ -448,8 +524,8 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
               <div>
                 <strong>Corrección reproducible disponible</strong>
                 <span>
-                  Se usará la regla versionada de la revisión congelada. No se compara texto libre
-                  ni se crea evidencia todavía.
+                  Se usará la regla versionada de la revisión congelada. Una evaluación válida
+                  confirmará una sola evidencia; este paso todavía no actualiza progreso.
                 </span>
               </div>
               <Button type="button" onClick={() => void evaluateAnswer()}>
@@ -509,9 +585,54 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
                 ))}
               <p className="study-exercise__hint">
                 Esta corrección queda ligada a la entrega y revisión congeladas. Editar futuros
-                borradores no cambia este resultado. La evidencia y el progreso pertenecen a los
-                pasos posteriores.
+                borradores no cambia este resultado.
               </p>
+
+              {evaluation.evaluation.evidence ? (
+                <section aria-labelledby="study-evidence-title">
+                  <p className="eyebrow">EVIDENCIA APPEND-ONLY</p>
+                  <h3 id="study-evidence-title">Evidencia de aprendizaje confirmada</h3>
+                  <p>
+                    <strong>Versión de evidencia:</strong>{' '}
+                    {evaluation.evaluation.evidence.evidenceVersion}
+                  </p>
+                  <p>
+                    <strong>Resultado conservado:</strong>{' '}
+                    {evaluation.evaluation.evidence.outcome >= 1 ? '1 de 1' : '0 de 1'}
+                  </p>
+                  <p>
+                    Reintentar o recargar reutiliza esta misma evidencia lógica. Este paso no
+                    actualiza el progreso todavía.
+                  </p>
+                </section>
+              ) : null}
+
+              {evaluation.evaluation.evidence === null ? (
+                <div className="study-exercise__action">
+                  <div>
+                    <strong>La evaluación ya existe; falta confirmar su evidencia</strong>
+                    <span>
+                      El reintento usa la misma evaluación y no puede crear una segunda evidencia
+                      lógica.
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    disabled={evidenceSaving}
+                    onClick={() => void confirmEvidence()}
+                  >
+                    {evidenceSaving ? 'Confirmando evidencia…' : 'Confirmar evidencia'}
+                  </Button>
+                </div>
+              ) : null}
+
+              {evidenceProblem ? (
+                <StateMessage
+                  state="UI-EST-10"
+                  title={evidenceProblem.summary}
+                  description={evidenceProblem.correction}
+                />
+              ) : null}
             </section>
           ) : null}
         </>
