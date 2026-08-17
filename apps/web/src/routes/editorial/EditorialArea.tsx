@@ -9,6 +9,7 @@ import { SynchronizationStructurePage } from './SynchronizationStructurePage';
 import { TranslationStructurePage } from './TranslationStructurePage';
 import { LinguisticAnalysisStructurePage } from './LinguisticAnalysisStructurePage';
 import { ExerciseBankPage } from './ExerciseBankPage';
+import { CompatiblePackagePage } from './CompatiblePackagePage';
 import { SongContextNavigation } from './SongContextNavigation';
 import { SongEditorialDossierPage } from './SongEditorialDossierPage';
 
@@ -90,6 +91,10 @@ export default function EditorialArea({ match }: EditorialAreaProps) {
         <ExerciseBankPage recordingId={match.params.id ?? ''} />
       </SongWorkspace>
     );
+  }
+
+  if (match.route.id === 'UI-MVP-026') {
+    return <CompatiblePackagePage recordingId={match.params.id ?? ''} />;
   }
 
   return (

@@ -99,6 +99,10 @@ builder.Services.AddSingleton<IRightsAdministrationTransactionExecutor>(
     static services =>
         new EditorialRightsAdministrationTransactionExecutor(
             services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
+builder.Services.AddSingleton<ICompatibleEducationalPackageTransactionExecutor>(
+    static services =>
+        new CompatiblePackageAdministrationTransactionExecutor(
+            services.GetRequiredService<BackofficeSecurityTransactionExecutor>()));
 builder.Services.AddSingleton<ArtistAdministrationService>();
 builder.Services.AddSingleton<SongDraftAdministrationService>();
 builder.Services.AddSingleton<CreditProvenanceAdministrationService>();
@@ -124,6 +128,7 @@ builder.Services.AddSingleton<PublicSongLearningLayersService>();
 builder.Services.AddSingleton<PublicContextualAnalysisService>();
 builder.Services.AddSingleton<PublicEducationalPackageService>();
 builder.Services.AddSingleton<RightsAdministrationService>();
+builder.Services.AddSingleton<CompatibleEducationalPackageService>();
 builder.Services.AddSingleton<PublicCatalogProjectionService>();
 builder.Services.AddSingleton<PublicCatalogSearchService>();
 builder.Services.AddSingleton<PublicSongDetailService>();
@@ -291,6 +296,7 @@ app.MapTranslationRevisionAdministration();
 app.MapLinguisticAnalysisRevisionAdministration();
 app.MapExerciseBankAdministration();
 app.MapFillBlankExerciseAuthoring();
+app.MapCompatibleEducationalPackage();
 app.MapStudySessions();
 app.MapStudyExerciseFlow();
 app.MapStudyExerciseEvaluation();

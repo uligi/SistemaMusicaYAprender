@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { useVisibleAccess } from '../../app/access/AccessContext';
+import { AppLink } from '../../app/router/navigation';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
@@ -121,6 +123,7 @@ function RequirementMark({ ok, children }: { ok: boolean; children: string }) {
 }
 
 export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
+  const access = useVisibleAccess();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [state, setState] = useState<PageState>({ phase: 'loading' });
   const [authoringOpen, setAuthoringOpen] = useState(false);
@@ -153,6 +156,9 @@ export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
   }, [recordingId, refreshKey]);
 
   const data = state.phase === 'ready' ? state.data : null;
+  const canPreparePackage =
+    access.capabilities.includes('EDITORIAL.SUBMIT') ||
+    access.capabilities.includes('EDITORIAL.REVIEW');
 
   return (
     <article className="route-surface exercise-bank" data-route-id="UI-MVP-025">
@@ -441,10 +447,29 @@ export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
         </section>
       ) : null}
 
+      {canPreparePackage ? (
+        <section className="exercise-bank__authoring-entry" aria-label="Preparación del paquete">
+          <div>
+            <p className="eyebrow">BL-MVP-047 + BL-MVP-079 · PAQUETE</p>
+            <h2>Validar ejercicios y preparar paquete</h2>
+            <p>
+              Revisa enlaces, fija revisiones exactas y aprueba únicamente ejercicios compatibles
+              antes de congelar el paquete.
+            </p>
+          </div>
+          <AppLink
+            className="exercise-bank__authoring-button"
+            href={`/editorial/paquetes/${encodeURIComponent(recordingId)}`}
+          >
+            Preparar paquete compatible
+          </AppLink>
+        </section>
+      ) : null}
+
       <footer className="exercise-bank__footer">
         <p>
           BL-MVP-070 conserva el banco y sus revisiones. BL-MVP-071 permite crear y probar
-          borradores de completar espacios; la publicación continúa fuera de esta pantalla.
+          borradores; BL-MVP-047/079 valida su incorporación al paquete sin publicar todavía.
         </p>
       </footer>
     </article>

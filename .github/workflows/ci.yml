@@ -771,6 +771,14 @@ jobs:
         shell: bash
         run: bash scripts/ci/learning/verify-complete-study-session-experience.sh
 
+      - name: Verify compatible educational package assembly
+        shell: bash
+        run: bash scripts/ci/editorial/verify-compatible-educational-package.sh
+
+      - name: Verify package exercise eligibility
+        shell: bash
+        run: bash scripts/ci/learning/verify-package-exercise-eligibility.sh
+
       - name: Verify linguistic analysis editorial workspace
         shell: bash
         env:
