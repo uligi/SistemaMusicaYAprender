@@ -512,8 +512,9 @@ export function CompatiblePackagePage({ recordingId }: CompatiblePackagePageProp
                   Elige ejercicios válidos
                 </legend>
                 <p className="compatible-package__help">
-                  Solo puedes marcar ejercicios P0 compatibles con la letra exacta. Los bloqueos se
-                  muestran aquí mismo para que sepas qué corregir.
+                  Solo puedes marcar ejercicios P0 compatibles con la letra exacta.{' '}
+                  <span>La aprobación es específica de este paquete.</span> No reescribe la revisión
+                  fuente. Los bloqueos se muestran aquí mismo para que sepas qué corregir.
                 </p>
                 <ul className="compatible-package__exercises">
                   {exerciseCandidates.length === 0 ? (
