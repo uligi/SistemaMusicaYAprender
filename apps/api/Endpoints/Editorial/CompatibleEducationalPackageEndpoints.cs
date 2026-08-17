@@ -14,6 +14,11 @@ public static class CompatibleEducationalPackageEndpoints
         "EDITORIAL.REVIEW"
     ];
 
+    private static readonly string[] SubmitPermissions =
+    [
+        "EDITORIAL.SUBMIT"
+    ];
+
     public static IEndpointRouteBuilder MapCompatibleEducationalPackage(
         this IEndpointRouteBuilder endpoints)
     {
@@ -39,13 +44,25 @@ public static class CompatibleEducationalPackageEndpoints
             .WithName("SaveCompatibleEducationalPackage")
             .WithTags("Editorial");
 
+        endpoints.MapPost(
+                "/api/v1/editorial/song-drafts/{recordingId:guid}/compatible-package/submit",
+                SubmitAsync)
+            .RequireAnyEffectivePermission(
+                SubmitPermissions,
+                "EDITORIAL.PACKAGE.SUBMIT",
+                moduleCode: "M15",
+                routeObjectKey: "recordingId")
+            .WithName("SubmitCompatibleEducationalPackage")
+            .WithTags("Editorial");
+
         return endpoints;
     }
 
     private static async Task<IResult> ReadAsync(
         Guid recordingId,
         HttpContext httpContext,
-        CompatibleEducationalPackageService service)
+        CompatibleEducationalPackageService service,
+        ICompatibleEducationalPackageTransactionExecutor transactions)
     {
         if (!TryActor(httpContext, out var actorId))
         {
@@ -60,12 +77,27 @@ public static class CompatibleEducationalPackageEndpoints
                 httpContext.TraceIdentifier,
                 httpContext.RequestAborted);
 
+            var submission =
+                await new EducationalPackageSubmissionService(transactions)
+                    .ReadLatestAsync(
+                        actorId,
+                        recordingId,
+                        httpContext.TraceIdentifier,
+                        httpContext.RequestAborted);
+
             ApplyHeaders(httpContext, snapshot);
-            return Results.Ok(snapshot);
+            return Results.Ok(
+                CompatiblePackageWorkspaceResponse.From(
+                    snapshot,
+                    submission));
         }
         catch (CompatibleEducationalPackageException exception)
         {
             return Problem(exception);
+        }
+        catch (EducationalPackageSubmissionException exception)
+        {
+            return SubmissionProblem(exception);
         }
         catch (NpgsqlException)
         {
@@ -121,18 +153,73 @@ public static class CompatibleEducationalPackageEndpoints
         }
         catch (AntiforgeryValidationException)
         {
-            return Results.Problem(
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "Solicitud no válida",
-                detail: "Actualiza la página y vuelve a intentarlo.",
-                extensions: new Dictionary<string, object?>
-                {
-                    ["code"] = "editorial.package.csrf.invalid"
-                });
+            return InvalidCsrf();
         }
         catch (CompatibleEducationalPackageException exception)
         {
             return Problem(exception);
+        }
+        catch (NpgsqlException)
+        {
+            return Unavailable();
+        }
+        catch (InvalidOperationException)
+        {
+            return Unavailable();
+        }
+    }
+
+    private static async Task<IResult> SubmitAsync(
+        Guid recordingId,
+        EducationalPackageSubmissionInput request,
+        HttpContext httpContext,
+        IAntiforgery antiforgery,
+        ICompatibleEducationalPackageTransactionExecutor transactions)
+    {
+        if (!TryActor(httpContext, out var actorId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!httpContext.Request.Headers.TryGetValue(
+                "If-Match",
+                out var ifMatch)
+            || string.IsNullOrWhiteSpace(ifMatch.ToString()))
+        {
+            return Results.Problem(
+                statusCode: StatusCodes.Status428PreconditionRequired,
+                title: "Falta la versión base del paquete",
+                detail: "Recarga el paquete compatible antes de congelarlo.",
+                extensions: new Dictionary<string, object?>
+                {
+                    ["code"] = "editorial.package.submit.precondition-required"
+                });
+        }
+
+        try
+        {
+            await antiforgery.ValidateRequestAsync(httpContext);
+
+            var snapshot =
+                await new EducationalPackageSubmissionService(transactions)
+                    .SubmitAsync(
+                        actorId,
+                        recordingId,
+                        request,
+                        ifMatch.ToString(),
+                        httpContext.TraceIdentifier,
+                        httpContext.RequestAborted);
+
+            ApplySubmissionHeaders(httpContext, snapshot);
+            return Results.Ok(snapshot);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return InvalidCsrf();
+        }
+        catch (EducationalPackageSubmissionException exception)
+        {
+            return SubmissionProblem(exception);
         }
         catch (NpgsqlException)
         {
@@ -189,9 +276,90 @@ public static class CompatibleEducationalPackageEndpoints
             });
     }
 
+    private static IResult SubmissionProblem(
+        EducationalPackageSubmissionException exception)
+    {
+        var status = exception.Code switch
+        {
+            "editorial.package.submit.recording-not-found"
+                => StatusCodes.Status404NotFound,
+            "editorial.package.submit.source-changed"
+                => StatusCodes.Status412PreconditionFailed,
+            "editorial.package.submit.precondition-required"
+                => StatusCodes.Status428PreconditionRequired,
+            "editorial.package.submit.draft-required"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.multiple-drafts"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.not-mutable"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.concurrent-change"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.components-incomplete"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.broken-link"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.component-terminal"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.component-changed"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.source-incompatible"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.exercise-provenance-required"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.rights-required"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.checksum-changed"
+                => StatusCodes.Status409Conflict,
+            "editorial.package.submit.permission-lost"
+                => StatusCodes.Status403Forbidden,
+            _ => StatusCodes.Status400BadRequest
+        };
+
+        return Results.Problem(
+            statusCode: status,
+            title: status switch
+            {
+                StatusCodes.Status404NotFound
+                    => "Canción editorial no encontrada",
+                StatusCodes.Status403Forbidden
+                    => "Ya no puedes someter este paquete",
+                StatusCodes.Status412PreconditionFailed
+                    => "El paquete cambió antes de congelarse",
+                StatusCodes.Status428PreconditionRequired
+                    => "Falta la versión base",
+                StatusCodes.Status409Conflict
+                    => "El paquete ya no está listo para someterse",
+                _ => "Revisa el sometimiento"
+            },
+            detail: exception.Message,
+            extensions: new Dictionary<string, object?>
+            {
+                ["code"] = exception.Code
+            });
+    }
+
+    private static IResult InvalidCsrf() =>
+        Results.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Solicitud no válida",
+            detail: "Actualiza la página y vuelve a intentarlo.",
+            extensions: new Dictionary<string, object?>
+            {
+                ["code"] = "editorial.package.csrf.invalid"
+            });
+
     private static void ApplyHeaders(
         HttpContext context,
         CompatiblePackageSnapshot snapshot)
+    {
+        context.Response.Headers["ETag"] = snapshot.ETag;
+        context.Response.Headers["Cache-Control"] = "no-store";
+    }
+
+    private static void ApplySubmissionHeaders(
+        HttpContext context,
+        EducationalPackageSubmissionSnapshot snapshot)
     {
         context.Response.Headers["ETag"] = snapshot.ETag;
         context.Response.Headers["Cache-Control"] = "no-store";
@@ -219,4 +387,38 @@ public static class CompatibleEducationalPackageEndpoints
             {
                 ["code"] = "editorial.package.unavailable"
             });
+
+    private sealed record CompatiblePackageWorkspaceResponse(
+        Guid RecordingId,
+        long CatalogVersion,
+        Guid? PackageId,
+        int? PackageNo,
+        string StatusCode,
+        long Version,
+        string? ChecksumSha256,
+        string ETag,
+        CompatiblePackageSelection Selection,
+        IReadOnlyList<CompatiblePackageCandidate> Candidates,
+        CompatiblePackageChecklist Checklist,
+        string Message,
+        EducationalPackageSubmissionSnapshot LatestSubmission)
+    {
+        public static CompatiblePackageWorkspaceResponse From(
+            CompatiblePackageSnapshot snapshot,
+            EducationalPackageSubmissionSnapshot latestSubmission) =>
+            new(
+                snapshot.RecordingId,
+                snapshot.CatalogVersion,
+                snapshot.PackageId,
+                snapshot.PackageNo,
+                snapshot.StatusCode,
+                snapshot.Version,
+                snapshot.ChecksumSha256,
+                snapshot.ETag,
+                snapshot.Selection,
+                snapshot.Candidates,
+                snapshot.Checklist,
+                snapshot.Message,
+                latestSubmission);
+    }
 }

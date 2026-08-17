@@ -6,19 +6,49 @@ import './song-context-navigation.css';
 type SongContextItem = {
   routeId: AppRoute['id'];
   label: string;
-  suffix: string;
+  href: (recordingId: string) => string;
 };
 
 const routeById = new Map(routeManifest.map((route) => [route.id, route]));
 
+const songHref =
+  (suffix = '') =>
+  (recordingId: string) =>
+    `/editorial/canciones/${encodeURIComponent(recordingId)}${suffix}`;
+
 const songItems: readonly SongContextItem[] = [
-  { routeId: 'UI-MVP-019', label: 'Expediente', suffix: '' },
-  { routeId: 'UI-MVP-020', label: 'Derechos y procedencia', suffix: '/derechos' },
-  { routeId: 'UI-MVP-021', label: 'Letra', suffix: '/letra' },
-  { routeId: 'UI-MVP-022', label: 'Sincronización', suffix: '/sincronizacion' },
-  { routeId: 'UI-MVP-023', label: 'Traducción', suffix: '/traduccion' },
-  { routeId: 'UI-MVP-024', label: 'Análisis lingüístico', suffix: '/analisis' },
-  { routeId: 'UI-MVP-025', label: 'Ejercicios', suffix: '/ejercicios' },
+  { routeId: 'UI-MVP-019', label: 'Expediente', href: songHref() },
+  {
+    routeId: 'UI-MVP-020',
+    label: 'Derechos y procedencia',
+    href: songHref('/derechos'),
+  },
+  { routeId: 'UI-MVP-021', label: 'Letra', href: songHref('/letra') },
+  {
+    routeId: 'UI-MVP-022',
+    label: 'Sincronización',
+    href: songHref('/sincronizacion'),
+  },
+  {
+    routeId: 'UI-MVP-023',
+    label: 'Traducción',
+    href: songHref('/traduccion'),
+  },
+  {
+    routeId: 'UI-MVP-024',
+    label: 'Análisis lingüístico',
+    href: songHref('/analisis'),
+  },
+  {
+    routeId: 'UI-MVP-025',
+    label: 'Ejercicios',
+    href: songHref('/ejercicios'),
+  },
+  {
+    routeId: 'UI-MVP-026',
+    label: 'Paquete y revisión',
+    href: (recordingId) => `/editorial/paquetes/${encodeURIComponent(recordingId)}`,
+  },
 ];
 
 function canOpen(routeId: AppRoute['id'], capabilities: readonly string[]): boolean {
@@ -45,8 +75,6 @@ export function SongContextNavigation({ recordingId, currentRouteId }: SongConte
 
   if (!recordingId || visibleItems.length === 0) return null;
 
-  const baseHref = `/editorial/canciones/${encodeURIComponent(recordingId)}`;
-
   return (
     <nav className="song-context-nav" aria-label="Opciones de la canción">
       <div className="song-context-nav__heading">
@@ -58,7 +86,7 @@ export function SongContextNavigation({ recordingId, currentRouteId }: SongConte
           <AppLink
             className="song-context-nav__link"
             current={currentRouteId === item.routeId}
-            href={`${baseHref}${item.suffix}`}
+            href={item.href(recordingId)}
             key={item.routeId}
           >
             {item.label}

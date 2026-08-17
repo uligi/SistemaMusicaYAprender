@@ -94,7 +94,11 @@ export default function EditorialArea({ match }: EditorialAreaProps) {
   }
 
   if (match.route.id === 'UI-MVP-026') {
-    return <CompatiblePackagePage recordingId={match.params.id ?? ''} />;
+    return (
+      <SongWorkspace match={match}>
+        <CompatiblePackagePage recordingId={match.params.id ?? ''} />
+      </SongWorkspace>
+    );
   }
 
   return (

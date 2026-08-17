@@ -191,7 +191,7 @@ test.describe('BL-MVP-047/079 · paquete compatible y ejercicios publicables', (
     await page.getByLabel('Traducción').selectOption(translationId);
     await page.getByLabel('Análisis').selectOption(analysisId);
     await page.getByRole('checkbox', { name: /Ejercicio · revisión 1/ }).check();
-    await page.getByLabel('Motivo trazable').fill('Revisiones exactas compatibles.');
+    await page.getByLabel('Motivo del guardado').fill('Revisiones exactas compatibles.');
     await page.getByRole('button', { name: 'Guardar paquete compatible' }).click();
 
     await expect(page.getByRole('heading', { name: 'Compatible para congelar' })).toBeVisible();
@@ -269,7 +269,7 @@ test.describe('BL-MVP-047/079 · paquete compatible y ejercicios publicables', (
     await page.getByLabel('Traducción').selectOption(translationId);
     await page.getByLabel('Análisis').selectOption(analysisId);
     await page.getByRole('checkbox', { name: /Ejercicio · revisión 1/ }).check();
-    await page.getByLabel('Motivo trazable').fill('Comprobar conflicto de fuente.');
+    await page.getByLabel('Motivo del guardado').fill('Comprobar conflicto de fuente.');
     await page.getByRole('button', { name: 'Guardar paquete compatible' }).click();
 
     await expect(page.getByText('Hay una versión más reciente')).toBeVisible();

@@ -36,3 +36,5 @@ echo "compatibility=exact-source-revisions"
 echo "checksum=sha256-deterministic"
 echo "package-state=DRAFT-only"
 echo "final-publication=false"
+
+bash scripts/ci/editorial/verify-package-freeze-submission.sh
