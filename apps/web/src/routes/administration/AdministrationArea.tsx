@@ -1,6 +1,7 @@
 import type { RouteMatch } from '../../app/router/match-route';
 import { RoutePlaceholder } from '../shared/RoutePlaceholder';
 import { ConfigurationAdministrationPage } from './ConfigurationAdministrationPage';
+import { EditorialReviewPage } from './EditorialReviewPage';
 import { RoleManagementPage } from './RoleManagementPage';
 
 export type AdministrationAreaProps = {
@@ -8,6 +9,10 @@ export type AdministrationAreaProps = {
 };
 
 export default function AdministrationArea({ match }: AdministrationAreaProps) {
+  if (match.route.id === 'UI-MVP-027') {
+    return <EditorialReviewPage recordingId={match.params.id ?? ''} />;
+  }
+
   if (match.route.id === 'UI-MVP-029') {
     return <RoleManagementPage />;
   }

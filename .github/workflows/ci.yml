@@ -496,6 +496,10 @@ jobs:
           BL046_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/editorial/verify-song-editorial-dossier.sh
 
+      - name: Verify editorial review assignment, checklist and decision
+        shell: bash
+        run: bash scripts/ci/editorial/verify-review-workflow.sh
+
       - name: Verify editorial autosave and conflicts
         shell: bash
         env:

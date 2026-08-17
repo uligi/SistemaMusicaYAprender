@@ -262,7 +262,8 @@ export const routeManifest: readonly AppRoute[] = [
     path: '/administracion/publicaciones/{id}',
     access: 'capability',
     accessLabel: 'Administrador',
-    requiredCapabilities: ['EDITORIAL.PUBLISH'],
+    requiredCapabilities: ['EDITORIAL.REVIEW', 'EDITORIAL.PUBLISH'],
+    capabilityMode: 'any',
   },
   {
     id: 'UI-MVP-028',
