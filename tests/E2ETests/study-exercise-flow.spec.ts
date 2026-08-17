@@ -43,6 +43,24 @@ async function mockStudentSession(page: Page) {
   });
 }
 
+async function mockActiveStudySession(page: Page) {
+  await page.route(`**/api/v1/study/sessions/${sessionId}`, async (route) => {
+    expect(route.request().method()).toBe('GET');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        studySessionId: sessionId,
+        statusCode: 'ACTIVE',
+        startedAt: '2026-08-16T20:55:00Z',
+        endedAt: null,
+        version: 1,
+        reusedExisting: true,
+        message: 'La sesiÃ³n estÃ¡ activa.',
+      }),
+    });
+  });
+}
 async function mockCsrf(page: Page) {
   await page.route('**/api/v1/auth/csrf', async (route) => {
     await route.fulfill({
@@ -108,6 +126,7 @@ function confirmedExercise() {
 test.describe('BL-MVP-073/074 · instancia congelada y respuesta idempotente', () => {
   test.beforeEach(async ({ page }) => {
     await mockStudentSession(page);
+    await mockActiveStudySession(page);
   });
 
   test('BL073 congela una sola instancia y abre UI-MVP-012 sin exponer solución', async ({

@@ -144,6 +144,11 @@ public sealed class StudyExerciseFlowService(
                         true);
                 }
 
+                if (!string.Equals(session.StatusCode, "ACTIVE", StringComparison.Ordinal))
+                {
+                    throw new StudyExerciseSessionUnavailableException();
+                }
+
                 var candidate = await ResolvePublishedExerciseAsync(
                     connection,
                     transaction,
@@ -383,7 +388,8 @@ public sealed class StudyExerciseFlowService(
             SELECT
                 session.study_session_id,
                 session.recording_id,
-                session.publication_id
+                session.publication_id,
+                session.status_code
             FROM learning.study_session AS session
             INNER JOIN learning.learner_profile AS profile
                 ON profile.learner_profile_id =
@@ -392,7 +398,8 @@ public sealed class StudyExerciseFlowService(
               AND profile.account_id = @account_id
               AND session.status_code IN ('ACTIVE', 'PAUSED')
               AND session.ended_at IS NULL
-            LIMIT 1;
+            LIMIT 1
+            FOR UPDATE OF session;
             """;
 
         await using var command =
@@ -418,7 +425,8 @@ public sealed class StudyExerciseFlowService(
         return new OwnedStudySession(
             reader.GetGuid(0),
             reader.GetGuid(1),
-            reader.GetGuid(2));
+            reader.GetGuid(2),
+            reader.GetString(3));
     }
 
     private static async Task<Guid?> ReadExistingInstanceIdAsync(
@@ -1017,7 +1025,8 @@ public sealed class StudyExerciseFlowService(
                    session.learner_profile_id
             WHERE instance.instance_id = @instance_id
               AND profile.account_id = @account_id
-            LIMIT 1;
+            LIMIT 1
+            FOR UPDATE OF session;
             """;
 
         await using var command =
@@ -1358,7 +1367,8 @@ public sealed class StudyExerciseFlowService(
     private sealed record OwnedStudySession(
         Guid StudySessionId,
         Guid RecordingId,
-        Guid PublicationId);
+        Guid PublicationId,
+        string StatusCode);
 
     private sealed record PublishedExerciseCandidate(
         Guid ExerciseRevisionId);
@@ -1392,10 +1402,7 @@ public sealed class StudyExerciseFlowService(
         public bool IsOpen =>
             SessionNotEnded
             && string.Equals(StateCode, "DELIVERED", StringComparison.Ordinal)
-            && (
-                string.Equals(SessionStatusCode, "ACTIVE", StringComparison.Ordinal)
-                || string.Equals(SessionStatusCode, "PAUSED", StringComparison.Ordinal)
-            );
+            && string.Equals(SessionStatusCode, "ACTIVE", StringComparison.Ordinal);
     }
 
     private sealed record StoredSubmission(

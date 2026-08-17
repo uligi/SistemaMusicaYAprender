@@ -99,6 +99,24 @@ async function mockCsrf(page: Page) {
   });
 }
 
+async function mockActiveStudySession(page: Page) {
+  await page.route(`**/api/v1/study/sessions/${sessionId}`, async (route) => {
+    expect(route.request().method()).toBe('GET');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        studySessionId: sessionId,
+        statusCode: 'ACTIVE',
+        startedAt: '2026-08-16T20:55:00Z',
+        endedAt: null,
+        version: 1,
+        reusedExisting: true,
+        message: 'La sesiÃ³n estÃ¡ activa.',
+      }),
+    });
+  });
+}
 async function mockConfirmedExercise(page: Page) {
   await page.route(`**/api/v1/study/exercise-instances/${instanceId}`, async (route) => {
     await route.fulfill({
@@ -123,6 +141,7 @@ function pendingProblem() {
 test.describe('BL-MVP-075/076 · evaluación reproducible y retroalimentación accesible', () => {
   test.beforeEach(async ({ page }) => {
     await mockStudentSession(page);
+    await mockActiveStudySession(page);
     await mockConfirmedExercise(page);
   });
 
@@ -268,7 +287,7 @@ test.describe('BL-MVP-075/076 · evaluación reproducible y retroalimentación a
 
     const resultHeading = page.getByRole('heading', { name: 'Respuesta incorrecta' });
     await expect(resultHeading).toBeFocused();
-    await expect(page.getByRole('heading', { name: 'Resultado' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Resultado', exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Explicación' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Siguiente acción' })).toBeVisible();
     await expect(

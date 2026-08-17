@@ -163,6 +163,14 @@ public static class StudyExerciseEvaluationEndpoints
                 "No se confirmó una evaluación definitiva. La respuesta se conserva para que una revisión editorial pueda corregir la fuente sin crear evidencia ni progreso.",
                 "learning.study-evaluation.rule.unavailable");
         }
+        catch (StudyExerciseSessionUnavailableException)
+        {
+            return Problem(
+                StatusCodes.Status409Conflict,
+                "La sesión no acepta una evaluación nueva",
+                "Continúa una sesión pausada antes de crear una evaluación. Una sesión finalizada solo permite recuperar hechos ya confirmados.",
+                "learning.study-evaluation.session.inactive");
+        }
         catch (StudyExerciseEvaluationDriftException)
         {
             return ReviewableConflict();

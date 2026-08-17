@@ -125,6 +125,14 @@ public static class StudyLearningEvidenceEndpoints
                 "No se creó evidencia ni notificación de progreso. Recupera una evaluación válida y vuelve a intentarlo.",
                 "learning.study-evidence.evaluation.pending");
         }
+        catch (StudyExerciseSessionUnavailableException)
+        {
+            return Problem(
+                StatusCodes.Status409Conflict,
+                "La sesión no acepta evidencia nueva",
+                "Continúa una sesión pausada antes de confirmar evidencia. Una sesión finalizada solo permite recuperar evidencia ya existente.",
+                "learning.study-evidence.session.inactive");
+        }
         catch (StudyLearningEvidenceDriftException)
         {
             return ReviewableConflict();

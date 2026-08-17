@@ -3,6 +3,7 @@ import { AppLink, navigate } from '../../app/router/navigation';
 import { Button, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem, MutationState } from '../../data/http/types';
+import { StudySessionJourney } from './StudySessionJourney';
 import './study-exercise.css';
 
 const client = createHttpClient();
@@ -33,6 +34,16 @@ type FrozenExercise = {
   maskedJapaneseText: string;
   options: FrozenOption[];
   submission: FrozenSubmission | null;
+};
+
+type SessionLifecycleResponse = {
+  studySessionId: string;
+  statusCode: 'ACTIVE' | 'PAUSED' | 'COMPLETED';
+  startedAt: string;
+  endedAt: string | null;
+  version: number;
+  reusedExisting: boolean;
+  message: string;
 };
 
 type SubmitResponse = {
@@ -131,6 +142,9 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
   const [evaluation, setEvaluation] = useState<EvaluationState>({ phase: 'idle' });
   const [evidenceSaving, setEvidenceSaving] = useState(false);
   const [evidenceProblem, setEvidenceProblem] = useState<ClientProblem | null>(null);
+  const [session, setSession] = useState<SessionLifecycleResponse | null>(null);
+  const [sessionMutation, setSessionMutation] = useState<MutationState | null>(null);
+  const [sessionProblem, setSessionProblem] = useState<ClientProblem | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -141,6 +155,9 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
     setEvaluation({ phase: 'idle' });
     setEvidenceSaving(false);
     setEvidenceProblem(null);
+    setSession(null);
+    setSessionMutation(null);
+    setSessionProblem(null);
     idempotencyKeyRef.current = null;
 
     const load = async () => {
@@ -170,6 +187,48 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
 
   const confirmedSubmissionId =
     state.phase === 'ready' ? (state.exercise.submission?.submissionId ?? null) : null;
+
+  const studySessionId = state.phase === 'ready' ? state.exercise.studySessionId : null;
+
+  useEffect(() => {
+    if (!studySessionId) {
+      setSession(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadLifecycle = async () => {
+      const result = await client.get<SessionLifecycleResponse>(
+        `/study/sessions/${encodeURIComponent(studySessionId)}`,
+        {
+          cacheMode: 'no-store',
+          retry: 'safe',
+          signal: controller.signal,
+        },
+      );
+
+      if (result.kind === 'cancelled') return;
+
+      if (!result.ok) {
+        setSessionProblem(result.problem);
+        setSession(null);
+        return;
+      }
+
+      setSessionProblem(null);
+      setSession(result.data);
+    };
+
+    void loadLifecycle();
+    return () => controller.abort();
+  }, [studySessionId]);
+
+  useEffect(() => {
+    if (mode !== 'exercise' || !confirmedSubmissionId) return;
+
+    navigate(`/estudiar/${encodeURIComponent(slug)}/resultado/${encodeURIComponent(instanceId)}`);
+  }, [confirmedSubmissionId, instanceId, mode, slug]);
 
   useEffect(() => {
     if (mode !== 'result' || !confirmedSubmissionId) {
@@ -220,8 +279,57 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
     }
   }, [evaluation.phase]);
 
+  async function mutateSession(action: 'pause' | 'resume' | 'complete') {
+    if (state.phase !== 'ready' || !session || sessionMutation?.phase === 'saving') {
+      return;
+    }
+
+    setSessionProblem(null);
+
+    const csrf = await client.get<Csrf>('/auth/csrf', {
+      cacheMode: 'no-store',
+      retry: 'never',
+    });
+
+    if (!csrf.ok) {
+      if (csrf.kind === 'problem') setSessionProblem(csrf.problem);
+      return;
+    }
+
+    const result = await client.post<Record<string, never>, SessionLifecycleResponse>(
+      `/study/sessions/${encodeURIComponent(session.studySessionId)}/${action}`,
+      {},
+      {
+        headers: {
+          [csrf.data.headerName]: csrf.data.requestToken,
+          'If-Match': `"${session.version}"`,
+        },
+        retry: 'never',
+        onStateChange: setSessionMutation,
+      },
+    );
+
+    if (result.kind === 'cancelled') return;
+
+    if (!result.ok) {
+      setSessionProblem(result.problem);
+      return;
+    }
+
+    setSession(result.data);
+
+    if (action === 'pause') {
+      navigate(`/estudiar/${encodeURIComponent(slug)}`);
+    }
+  }
+
   async function submitAnswer() {
-    if (state.phase !== 'ready' || !selected || state.exercise.submission) {
+    if (
+      state.phase !== 'ready' ||
+      !selected ||
+      state.exercise.submission ||
+      session?.statusCode !== 'ACTIVE'
+    ) {
       return;
     }
 
@@ -266,6 +374,7 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
   async function evaluateAnswer() {
     if (
       mode !== 'result' ||
+      session?.statusCode !== 'ACTIVE' ||
       state.phase !== 'ready' ||
       !state.exercise.submission ||
       evaluation.phase === 'loading'
@@ -312,6 +421,7 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
   async function confirmEvidence() {
     if (
       mode !== 'result' ||
+      session?.statusCode !== 'ACTIVE' ||
       evaluation.phase !== 'ready' ||
       evaluation.evaluation.evidence !== null ||
       evidenceSaving
@@ -369,6 +479,17 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
     setEvidenceSaving(false);
   }
 
+  const journeyStatus: 'pending' | 'saved' | 'confirmed' =
+    state.phase === 'ready' &&
+    state.exercise.submission &&
+    mode === 'result' &&
+    evaluation.phase === 'ready' &&
+    Boolean(evaluation.evaluation.evidence)
+      ? 'confirmed'
+      : state.phase === 'ready' && state.exercise.submission
+        ? 'saved'
+        : 'pending';
+
   const routeId = mode === 'exercise' ? 'UI-MVP-012' : 'UI-MVP-013';
 
   return (
@@ -390,6 +511,101 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
         </AppLink>
         <AppLink href={`/aprender/${encodeURIComponent(slug)}`}>Volver a la canción</AppLink>
       </nav>
+
+      {state.phase === 'ready' ? (
+        <StudySessionJourney
+          stage={mode === 'exercise' ? 'exercise' : 'result'}
+          status={journeyStatus}
+        />
+      ) : null}
+
+      {state.phase === 'ready' && !session && !sessionProblem ? (
+        <StateMessage
+          state="UI-EST-01"
+          title="Comprobando el estado de tu sesión"
+          description="Las acciones educativas permanecen bloqueadas hasta recuperar el estado autoritativo."
+        />
+      ) : null}
+
+      {sessionProblem ? (
+        <StateMessage
+          state={sessionMutation?.phase === 'conflict' ? 'UI-EST-10' : 'UI-EST-06'}
+          title={sessionProblem.summary}
+          description={sessionProblem.correction}
+        />
+      ) : null}
+
+      {session?.statusCode === 'PAUSED' ? (
+        <StateMessage
+          state="UI-EST-12"
+          title="Sesión pausada"
+          description="Puedes leer lo ya guardado, pero no se crean respuestas, evaluaciones ni evidencias nuevas hasta continuar la sesión."
+        />
+      ) : null}
+
+      {session?.statusCode === 'COMPLETED' ? (
+        <StateMessage
+          state="UI-EST-12"
+          title="Sesión finalizada"
+          description="Los hechos ya confirmados se conservan. No se crean respuestas, evaluaciones, evidencias ni progreso adicionales al finalizar."
+        />
+      ) : null}
+
+      {state.phase === 'ready' && session?.statusCode === 'ACTIVE' ? (
+        <div className="study-exercise__action">
+          <div>
+            <strong>¿Quieres continuar más tarde?</strong>
+            <span>
+              La pausa se guarda en el servidor antes de salir; la selección local sin confirmar no
+              se guarda.
+            </span>
+          </div>
+          <Button
+            type="button"
+            disabled={sessionMutation?.phase === 'saving'}
+            onClick={() => void mutateSession('pause')}
+          >
+            {sessionMutation?.phase === 'saving' ? 'Pausando…' : 'Salir y continuar después'}
+          </Button>
+        </div>
+      ) : null}
+
+      {state.phase === 'ready' && session?.statusCode === 'PAUSED' ? (
+        <div className="study-exercise__action">
+          <div>
+            <strong>La sesión está pausada</strong>
+            <span>
+              Continuar reactiva esta misma sesión antes de aceptar una acción educativa nueva.
+            </span>
+          </div>
+          <Button
+            type="button"
+            disabled={sessionMutation?.phase === 'saving'}
+            onClick={() => void mutateSession('resume')}
+          >
+            {sessionMutation?.phase === 'saving' ? 'Continuando…' : 'Continuar sesión'}
+          </Button>
+        </div>
+      ) : null}
+
+      {state.phase === 'ready' && session && session.statusCode !== 'COMPLETED' ? (
+        <div className="study-exercise__action">
+          <div>
+            <strong>Terminar esta sesión</strong>
+            <span>
+              Finalizar conserva los hechos confirmados y bloquea nuevas acciones educativas en esta
+              sesión.
+            </span>
+          </div>
+          <Button
+            type="button"
+            disabled={sessionMutation?.phase === 'saving'}
+            onClick={() => void mutateSession('complete')}
+          >
+            {sessionMutation?.phase === 'saving' ? 'Finalizando…' : 'Finalizar sesión'}
+          </Button>
+        </div>
+      ) : null}
 
       {state.phase === 'loading' ? (
         <StateMessage
@@ -428,7 +644,11 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
 
           <fieldset
             className="study-exercise__options"
-            disabled={Boolean(state.exercise.submission) || mutation?.phase === 'saving'}
+            disabled={
+              session?.statusCode !== 'ACTIVE' ||
+              Boolean(state.exercise.submission) ||
+              mutation?.phase === 'saving'
+            }
           >
             <legend>Elige una opción</legend>
             {state.exercise.options.map((option) => (
@@ -464,7 +684,9 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
               </div>
               <Button
                 type="button"
-                disabled={!selected || mutation?.phase === 'saving'}
+                disabled={
+                  session?.statusCode !== 'ACTIVE' || !selected || mutation?.phase === 'saving'
+                }
                 onClick={() => void submitAnswer()}
               >
                 {mutation?.phase === 'saving' ? 'Confirmando…' : 'Confirmar respuesta'}
@@ -528,7 +750,11 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
                   confirmará una sola evidencia; este paso todavía no actualiza progreso.
                 </span>
               </div>
-              <Button type="button" onClick={() => void evaluateAnswer()}>
+              <Button
+                type="button"
+                disabled={session?.statusCode !== 'ACTIVE'}
+                onClick={() => void evaluateAnswer()}
+              >
                 Evaluar respuesta
               </Button>
             </div>
@@ -618,7 +844,7 @@ export function StudyExercisePage({ slug, instanceId, mode }: StudyExercisePageP
                   </div>
                   <Button
                     type="button"
-                    disabled={evidenceSaving}
+                    disabled={evidenceSaving || session?.statusCode !== 'ACTIVE'}
                     onClick={() => void confirmEvidence()}
                   >
                     {evidenceSaving ? 'Confirmando evidencia…' : 'Confirmar evidencia'}

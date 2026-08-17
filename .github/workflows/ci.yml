@@ -767,6 +767,10 @@ jobs:
           BL077_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/learning/verify-study-learning-evidence.sh
 
+      - name: Verify complete resumable study-session experience
+        shell: bash
+        run: bash scripts/ci/learning/verify-complete-study-session-experience.sh
+
       - name: Verify linguistic analysis editorial workspace
         shell: bash
         env:

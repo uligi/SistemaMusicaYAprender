@@ -138,6 +138,16 @@ public sealed class StudyLearningEvidenceService(
                     return ToView(existing, reusedExisting: true);
                 }
 
+                if (!await SessionAcceptsNewEducationalMutationAsync(
+                        connection,
+                        transaction,
+                        context.AccountId,
+                        instanceId,
+                        token))
+                {
+                    throw new StudyExerciseSessionUnavailableException();
+                }
+
                 var evidenceId = Guid.CreateVersion7();
                 var confirmedAt = await InsertEvidenceAsync(
                     connection,
@@ -262,6 +272,42 @@ public sealed class StudyLearningEvidenceService(
             reader.GetDecimal(8),
             reader.GetString(9),
             reader.GetInt32(10));
+    }
+
+    private static async Task<bool> SessionAcceptsNewEducationalMutationAsync(
+        NpgsqlConnection connection,
+        NpgsqlTransaction transaction,
+        Guid accountId,
+        Guid instanceId,
+        CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT
+                session.status_code,
+                session.ended_at IS NULL
+            FROM learning.exercise_instance AS instance
+            INNER JOIN learning.study_session AS session
+                ON session.study_session_id = instance.study_session_id
+            INNER JOIN learning.learner_profile AS profile
+                ON profile.learner_profile_id = session.learner_profile_id
+            WHERE instance.instance_id = @instance_id
+              AND profile.account_id = @account_id
+            LIMIT 1
+            FOR UPDATE OF session;
+            """;
+
+        await using var command = new NpgsqlCommand(sql, connection, transaction);
+        command.Parameters.AddWithValue("instance_id", NpgsqlDbType.Uuid, instanceId);
+        command.Parameters.AddWithValue("account_id", NpgsqlDbType.Uuid, accountId);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (!await reader.ReadAsync(cancellationToken))
+        {
+            return false;
+        }
+
+        return string.Equals(reader.GetString(0), "ACTIVE", StringComparison.Ordinal)
+            && reader.GetBoolean(1);
     }
 
     private static void ValidateTarget(EvidenceTarget target)

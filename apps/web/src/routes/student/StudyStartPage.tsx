@@ -3,6 +3,7 @@ import { AppLink, navigate } from '../../app/router/navigation';
 import { Button, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem, MutationState } from '../../data/http/types';
+import { StudySessionJourney } from './StudySessionJourney';
 import './study-start.css';
 
 const client = createHttpClient();
@@ -34,6 +35,12 @@ type StartContext = {
 
 type StartResponse = SessionSummary & {
   publicationNo: number;
+  reusedExisting: boolean;
+  message: string;
+};
+
+type SessionLifecycleResponse = SessionSummary & {
+  endedAt: string | null;
   reusedExisting: boolean;
   message: string;
 };
@@ -211,6 +218,53 @@ export function StudyStartPage({ slug }: StudyStartPageProps) {
     );
   }
 
+  async function resumeSession(session: SessionSummary) {
+    setProblem(null);
+
+    const csrf = await readCsrf();
+    if (!csrf) return;
+
+    const result = await client.post<Record<string, never>, SessionLifecycleResponse>(
+      `/study/sessions/${encodeURIComponent(session.studySessionId)}/resume`,
+      {},
+      {
+        headers: {
+          [csrf.headerName]: csrf.requestToken,
+          'If-Match': `"${session.version}"`,
+        },
+        retry: 'never',
+        invalidate: [`/study/songs/${encodeURIComponent(slug)}/session-start`],
+        onStateChange: setMutation,
+      },
+    );
+
+    if (result.kind === 'cancelled') return;
+
+    if (!result.ok) {
+      setProblem(result.problem);
+      return;
+    }
+
+    setState((current) =>
+      current.phase === 'ready'
+        ? {
+            ...current,
+            context: {
+              ...current.context,
+              activeSession: {
+                studySessionId: result.data.studySessionId,
+                statusCode: result.data.statusCode,
+                startedAt: result.data.startedAt,
+                version: result.data.version,
+              },
+            },
+          }
+        : current,
+    );
+
+    await openExercise(result.data.studySessionId);
+  }
+
   return (
     <article className="route-surface study-start" data-route-id="UI-MVP-011">
       <header className="study-start__header">
@@ -255,6 +309,20 @@ export function StudyStartPage({ slug }: StudyStartPageProps) {
 
       {state.phase === 'ready' ? (
         <>
+          {state.context.eligible ? (
+            <StudySessionJourney
+              stage="start"
+              status="pending"
+              description={
+                state.context.activeSession
+                  ? state.context.activeSession.statusCode === 'PAUSED'
+                    ? 'La sesión está pausada. Continuar la reactiva antes de recuperar la misma instancia congelada.'
+                    : 'Hay una sesión privada activa. Continuar recupera la misma instancia y no crea una segunda sesión.'
+                  : 'Todavía no hay una respuesta confirmada. Empezar crea la sesión privada antes de congelar el primer ejercicio.'
+              }
+            />
+          ) : null}
+
           <section className="study-start__song" aria-labelledby="study-song-title">
             <div>
               <p className="eyebrow">CONTENIDO PUBLICADO</p>
@@ -353,11 +421,18 @@ export function StudyStartPage({ slug }: StudyStartPageProps) {
               <Button
                 type="button"
                 disabled={mutation?.phase === 'saving'}
-                onClick={() => void openExercise(state.context.activeSession!.studySessionId)}
+                onClick={() => {
+                  const session = state.context.activeSession!;
+                  void (session.statusCode === 'PAUSED'
+                    ? resumeSession(session)
+                    : openExercise(session.studySessionId));
+                }}
               >
                 {mutation?.phase === 'saving'
                   ? 'Preparando ejercicio…'
-                  : 'Continuar con el ejercicio'}
+                  : state.context.activeSession.statusCode === 'PAUSED'
+                    ? 'Continuar sesión'
+                    : 'Continuar con el ejercicio'}
               </Button>
             </div>
           ) : null}

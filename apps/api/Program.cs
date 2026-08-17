@@ -115,6 +115,7 @@ builder.Services.AddSingleton<LinguisticAnalysisEditorialWriter>();
 builder.Services.AddSingleton<ExerciseBankAdministrationService>();
 builder.Services.AddSingleton<FillBlankExerciseAuthoringService>();
 builder.Services.AddSingleton<StudySessionStartService>();
+builder.Services.AddSingleton<StudySessionLifecycleService>();
 builder.Services.AddSingleton<StudyExerciseFlowService>();
 builder.Services.AddSingleton<StudyExerciseEvaluationService>();
 builder.Services.AddSingleton<StudyLearningEvidenceService>();
