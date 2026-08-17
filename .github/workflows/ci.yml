@@ -734,6 +734,28 @@ jobs:
           BL074_USE_DOCKER_PSQL: 'false'
         run: bash scripts/ci/learning/verify-answer-submission-idempotency.sh
 
+      - name: Verify reproducible study evaluation
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL075_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/learning/verify-study-evaluation-reproducibility.sh
+
+      - name: Verify accessible textual study feedback
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+          BL076_USE_DOCKER_PSQL: 'false'
+        run: bash scripts/ci/learning/verify-study-feedback-accessibility.sh
+
       - name: Verify linguistic analysis editorial workspace
         shell: bash
         env:
