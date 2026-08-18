@@ -315,6 +315,7 @@ BEGIN
                 v_option_order integer := 2;
                 v_correct_key text;
                 v_seen text[] := ARRAY[]::text[];
+                v_source_reference_id uuid;
             BEGIN
                 v_actor := nullif(current_setting('app.account_id', true), '')::uuid;
                 IF v_actor IS NULL THEN
@@ -567,6 +568,51 @@ BEGIN
                     v_option_order := v_option_order + 1;
                 END LOOP;
 
+                SELECT provenance.source_reference_id
+                INTO v_source_reference_id
+                FROM editorial.provenance_record AS provenance
+                WHERE provenance.object_type = 'EXERCISE_REVISION'
+                  AND provenance.object_id = v_revision_id
+                LIMIT 1;
+
+                IF v_source_reference_id IS NULL THEN
+                    INSERT INTO catalog.source_reference (
+                        source_type,
+                        citation,
+                        locator,
+                        retrieved_at,
+                        checksum
+                    )
+                    VALUES (
+                        'EDITORIAL_AUTHORING',
+                        'Autoría editorial interna del ejercicio',
+                        'lyrics_revision=' || p_lyrics_revision_id::text
+                            || ';line=' || p_line_id::text
+                            || ';token=' || p_token_id::text,
+                        CURRENT_TIMESTAMP,
+                        p_checksum
+                    )
+                    RETURNING source_reference_id
+                    INTO v_source_reference_id;
+
+                    INSERT INTO editorial.provenance_record (
+                        object_type,
+                        object_id,
+                        source_reference_id,
+                        contribution_type,
+                        recorded_by,
+                        recorded_at
+                    )
+                    VALUES (
+                        'EXERCISE_REVISION',
+                        v_revision_id,
+                        v_source_reference_id,
+                        'EXERCISE_AUTHOR',
+                        v_actor,
+                        CURRENT_TIMESTAMP
+                    );
+                END IF;
+
                 RETURN QUERY
                 SELECT
                     v_exercise_id,
@@ -625,3 +671,15 @@ BEGIN
     END IF;
 END;
 $history$;
+
+-- FIX-MVP-EDITORIAL-CRUD-DESKTOP-001.
+-- El ensamblado de un paquete DRAFT reemplaza sus componentes.
+-- Se permite DELETE solo sobre package_component; el trigger de la tabla
+-- sigue bloqueando mutaciones cuando el paquete ya no está en DRAFT.
+DO $compatible_package_component_access$
+BEGIN
+    IF to_regclass('editorial.package_component') IS NOT NULL THEN
+        GRANT DELETE ON TABLE editorial.package_component TO jp_backoffice;
+    END IF;
+END;
+$compatible_package_component_access$;

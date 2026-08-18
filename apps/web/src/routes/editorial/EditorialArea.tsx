@@ -11,6 +11,7 @@ import { LinguisticAnalysisStructurePage } from './LinguisticAnalysisStructurePa
 import { ExerciseBankPage } from './ExerciseBankPage';
 import { CompatiblePackagePage } from './CompatiblePackagePage';
 import { SongContextNavigation } from './SongContextNavigation';
+import { SongCrudGuide } from './SongCrudGuide';
 import { SongEditorialDossierPage } from './SongEditorialDossierPage';
 
 export type EditorialAreaProps = {
@@ -23,6 +24,7 @@ function SongWorkspace({ children, match }: { children: ReactNode; match: RouteM
   return (
     <div className="song-workspace">
       <SongContextNavigation recordingId={recordingId} currentRouteId={match.route.id} />
+      <SongCrudGuide recordingId={recordingId} currentRouteId={match.route.id} />
       {children}
     </div>
   );

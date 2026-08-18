@@ -64,8 +64,23 @@ type Draft = {
   difficultyJustification: string;
 };
 
+export type FillBlankExerciseEditSeed = {
+  lyricsRevisionId: string;
+  lineId: string;
+  tokenId: string;
+  competencyCode: string;
+  prompt: string;
+  distractors: string[];
+  explanation: string;
+  feedbackCorrect: string;
+  feedbackIncorrect: string;
+  difficultyCode: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  difficultyJustification: string;
+};
+
 type Props = {
   recordingId: string;
+  initialDraft?: FillBlankExerciseEditSeed | null;
   onSaved: () => void;
   onCancel: () => void;
 };
@@ -96,7 +111,12 @@ function previewLine(line: SourceLine | undefined, token: SourceToken | undefine
   )}`;
 }
 
-export function FillBlankExerciseAuthoringWizard({ recordingId, onSaved, onCancel }: Props) {
+export function FillBlankExerciseAuthoringWizard({
+  recordingId,
+  initialDraft = null,
+  onSaved,
+  onCancel,
+}: Props) {
   const [context, setContext] = useState<AuthoringContext | null>(null);
   const [etag, setEtag] = useState('');
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -123,15 +143,32 @@ export function FillBlankExerciseAuthoringWizard({ recordingId, onSaved, onCance
 
       setContext(result.data);
       setEtag(result.etag ?? '');
-      const firstCompetency = result.data.competencies[0];
-      if (firstCompetency) {
-        setDraft((current) => ({ ...current, competencyCode: firstCompetency.code }));
+
+      if (initialDraft && initialDraft.lyricsRevisionId === result.data.lyricsRevisionId) {
+        setDraft({
+          lineId: initialDraft.lineId,
+          tokenId: initialDraft.tokenId,
+          competencyCode: initialDraft.competencyCode,
+          prompt: initialDraft.prompt,
+          distractors: [...initialDraft.distractors],
+          explanation: initialDraft.explanation,
+          feedbackCorrect: initialDraft.feedbackCorrect,
+          feedbackIncorrect: initialDraft.feedbackIncorrect,
+          difficultyCode: initialDraft.difficultyCode,
+          difficultyJustification: initialDraft.difficultyJustification,
+        });
+      } else {
+        const firstCompetency = result.data.competencies[0];
+        setDraft({
+          ...emptyDraft,
+          competencyCode: firstCompetency?.code ?? emptyDraft.competencyCode,
+        });
       }
     };
 
     void load();
     return () => controller.abort();
-  }, [recordingId]);
+  }, [recordingId, initialDraft]);
 
   const selectedLine = useMemo(
     () => context?.lines.find((line) => line.lineId === draft.lineId),
@@ -323,10 +360,15 @@ export function FillBlankExerciseAuthoringWizard({ recordingId, onSaved, onCance
       <header className="fill-author__header">
         <div>
           <p className="eyebrow">BL-MVP-071 · BORRADOR</p>
-          <h2 id="fill-author-title">Crear ejercicio de completar espacios</h2>
+          <h2 id="fill-author-title">
+            {initialDraft
+              ? 'Editar ejercicio de completar espacios'
+              : 'Crear ejercicio de completar espacios'}
+          </h2>
           <p>
-            Cuatro pasos cortos. Nada de esta pantalla publica contenido ni crea intentos de
-            estudiante.
+            {initialDraft
+              ? 'Corrige el borrador conservando la identidad del ejercicio. Si la revisión dejó de ser DRAFT, el servidor crea una nueva revisión.'
+              : 'Cuatro pasos cortos. Nada de esta pantalla publica contenido ni crea intentos de estudiante.'}
           </p>
         </div>
         <div className="fill-author__draft-badge">

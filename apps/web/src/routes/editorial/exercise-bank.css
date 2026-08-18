@@ -181,6 +181,39 @@
   box-shadow: var(--ma-focus-ring);
 }
 
+.exercise-bank__revision-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ma-space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ma-space-3);
+  border-top: var(--ma-border-width-thin) solid var(--ma-color-border);
+  background: var(--ma-color-surface);
+}
+
+.exercise-bank__revision-actions button {
+  min-height: var(--ma-touch-target);
+  padding: var(--ma-space-2) var(--ma-space-3);
+  border: var(--ma-border-width-thin) solid var(--ma-color-primary);
+  border-radius: var(--ma-radius-control);
+  color: var(--ma-color-canvas);
+  background: var(--ma-color-primary);
+  font: inherit;
+  font-weight: var(--ma-font-weight-semibold);
+  cursor: pointer;
+}
+
+.exercise-bank__revision-actions button:focus-visible {
+  outline: none;
+  box-shadow: var(--ma-focus-ring);
+}
+
+.exercise-bank__revision-actions span {
+  color: var(--ma-color-muted);
+  font-size: var(--ma-font-size-secondary);
+}
+
 .exercise-bank__revision-body {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

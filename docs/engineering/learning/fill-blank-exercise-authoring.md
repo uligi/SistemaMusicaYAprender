@@ -31,6 +31,16 @@ El creador usa pasos cortos, lenguaje humano, selección visual de línea/token,
 
 El pool `jp_backoffice` no recibe DML directo sobre `learning`. La función `learning.save_fill_blank_exercise_draft(...)` es la única capacidad de escritura añadida para este flujo y revalida actor, fuente, modalidad, opciones y estado DRAFT.
 
+## Corrección integrada
+
+FIX-MVP-EDITORIAL-CRUD-DESKTOP-001 completa la integración descubierta al usar el flujo real:
+
+- UI-MVP-025 permite abrir una revisión existente y precargar el creador;
+- una revisión DRAFT se corrige sin cambiar la identidad estable del ejercicio;
+- una revisión no DRAFT genera una revisión posterior al guardar;
+- cada revisión escrita conserva `EXERCISE_REVISION` en `editorial.provenance_record`;
+- BL-MVP-079 puede validar la procedencia sin inventar datos en el paquete.
+
 ## Fuera de alcance
 
 - publicación/revisión final del paquete;

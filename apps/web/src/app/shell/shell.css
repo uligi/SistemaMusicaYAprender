@@ -181,6 +181,30 @@
 
 .backoffice-layout .app-main {
   width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin-inline: 0;
+}
+
+.backoffice-layout .song-workspace,
+.backoffice-layout .route-surface {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.backoffice-layout .route-surface > header > p {
+  max-width: var(--ma-content-reading-max);
+}
+
+@media (min-width: 64rem) {
+  .backoffice-layout .app-main {
+    padding-inline: clamp(var(--ma-space-5), 3vw, var(--ma-space-7));
+  }
+
+  .backoffice-layout .route-surface {
+    padding: var(--ma-space-6);
+  }
 }
 
 @media (max-width: 48rem) {

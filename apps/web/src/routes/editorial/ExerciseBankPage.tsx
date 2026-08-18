@@ -4,7 +4,10 @@ import { AppLink } from '../../app/router/navigation';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
-import { FillBlankExerciseAuthoringWizard } from './FillBlankExerciseAuthoringWizard';
+import {
+  FillBlankExerciseAuthoringWizard,
+  type FillBlankExerciseEditSeed,
+} from './FillBlankExerciseAuthoringWizard';
 import './exercise-bank.css';
 
 const client = createHttpClient();
@@ -122,11 +125,65 @@ function RequirementMark({ ok, children }: { ok: boolean; children: string }) {
   );
 }
 
+function editSeedFrom(
+  exercise: ExerciseBankEntry,
+  revision: ExerciseRevision,
+): FillBlankExerciseEditSeed | null {
+  const accepted = revision.items.find((item) => item.isAccepted);
+  let tokenId = '';
+
+  if (accepted) {
+    try {
+      const metadata = JSON.parse(accepted.metadataJson) as { sourceTokenId?: string };
+      tokenId = metadata.sourceTokenId ?? '';
+    } catch {
+      tokenId = '';
+    }
+  }
+
+  const difficultyCode =
+    revision.difficulty.code === 'BEGINNER' ||
+    revision.difficulty.code === 'INTERMEDIATE' ||
+    revision.difficulty.code === 'ADVANCED'
+      ? revision.difficulty.code
+      : null;
+
+  const distractors = revision.items
+    .filter((item) => item.itemType === 'OPTION' && !item.isAccepted)
+    .map((item) => item.value ?? item.label ?? '')
+    .filter(Boolean);
+
+  if (
+    !exercise.source.lineId ||
+    !exercise.source.lyricsRevisionId ||
+    !tokenId ||
+    !difficultyCode ||
+    distractors.length < 2
+  ) {
+    return null;
+  }
+
+  return {
+    lyricsRevisionId: exercise.source.lyricsRevisionId,
+    lineId: exercise.source.lineId,
+    tokenId,
+    competencyCode: exercise.competency.code,
+    prompt: revision.prompt,
+    distractors,
+    explanation: revision.explanation ?? '',
+    feedbackCorrect: revision.feedback.correct ?? '',
+    feedbackIncorrect: revision.feedback.incorrect ?? '',
+    difficultyCode,
+    difficultyJustification: revision.difficulty.justification ?? '',
+  };
+}
+
 export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
   const access = useVisibleAccess();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [state, setState] = useState<PageState>({ phase: 'loading' });
   const [authoringOpen, setAuthoringOpen] = useState(false);
+  const [editSeed, setEditSeed] = useState<FillBlankExerciseEditSeed | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -174,7 +231,11 @@ export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
         </p>
       </header>
 
-      <section className="exercise-bank__authoring-entry" aria-label="Autoría de ejercicios">
+      <section
+        id="exercise-authoring"
+        className="exercise-bank__authoring-entry"
+        aria-label="Autoría de ejercicios"
+      >
         <div>
           <p className="eyebrow">BL-MVP-071 · AUTORÍA DRAFT</p>
           <h2>Crear completar espacios</h2>
@@ -186,7 +247,15 @@ export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
         <button
           type="button"
           className="exercise-bank__authoring-button"
-          onClick={() => setAuthoringOpen((current) => !current)}
+          onClick={() => {
+            if (authoringOpen) {
+              setAuthoringOpen(false);
+              setEditSeed(null);
+            } else {
+              setEditSeed(null);
+              setAuthoringOpen(true);
+            }
+          }}
         >
           {authoringOpen
             ? 'Cerrar creador'
@@ -199,9 +268,14 @@ export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
       {authoringOpen ? (
         <FillBlankExerciseAuthoringWizard
           recordingId={recordingId}
-          onCancel={() => setAuthoringOpen(false)}
+          initialDraft={editSeed}
+          onCancel={() => {
+            setAuthoringOpen(false);
+            setEditSeed(null);
+          }}
           onSaved={() => {
             setAuthoringOpen(false);
+            setEditSeed(null);
             setRefreshKey((current) => current + 1);
           }}
         />
@@ -302,6 +376,34 @@ export function ExerciseBankPage({ recordingId }: ExerciseBankPageProps) {
                                 : 'requiere completar'}
                             </span>
                           </summary>
+
+                          {editSeedFrom(exercise, revision) ? (
+                            <div className="exercise-bank__revision-actions">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const seed = editSeedFrom(exercise, revision);
+                                  if (!seed) return;
+                                  setEditSeed(seed);
+                                  setAuthoringOpen(true);
+                                  requestAnimationFrame(() =>
+                                    document
+                                      .getElementById('exercise-authoring')
+                                      ?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
+                                  );
+                                }}
+                              >
+                                {revision.statusCode === 'DRAFT'
+                                  ? 'Editar borrador'
+                                  : 'Corregir como nueva revisión'}
+                              </button>
+                              <span>
+                                {revision.statusCode === 'DRAFT'
+                                  ? 'Se actualiza únicamente el borrador editable.'
+                                  : 'La revisión histórica se conserva intacta.'}
+                              </span>
+                            </div>
+                          ) : null}
 
                           <div className="exercise-bank__revision-body">
                             <section>
