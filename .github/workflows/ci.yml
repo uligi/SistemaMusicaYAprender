@@ -500,6 +500,14 @@ jobs:
         shell: bash
         run: bash scripts/ci/editorial/verify-review-workflow.sh
 
+      - name: Verify atomic editorial publication
+        shell: bash
+        run: bash scripts/ci/editorial/verify-atomic-publication.sh
+
+      - name: Verify publication correction and reversal
+        shell: bash
+        run: bash scripts/ci/editorial/verify-publication-correction.sh
+
       - name: Verify editorial autosave and conflicts
         shell: bash
         env:

@@ -785,7 +785,7 @@ public sealed class EditorialReviewWorkflowService(
               ON s.package_id = p.package_id
             WHERE p.recording_id = @recording_id
               AND p.frozen_at IS NOT NULL
-              AND p.status_code IN ('SUBMITTED', 'APPROVED', 'REJECTED')
+              AND p.status_code IN ('SUBMITTED', 'APPROVED', 'REJECTED', 'PUBLISHED')
             ORDER BY
                 CASE WHEN p.status_code = 'SUBMITTED'
                        AND s.status_code = 'SUBMITTED'

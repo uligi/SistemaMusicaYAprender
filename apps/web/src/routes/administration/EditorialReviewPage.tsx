@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVisibleAccess } from '../../app/access/AccessContext';
 import { AppLink } from '../../app/router/navigation';
+import { EditorialPublicationPanel } from './EditorialPublicationPanel';
 import { StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem, MutationState } from '../../data/http/types';
@@ -341,6 +342,10 @@ export function EditorialReviewPage({ recordingId }: EditorialReviewPageProps) {
       <p className="editorial-review__status" role="status">
         {readyData.message}
       </p>
+
+      {canPublish && ['APPROVED', 'PUBLISHED'].includes(readyData.packageStatusCode) ? (
+        <EditorialPublicationPanel recordingId={recordingId} packageId={readyData.packageId} />
+      ) : null}
 
       <div className="editorial-review__grid">
         <section className="editorial-review__panel" aria-labelledby="review-package-title">

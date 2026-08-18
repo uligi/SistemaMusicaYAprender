@@ -2,6 +2,7 @@ import type { RouteMatch } from '../../app/router/match-route';
 import { RoutePlaceholder } from '../shared/RoutePlaceholder';
 import { ConfigurationAdministrationPage } from './ConfigurationAdministrationPage';
 import { EditorialReviewPage } from './EditorialReviewPage';
+import { PublicationCorrectionPage } from './PublicationCorrectionPage';
 import { RoleManagementPage } from './RoleManagementPage';
 
 export type AdministrationAreaProps = {
@@ -11,6 +12,10 @@ export type AdministrationAreaProps = {
 export default function AdministrationArea({ match }: AdministrationAreaProps) {
   if (match.route.id === 'UI-MVP-027') {
     return <EditorialReviewPage recordingId={match.params.id ?? ''} />;
+  }
+
+  if (match.route.id === 'UI-MVP-028') {
+    return <PublicationCorrectionPage recordingId={match.params.id ?? ''} />;
   }
 
   if (match.route.id === 'UI-MVP-029') {
