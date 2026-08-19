@@ -5,6 +5,7 @@ using MusicaAprender.BuildingBlocks.Infrastructure.Database;
 using MusicaAprender.BuildingBlocks.Infrastructure.Email.Queue;
 using MusicaAprender.BuildingBlocks.Infrastructure.Reliability.Idempotency;
 using MusicaAprender.Modules.Identity.Application.Consent;
+using MusicaAprender.Modules.Identity.Application.Profile;
 using MusicaAprender.Modules.Identity.Infrastructure.Preferences;
 using MusicaAprender.Modules.Identity.Infrastructure.Registration;
 using MusicaAprender.Modules.Security.Infrastructure.Audit;
@@ -32,6 +33,7 @@ public sealed class PersonalAccountRegistrationService(
         "La solicitud fue recibida. El resultado no confirma si el correo ya estaba registrado.");
 
     public async Task<PersonalAccountRegistrationResult> RegisterAsync(
+        string? username,
         string? email,
         string? password,
         IReadOnlyList<PersonalAccountRegistrationConsentRequest>? consents,
@@ -39,6 +41,17 @@ public sealed class PersonalAccountRegistrationService(
         string correlationId,
         CancellationToken cancellationToken = default)
     {
+        var usernameValidation = UsernamePolicy.Validate(username);
+        if (!usernameValidation.IsValid
+            || usernameValidation.NormalizedUsername is null)
+        {
+            return PersonalAccountRegistrationResult.InvalidUsername(
+                usernameValidation.Error);
+        }
+
+        var normalizedUsername =
+            usernameValidation.NormalizedUsername;
+
         if (!emailProtector.TryProtect(email, out var protectedEmail)
             || protectedEmail is null)
         {
@@ -71,6 +84,7 @@ public sealed class PersonalAccountRegistrationService(
             AnonymousRole,
             correlationId);
         var reliableRequest = CreateReliableRequest(
+            normalizedUsername,
             protectedEmail,
             passwordValidation.NormalizedPassword,
             validation.AcceptedConsents,
@@ -78,113 +92,125 @@ public sealed class PersonalAccountRegistrationService(
         var responseJson = JsonSerializer.Serialize(AcceptedResponse, ResponseJsonOptions);
         var correlationGuid = IdentityOperationCorrelation.ToGuid(correlationId);
 
-        var outcome = await reliableOperationExecutor.ExecuteAnonymousAsync(
-            provisionalContext,
-            reliableRequest,
-            async (connection, transaction, token) =>
-            {
-                var credential = passwordHasher.CreateCredential(
-                    passwordValidation.NormalizedPassword);
-                var created = await SecurityAccountRegistrationWriter.TryCreatePendingAsync(
-                    connection,
-                    transaction,
-                    proposedAccountId,
-                    protectedEmail,
-                    credential,
-                    token);
+        ReliableOperationOutcome outcome;
 
-                if (created)
+        try
+        {
+            outcome = await reliableOperationExecutor.ExecuteAnonymousAsync(
+                provisionalContext,
+                reliableRequest,
+                async (connection, transaction, token) =>
                 {
-                    await IdentityProfileRegistrationWriter.CreateMinimalAsync(
+                    var credential = passwordHasher.CreateCredential(
+                        passwordValidation.NormalizedPassword);
+                    var created = await SecurityAccountRegistrationWriter.TryCreatePendingAsync(
                         connection,
                         transaction,
                         proposedAccountId,
+                        protectedEmail,
+                        credential,
                         token);
 
-                    var preferencesCreated =
-                        await PersonalPreferenceService.TryCreateInitialAsync(
+                    if (created)
+                    {
+                        await IdentityProfileRegistrationWriter.CreateMinimalAsync(
                             connection,
                             transaction,
                             proposedAccountId,
+                            normalizedUsername,
                             token);
 
-                    if (!preferencesCreated)
-                    {
-                        throw new InvalidOperationException(
-                            "La cuenta nueva ya contiene una cabeza de preferencias inesperada.");
-                    }
+                        var preferencesCreated =
+                            await PersonalPreferenceService.TryCreateInitialAsync(
+                                connection,
+                                transaction,
+                                proposedAccountId,
+                                token);
 
-                    await IdentityConsentRegistrationWriter.CreateAcceptedAsync(
-                        connection,
-                        transaction,
-                        proposedAccountId,
-                        validation.AcceptedConsents,
-                        token);
+                        if (!preferencesCreated)
+                        {
+                            throw new InvalidOperationException(
+                                "La cuenta nueva ya contiene una cabeza de preferencias inesperada.");
+                        }
 
-                    var verificationId = Guid.CreateVersion7();
-                    var verificationTokenHash = tokenService.CreateTokenHash(
-                        proposedAccountId,
-                        verificationId);
+                        await IdentityConsentRegistrationWriter.CreateAcceptedAsync(
+                            connection,
+                            transaction,
+                            proposedAccountId,
+                            validation.AcceptedConsents,
+                            token);
 
-                    await AccountVerificationPersistence.CreateAsync(
-                        connection,
-                        transaction,
-                        proposedAccountId,
-                        verificationId,
-                        verificationTokenHash,
-                        token);
+                        var verificationId = Guid.CreateVersion7();
+                        var verificationTokenHash = tokenService.CreateTokenHash(
+                            proposedAccountId,
+                            verificationId);
 
-                    await emailEnqueuer.EnqueueAsync(
-                        connection,
-                        transaction,
-                        new EmailQueueRequest(
-                            "SECURITY",
+                        await AccountVerificationPersistence.CreateAsync(
+                            connection,
+                            transaction,
                             proposedAccountId,
                             verificationId,
-                            AccountVerificationEmailTemplate.Code,
-                            AccountVerificationEmailTemplate.Version,
-                            AccountVerificationEmailTemplate.Language,
-                            correlationGuid),
-                        token);
+                            verificationTokenHash,
+                            token);
 
-                    await PrimaryAuditWriter.WriteSecurityEventAsync(
-                        connection,
-                        transaction,
-                        proposedAccountId,
-                        "ACCOUNT_REGISTRATION",
-                        "SUCCEEDED",
-                        correlationId,
-                        cancellationToken: token);
-                }
-                else
-                {
-                    await PrimaryAuditWriter.WriteSecurityEventAsync(
-                        connection,
-                        transaction,
-                        accountId: null,
-                        eventType: "ACCOUNT_REGISTRATION",
-                        resultCode: "RECEIVED_OR_EXISTING",
-                        correlationId: correlationId,
-                        clientFingerprint: protectedEmail.LookupHash,
-                        cancellationToken: token);
-                }
+                        await emailEnqueuer.EnqueueAsync(
+                            connection,
+                            transaction,
+                            new EmailQueueRequest(
+                                "SECURITY",
+                                proposedAccountId,
+                                verificationId,
+                                AccountVerificationEmailTemplate.Code,
+                                AccountVerificationEmailTemplate.Version,
+                                AccountVerificationEmailTemplate.Language,
+                                correlationGuid),
+                            token);
 
-                return ReliableOperationResult.Create(
-                    StatusCodes.Status202Accepted,
-                    responseJson);
-            },
-            cancellationToken);
+                        await PrimaryAuditWriter.WriteSecurityEventAsync(
+                            connection,
+                            transaction,
+                            proposedAccountId,
+                            "ACCOUNT_REGISTRATION",
+                            "SUCCEEDED",
+                            correlationId,
+                            cancellationToken: token);
+                    }
+                    else
+                    {
+                        await PrimaryAuditWriter.WriteSecurityEventAsync(
+                            connection,
+                            transaction,
+                            accountId: null,
+                            eventType: "ACCOUNT_REGISTRATION",
+                            resultCode: "RECEIVED_OR_EXISTING",
+                            correlationId: correlationId,
+                            clientFingerprint: protectedEmail.LookupHash,
+                            cancellationToken: token);
+                    }
+
+                    return ReliableOperationResult.Create(
+                        StatusCodes.Status202Accepted,
+                        responseJson);
+                },
+                        cancellationToken);
+        }
+        catch (UsernameUnavailableException)
+        {
+            return PersonalAccountRegistrationResult.InvalidUsername(
+                UsernameValidationError.Unavailable);
+        }
 
         var response = JsonSerializer.Deserialize<PersonalAccountRegistrationResponse>(
-                           outcome.ResponseReferenceJson,
-                           ResponseJsonOptions)
-                       ?? throw new InvalidOperationException(
-                           "La respuesta idempotente de registro no contiene un contrato valido.");
+                   outcome.ResponseReferenceJson,
+                   ResponseJsonOptions)
+               ?? throw new InvalidOperationException(
+                   "La respuesta idempotente de registro no contiene un contrato valido.");
 
         return PersonalAccountRegistrationResult.Accepted(response);
     }
 
     private ReliableOperationRequest CreateReliableRequest(
+        string normalizedUsername,
         ProtectedEmail protectedEmail,
         string normalizedPassword,
         IReadOnlyList<AcceptedRegistrationConsent> consents,
@@ -197,6 +223,7 @@ public sealed class PersonalAccountRegistrationService(
         try
         {
             canonicalRequest = CreateCanonicalRequest(
+                normalizedUsername,
                 protectedEmail,
                 passwordFingerprint,
                 consents);
@@ -218,11 +245,13 @@ public sealed class PersonalAccountRegistrationService(
     }
 
     private static byte[] CreateCanonicalRequest(
+        string normalizedUsername,
         ProtectedEmail protectedEmail,
         byte[] passwordFingerprint,
         IReadOnlyList<AcceptedRegistrationConsent> consents) =>
         JsonSerializer.SerializeToUtf8Bytes(
             new CanonicalRegistrationRequest(
+                normalizedUsername,
                 Convert.ToHexString(protectedEmail.LookupHash.Span),
                 passwordFingerprint,
                 consents.Select(static consent => new CanonicalRegistrationConsent(
@@ -233,6 +262,7 @@ public sealed class PersonalAccountRegistrationService(
             ResponseJsonOptions);
 
     private sealed record CanonicalRegistrationRequest(
+        string Username,
         string EmailLookupHash,
         byte[] PasswordFingerprint,
         IReadOnlyList<CanonicalRegistrationConsent> Consents);
@@ -246,6 +276,7 @@ public sealed class PersonalAccountRegistrationService(
 public enum PersonalAccountRegistrationResultKind
 {
     Accepted,
+    InvalidUsername,
     InvalidEmail,
     InvalidPassword,
     InvalidConsents
@@ -255,36 +286,50 @@ public sealed record PersonalAccountRegistrationResult(
     PersonalAccountRegistrationResultKind Kind,
     PersonalAccountRegistrationResponse? Response,
     RegistrationConsentValidationError ConsentError,
-    PasswordValidationError PasswordError)
+    PasswordValidationError PasswordError,
+    UsernameValidationError UsernameError)
 {
     public static PersonalAccountRegistrationResult Accepted(
         PersonalAccountRegistrationResponse response) =>
         new(
             PersonalAccountRegistrationResultKind.Accepted,
-            response,
-            RegistrationConsentValidationError.None,
-            PasswordValidationError.None);
+                    response,
+                    RegistrationConsentValidationError.None,
+                    PasswordValidationError.None,
+                    UsernameValidationError.None);
 
-    public static PersonalAccountRegistrationResult InvalidEmail() =>
+    public static PersonalAccountRegistrationResult InvalidUsername(
+        UsernameValidationError error) =>
         new(
-            PersonalAccountRegistrationResultKind.InvalidEmail,
+            PersonalAccountRegistrationResultKind.InvalidUsername,
             Response: null,
             RegistrationConsentValidationError.None,
-            PasswordValidationError.None);
-
-    public static PersonalAccountRegistrationResult InvalidPassword(
-        PasswordValidationError error) =>
-        new(
-            PersonalAccountRegistrationResultKind.InvalidPassword,
-            Response: null,
-            RegistrationConsentValidationError.None,
+            PasswordValidationError.None,
             error);
 
-    public static PersonalAccountRegistrationResult InvalidConsents(
-        RegistrationConsentValidationError error) =>
-        new(
-            PersonalAccountRegistrationResultKind.InvalidConsents,
+    public static PersonalAccountRegistrationResult InvalidEmail() =>
+new(
+    PersonalAccountRegistrationResultKind.InvalidEmail,
             Response: null,
+            RegistrationConsentValidationError.None,
+            PasswordValidationError.None,
+            UsernameValidationError.None);
+
+    public static PersonalAccountRegistrationResult InvalidPassword(
+PasswordValidationError error) =>
+new(
+    PersonalAccountRegistrationResultKind.InvalidPassword,
+            Response: null,
+            RegistrationConsentValidationError.None,
             error,
-            PasswordValidationError.None);
+            UsernameValidationError.None);
+
+    public static PersonalAccountRegistrationResult InvalidConsents(
+RegistrationConsentValidationError error) =>
+new(
+    PersonalAccountRegistrationResultKind.InvalidConsents,
+                Response: null,
+                error,
+                PasswordValidationError.None,
+                UsernameValidationError.None);
 }

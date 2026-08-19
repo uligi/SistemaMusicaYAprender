@@ -393,7 +393,11 @@ test.describe('BL-MVP-028 · registro con credencial larga y Argon2id', () => {
     await auditAccessibility(page, testInfo, 'registration-empty-320');
 
     await page.keyboard.press('Tab');
+    const username = page.getByLabel('Nombre de usuario');
     const email = page.getByLabel('Correo electrónico');
+    await assertFocusVisible(username);
+    await username.fill('persona01');
+    await page.keyboard.press('Tab');
     await assertFocusVisible(email);
     await email.fill('persona@example.com');
     await page.keyboard.press('Tab');
@@ -418,6 +422,7 @@ test.describe('BL-MVP-028 · registro con credencial larga y Argon2id', () => {
     await expect(
       page.getByText('El resultado no confirma si el correo ya estaba registrado.'),
     ).toBeVisible();
+    await expect(username).toHaveValue('');
     await expect(email).toHaveValue('');
     await expect(password).toHaveValue('');
     await expect(terms).not.toBeChecked();
@@ -425,6 +430,7 @@ test.describe('BL-MVP-028 · registro con credencial larga y Argon2id', () => {
     await auditAccessibility(page, testInfo, 'registration-accepted-320');
     await captureState(page, testInfo, 'registration-accepted-320');
 
+    await username.fill('persona01');
     await email.fill('persona@example.com');
     await password.fill('Brisa 日本語 segura 2026');
     await terms.check();
@@ -458,6 +464,7 @@ test.describe('BL-MVP-028 · registro con credencial larga y Argon2id', () => {
 
     await page.goto('/registro');
     const email = page.getByLabel('Correo electrónico');
+    await page.getByLabel('Nombre de usuario').fill('persona02');
     await email.fill('correo-invalido');
     await page.getByLabel('Contraseña').fill('Brisa 日本語 segura 2026');
     await page.getByRole('button', { name: 'Continuar registro' }).click();
@@ -482,6 +489,7 @@ test.describe('BL-MVP-028 · registro con credencial larga y Argon2id', () => {
     await page.goto('/registro');
     const email = page.getByLabel('Correo electrónico');
     const password = page.getByLabel('Contraseña');
+    await page.getByLabel('Nombre de usuario').fill('persona03');
     await email.fill('persona@example.com');
     await password.fill('muy-corta');
     await page.getByRole('button', { name: 'Continuar registro' }).click();
@@ -507,6 +515,7 @@ test.describe('BL-MVP-028 · registro con credencial larga y Argon2id', () => {
     await page.goto('/registro');
     const email = page.getByLabel('Correo electrónico');
     const terms = page.getByRole('checkbox', { name: /Acepto términos de uso/i });
+    await page.getByLabel('Nombre de usuario').fill('persona04');
     await email.fill('persona@example.com');
     await page.getByLabel('Contraseña').fill('Brisa 日本語 segura 2026');
     await page.getByRole('button', { name: 'Continuar registro' }).click();

@@ -261,6 +261,16 @@ jobs:
           PGDATABASE: musica_aprender_ci
         run: bash scripts/ci/identity/verify-personal-registration.sh
 
+      - name: Verify username identity and administrative directory
+        shell: bash
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: musica_aprender_ci
+        run: bash scripts/ci/identity/verify-username-directory.sh
+
       - name: Verify one-use account verification and non-enumerable resend
         shell: bash
         env:

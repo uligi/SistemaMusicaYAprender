@@ -323,7 +323,9 @@ test.describe('BL-MVP-048 · congelar y someter paquete', () => {
 
     await page.goto(`/editorial/canciones/${recordingId}/ejercicios`);
 
-    const packageLink = page.getByRole('link', { name: 'Paquete y revisión' });
+    const packageLink = page
+      .getByLabel('Opciones de la canción')
+      .getByRole('link', { name: 'Paquete y revisión' });
     await expect(packageLink).toBeVisible();
     await packageLink.click();
 

@@ -30,6 +30,14 @@ public static class RoleAssignmentEndpoints
             .WithTags("Security");
 
         endpoints.MapGet(
+                "/api/v1/security/account-directory",
+                SearchAccountsAsync)
+            .RequireEffectivePermission("SECURITY.MANAGE_ROLES")
+            .RequireRecentPrivilegedAssurance()
+            .WithName("SearchRoleAssignmentAccountDirectory")
+            .WithTags("Security");
+
+        endpoints.MapGet(
                 "/api/v1/security/role-assignments/{accountId:guid}",
                 ListAsync)
             .RequireEffectivePermission("SECURITY.MANAGE_ROLES")
@@ -70,6 +78,39 @@ public static class RoleAssignmentEndpoints
             return Results.Ok(
                 await service.ReadCatalogAsync(
                     actorId,
+                    httpContext.TraceIdentifier,
+                    httpContext.RequestAborted));
+        }
+        catch (RoleAssignmentAdministrationException exception)
+        {
+            return Problem(exception);
+        }
+        catch (NpgsqlException)
+        {
+            return Unavailable();
+        }
+        catch (InvalidOperationException)
+        {
+            return Unavailable();
+        }
+    }
+
+    private static async Task<IResult> SearchAccountsAsync(
+        string? query,
+        HttpContext httpContext,
+        RoleAssignmentAdministrationService service)
+    {
+        if (!TryActor(httpContext, out var actorId))
+        {
+            return Results.Unauthorized();
+        }
+
+        try
+        {
+            return Results.Ok(
+                await service.SearchAccountsAsync(
+                    actorId,
+                    query,
                     httpContext.TraceIdentifier,
                     httpContext.RequestAborted));
         }

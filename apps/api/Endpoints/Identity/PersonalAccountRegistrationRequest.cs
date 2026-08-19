@@ -6,6 +6,7 @@ public sealed record PersonalAccountRegistrationConsentRequest(
     bool Decision);
 
 public sealed record PersonalAccountRegistrationRequest(
+    string? Username,
     string? Email,
     string? Password,
     IReadOnlyList<PersonalAccountRegistrationConsentRequest>? Consents);

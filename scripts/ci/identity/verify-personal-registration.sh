@@ -30,6 +30,7 @@ missing_email="missing-$email"
 rejected_email="rejected-$email"
 short_email="short-$email"
 blocked_email="blocked-$email"
+username="bl024$(openssl rand -hex 8)"
 valid_password="Brisa 日本語 segura 2026"
 changed_password="Brisa 日本語 segura 2027"
 
@@ -345,8 +346,8 @@ post_registration() {
     "$api_url/api/v1/auth/register"
 }
 
-valid_body="$(printf '{"email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$email" "$valid_password" "$terms_version" "$privacy_version")"
-duplicate_body="$(printf '{"email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$duplicate_email" "$valid_password" "$terms_version" "$privacy_version")"
+valid_body="$(printf '{"username":"%s","email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$username" "$email" "$valid_password" "$terms_version" "$privacy_version")"
+duplicate_body="$(printf '{"username":"%s","email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$username" "$duplicate_email" "$valid_password" "$terms_version" "$privacy_version")"
 
 mapfile -t first_metrics < <(
   post_registration "$key_one" "$valid_body" "$work_dir/first.json" '%{http_code}\n%{time_total}\n' \
@@ -384,40 +385,40 @@ if grep -F -q "$email" "$work_dir/first.json"; then
   exit 1
 fi
 
-conflict_body="$(printf '{"email":"otra-%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$email" "$valid_password" "$terms_version" "$privacy_version")"
+conflict_body="$(printf '{"username":"%s","email":"otra-%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$username" "$email" "$valid_password" "$terms_version" "$privacy_version")"
 status_conflict="$(post_registration "$key_one" "$conflict_body" "$work_dir/conflict.json")"
 assert_equal "misma clave con otro correo" "$status_conflict" "409"
 
-changed_password_body="$(printf '{"email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$email" "$changed_password" "$terms_version" "$privacy_version")"
+changed_password_body="$(printf '{"username":"%s","email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$username" "$email" "$changed_password" "$terms_version" "$privacy_version")"
 status_password_conflict="$(post_registration "$key_one" "$changed_password_body" "$work_dir/password-conflict.json")"
 assert_equal "misma clave con otra contrasena" "$status_password_conflict" "409"
 
-stale_body="$(printf '{"email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"obsolete","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$stale_email" "$valid_password" "$privacy_version")"
+stale_body="$(printf '{"username":"%s","email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"obsolete","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "${username}stale" "$stale_email" "$valid_password" "$privacy_version")"
 status_stale="$(post_registration "$key_stale" "$stale_body" "$work_dir/stale.json")"
 assert_equal "consentimiento obsoleto" "$status_stale" "400"
 assert_contains "error de consentimiento obsoleto" '"consents"' "$work_dir/stale.json"
 
-missing_body="$(printf '{"email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true}]}' "$missing_email" "$valid_password" "$terms_version")"
+missing_body="$(printf '{"username":"%s","email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true}]}' "${username}miss" "$missing_email" "$valid_password" "$terms_version")"
 status_missing="$(post_registration "$key_missing" "$missing_body" "$work_dir/missing.json")"
 assert_equal "consentimiento faltante" "$status_missing" "400"
 assert_contains "error de consentimiento faltante" '"consents"' "$work_dir/missing.json"
 
-rejected_body="$(printf '{"email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":false}]}' "$rejected_email" "$valid_password" "$terms_version" "$privacy_version")"
+rejected_body="$(printf '{"username":"%s","email":"%s","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":false}]}' "${username}reject" "$rejected_email" "$valid_password" "$terms_version" "$privacy_version")"
 status_rejected="$(post_registration "$key_rejected" "$rejected_body" "$work_dir/rejected.json")"
 assert_equal "consentimiento rechazado" "$status_rejected" "400"
 assert_contains "error de consentimiento rechazado" '"consents"' "$work_dir/rejected.json"
 
-invalid_body="$(printf '{"email":"correo-invalido","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$valid_password" "$terms_version" "$privacy_version")"
+invalid_body="$(printf '{"username":"%s","email":"correo-invalido","password":"%s","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "${username}invalid" "$valid_password" "$terms_version" "$privacy_version")"
 status_invalid="$(post_registration "$key_invalid" "$invalid_body" "$work_dir/invalid.json")"
 assert_equal "correo invalido" "$status_invalid" "400"
 assert_contains "error de correo invalido" '"email"' "$work_dir/invalid.json"
 
-short_body="$(printf '{"email":"%s","password":"muy-corta","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$short_email" "$terms_version" "$privacy_version")"
+short_body="$(printf '{"username":"%s","email":"%s","password":"muy-corta","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "${username}short" "$short_email" "$terms_version" "$privacy_version")"
 status_short="$(post_registration "$key_short" "$short_body" "$work_dir/short.json")"
 assert_equal "contrasena corta" "$status_short" "400"
 assert_contains "error de contrasena corta" '"password"' "$work_dir/short.json"
 
-blocked_body="$(printf '{"email":"%s","password":"correcthorsebatterystaple","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "$blocked_email" "$terms_version" "$privacy_version")"
+blocked_body="$(printf '{"username":"%s","email":"%s","password":"correcthorsebatterystaple","consents":[{"purposeCode":"TERMS_OF_USE","noticeVersion":"%s","decision":true},{"purposeCode":"PRIVACY_POLICY","noticeVersion":"%s","decision":true}]}' "${username}block" "$blocked_email" "$terms_version" "$privacy_version")"
 status_blocked="$(post_registration "$key_blocked" "$blocked_body" "$work_dir/blocked.json")"
 assert_equal "contrasena bloqueada" "$status_blocked" "400"
 assert_contains "error de contrasena bloqueada" '"password"' "$work_dir/blocked.json"
@@ -466,7 +467,7 @@ WHERE account_id = '$account_id';
 ")"
 assert_equal "contrato de security.credential" "$credential_check" "t"
 
-profile_check="$("${psql_base[@]}" --command="SELECT ui_language = 'es-CR' AND time_zone = 'America/Costa_Rica' AND display_name IS NULL FROM identity.user_profile WHERE account_id = '$account_id';")"
+profile_check="$("${psql_base[@]}" --command="SELECT username = '$username' AND ui_language = 'es-CR' AND time_zone = 'America/Costa_Rica' AND display_name IS NULL FROM identity.user_profile WHERE account_id = '$account_id';")"
 assert_equal "contrato de identity.user_profile" "$profile_check" "t"
 
 consent_check="$("${psql_base[@]}" --command="

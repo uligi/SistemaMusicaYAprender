@@ -69,6 +69,7 @@ public static partial class PersonalAccountRegistrationEndpoint
         try
         {
             var response = await registrationService.RegisterAsync(
+                request.Username,
                 request.Email,
                 request.Password,
                 request.Consents,
@@ -78,6 +79,9 @@ public static partial class PersonalAccountRegistrationEndpoint
 
             return response.Kind switch
             {
+                PersonalAccountRegistrationResultKind.InvalidUsername => ValidationProblem(
+                    "username",
+                    UsernameMessage(response.UsernameError)),
                 PersonalAccountRegistrationResultKind.InvalidEmail => ValidationProblem(
                     "email",
                     "Escribe una dirección de correo válida de hasta 254 caracteres."),
@@ -125,6 +129,22 @@ public static partial class PersonalAccountRegistrationEndpoint
                 });
         }
     }
+
+    private static string UsernameMessage(
+        MusicaAprender.Modules.Identity.Application.Profile.UsernameValidationError error) =>
+        error switch
+        {
+            MusicaAprender.Modules.Identity.Application.Profile.UsernameValidationError.Required =>
+                "Escribe un nombre de usuario.",
+            MusicaAprender.Modules.Identity.Application.Profile.UsernameValidationError.Length =>
+                "Usa un nombre de usuario de 3 a 32 caracteres.",
+            MusicaAprender.Modules.Identity.Application.Profile.UsernameValidationError.Reserved =>
+                "Ese nombre está reservado por el sistema. Elige otro.",
+            MusicaAprender.Modules.Identity.Application.Profile.UsernameValidationError.Unavailable =>
+                "Ese nombre de usuario ya está en uso. Elige otro.",
+            _ =>
+                "Usa letras a-z, números, punto, guion o guion bajo; empieza y termina con letra o número."
+        };
 
     private static string PasswordMessage(PasswordValidationError error) =>
         error == PasswordValidationError.Blocked

@@ -28,7 +28,7 @@ function snapshot(overrides: Record<string, unknown> = {}) {
     reviewerCandidates: [
       {
         accountId: reviewerId,
-        label: 'Revisor 22222222',
+        label: '@reviewer01',
         eligible: true,
         ineligibilityReason: null,
       },
@@ -112,7 +112,7 @@ test.describe('BL-MVP-049 · revisión, checklist y decisión', () => {
             {
               assignmentId: '66666666-6666-7666-8666-666666666666',
               reviewerId,
-              reviewerLabel: 'Revisor 22222222',
+              reviewerLabel: '@reviewer01',
               scopeCode: 'PACKAGE',
               assignedAt: '2026-08-18T18:10:00Z',
               dueAt: null,
@@ -140,13 +140,21 @@ test.describe('BL-MVP-049 · revisión, checklist y decisión', () => {
     ).toBeVisible();
     await expect(page.getByText('BL-MVP-050 conserva la publicación atómica')).toBeVisible();
 
+    await expect(
+      page.getByLabel('Revisor').getByRole('option', { name: '@reviewer01' }),
+    ).toHaveCount(1);
+    await expect(page.getByText('Revisor 22222222')).toHaveCount(0);
+
     await page.getByLabel('Revisor').selectOption(reviewerId);
     await page
       .getByLabel('Motivo de asignación')
       .fill('Revisión independiente del paquete congelado.');
     await page.getByRole('button', { name: 'Asignar revisor' }).click();
 
-    await expect(page.getByText('Revisor actual:')).toBeVisible();
+    const currentReviewer = page.getByText('Revisor actual:');
+
+    await expect(currentReviewer).toBeVisible();
+    await expect(currentReviewer.locator('strong')).toHaveText('@reviewer01');
     expect(assignmentPosts).toBe(1);
     await expect(page.getByRole('button', { name: /Publicar/i })).toHaveCount(0);
   });
@@ -159,7 +167,7 @@ test.describe('BL-MVP-049 · revisión, checklist y decisión', () => {
         {
           assignmentId: '66666666-6666-7666-8666-666666666666',
           reviewerId,
-          reviewerLabel: 'Revisor 22222222',
+          reviewerLabel: '@reviewer01',
           scopeCode: 'PACKAGE',
           assignedAt: '2026-08-18T18:10:00Z',
           dueAt: null,
@@ -209,7 +217,7 @@ test.describe('BL-MVP-049 · revisión, checklist y decisión', () => {
         {
           assignmentId: '66666666-6666-7666-8666-666666666666',
           reviewerId,
-          reviewerLabel: 'Revisor 22222222',
+          reviewerLabel: '@reviewer01',
           scopeCode: 'PACKAGE',
           assignedAt: '2026-08-18T18:10:00Z',
           dueAt: null,

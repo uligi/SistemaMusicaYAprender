@@ -634,7 +634,7 @@ public sealed class EditorialReviewWorkflowService(
                 new EditorialReviewAssignmentSnapshot(
                     item.AssignmentId,
                     item.ReviewerId,
-                    ReviewerLabel(item.ReviewerId),
+                    item.ReviewerLabel,
                     item.ScopeCode,
                     item.AssignedAt,
                     item.DueAt,
@@ -866,15 +866,28 @@ public sealed class EditorialReviewWorkflowService(
     {
         const string sql = """
             SELECT
-                assignment_id,
-                reviewer_id,
-                scope_code,
-                assigned_at,
-                due_at,
-                conflict_declared
-            FROM editorial.review_assignment
-            WHERE submission_id = @submission_id
-            ORDER BY assigned_at, assignment_id;
+                assignment.assignment_id,
+                assignment.reviewer_id,
+                CASE
+                    WHEN profile.username IS NOT NULL
+                        THEN '@' || profile.username
+                    WHEN NULLIF(btrim(profile.display_name), '') IS NOT NULL
+                        THEN btrim(profile.display_name)
+                    ELSE 'Cuenta '
+                        || left(
+                            replace(assignment.reviewer_id::text, '-', ''),
+                            8
+                        )
+                END AS reviewer_label,
+                assignment.scope_code,
+                assignment.assigned_at,
+                assignment.due_at,
+                assignment.conflict_declared
+            FROM editorial.review_assignment AS assignment
+            LEFT JOIN identity.user_profile AS profile
+              ON profile.account_id = assignment.reviewer_id
+            WHERE assignment.submission_id = @submission_id
+            ORDER BY assignment.assigned_at, assignment.assignment_id;
             """;
 
         var rows = new List<AssignmentRow>();
@@ -893,9 +906,10 @@ public sealed class EditorialReviewWorkflowService(
                 reader.GetGuid(0),
                 reader.GetGuid(1),
                 reader.GetString(2),
-                reader.GetDateTime(3),
-                reader.IsDBNull(4) ? null : reader.GetDateTime(4),
-                reader.GetBoolean(5)));
+                reader.GetString(3),
+                reader.GetDateTime(4),
+                reader.IsDBNull(5) ? null : reader.GetDateTime(5),
+                reader.GetBoolean(6)));
         }
 
         return rows;
@@ -954,8 +968,22 @@ public sealed class EditorialReviewWorkflowService(
             CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT DISTINCT a.account_id
+            SELECT DISTINCT
+                a.account_id,
+                CASE
+                    WHEN profile.username IS NOT NULL
+                        THEN '@' || profile.username
+                    WHEN NULLIF(btrim(profile.display_name), '') IS NOT NULL
+                        THEN btrim(profile.display_name)
+                    ELSE 'Cuenta '
+                        || left(
+                            replace(a.account_id::text, '-', ''),
+                            8
+                        )
+                END AS reviewer_label
             FROM security.account a
+            LEFT JOIN identity.user_profile AS profile
+              ON profile.account_id = a.account_id
             JOIN security.role_assignment ra
               ON ra.account_id = a.account_id
             JOIN security.role r
@@ -1003,6 +1031,7 @@ public sealed class EditorialReviewWorkflowService(
         while (await reader.ReadAsync(cancellationToken))
         {
             var accountId = reader.GetGuid(0);
+            var reviewerLabel = reader.GetString(1);
             var reason = accountId == submittedBy
                 ? "Quien sometió el paquete no puede revisar su propia presentación."
                 : accountId == packageCreatedBy
@@ -1011,7 +1040,7 @@ public sealed class EditorialReviewWorkflowService(
 
             rows.Add(new EditorialReviewerCandidate(
                 accountId,
-                ReviewerLabel(accountId),
+                reviewerLabel,
                 reason is null,
                 reason));
         }
@@ -1255,8 +1284,6 @@ public sealed class EditorialReviewWorkflowService(
                 "No se pudo resolver un rol vigente para auditar la revisión.");
     }
 
-    private static string ReviewerLabel(Guid accountId) =>
-        $"Revisor {accountId.ToString("N")[..8]}";
 
     private static string NormalizeDecision(string value)
     {
@@ -1339,6 +1366,7 @@ public sealed class EditorialReviewWorkflowService(
     private sealed record AssignmentRow(
         Guid AssignmentId,
         Guid ReviewerId,
+        string ReviewerLabel,
         string ScopeCode,
         DateTime AssignedAt,
         DateTime? DueAt,

@@ -43,6 +43,22 @@ test.describe('BL-MVP-031 · gestión de asignaciones de roles', () => {
       });
     });
 
+    await page.route('**/api/v1/security/account-directory?query=reviewer01', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            accountId: target,
+            username: 'reviewer01',
+            displayName: 'Revisor de prueba',
+            statusCode: 'ACTIVE',
+            roleCodes: ['STUDENT'],
+          },
+        ]),
+      });
+    });
+
     await page.route('**/api/v1/security/role-assignments/catalog', async (route) => {
       await route.fulfill({
         status: 200,
@@ -121,20 +137,47 @@ test.describe('BL-MVP-031 · gestión de asignaciones de roles', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: 'Roles y permisos' })).toBeVisible();
 
-    await page.getByLabel('Cuenta objetivo').fill(target);
+    await page.getByLabel('Buscar cuenta por nombre de usuario').fill('reviewer01');
+    await page.getByRole('button', { name: /@reviewer01/ }).click();
     await page.getByLabel('Rol *', { exact: true }).selectOption('EDITOR');
     await page.getByRole('textbox', { name: 'Motivo', exact: true }).fill('Curaduría de catálogo');
+    const grantResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().endsWith('/api/v1/security/role-assignments'),
+    );
+
     await page.getByRole('button', { name: 'Asignar rol' }).click();
 
-    await expect(page.getByText('Asignación aplicada y auditada.')).toBeVisible();
+    const grantResponse = await grantResponsePromise;
+    expect(grantResponse.status()).toBe(201);
+
+    await expect(
+      page.getByRole('status').filter({
+        hasText: 'Asignación aplicada y auditada.',
+      }),
+    ).toBeVisible();
     await expect(
       page.getByLabel('Asignaciones de la cuenta').getByText('EDITOR', { exact: true }),
     ).toBeVisible();
 
     await page.getByLabel('Motivo para retirar').fill('Fin de la responsabilidad');
+    const revokeResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().endsWith(`/api/v1/security/role-assignments/${assignmentId}/revoke`),
+    );
+
     await page.getByRole('button', { name: 'Retirar' }).click();
 
-    await expect(page.getByText('Asignación retirada y auditada.')).toBeVisible();
+    const revokeResponse = await revokeResponsePromise;
+    expect(revokeResponse.status()).toBe(200);
+
+    await expect(
+      page.getByRole('status').filter({
+        hasText: 'Asignación retirada y auditada.',
+      }),
+    ).toBeVisible();
     await expect(page.getByText('Estado: EXPIRED')).toBeVisible();
 
     const accessibility = await new AxeBuilder({ page })

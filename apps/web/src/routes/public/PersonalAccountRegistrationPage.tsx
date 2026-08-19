@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button, Field, Link, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
+import {
+  normalizeUsername,
+  usernameError as validateUsername,
+} from '../../domain/identity/username';
 
 const httpClient = createHttpClient();
 
@@ -24,6 +28,7 @@ type RegistrationConsentRequest = {
 };
 
 type RegistrationRequest = {
+  username: string;
   email: string;
   password: string;
   consents: RegistrationConsentRequest[];
@@ -46,6 +51,7 @@ type SubmissionState =
   | { phase: 'failed'; problem: ClientProblem };
 
 type PendingOperation = {
+  username: string;
   email: string;
   consentFingerprint: string;
   idempotencyKey: string;
@@ -80,13 +86,16 @@ function isUsableCatalog(
 
 export function PersonalAccountRegistrationPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const consentInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const pendingOperationRef = useRef<PendingOperation | null>(null);
   const activeRequestRef = useRef<AbortController | null>(null);
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [usernameError, setUsernameError] = useState<string>();
   const [emailError, setEmailError] = useState<string>();
   const [passwordError, setPasswordError] = useState<string>();
   const [consentError, setConsentError] = useState<string>();
@@ -133,6 +142,15 @@ export function PersonalAccountRegistrationPage() {
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    const normalizedUsername = normalizeUsername(username);
+    const usernameValidation = validateUsername(username);
+    if (usernameValidation) {
+      setUsernameError(usernameValidation);
+      setSubmission({ phase: 'idle' });
+      usernameInputRef.current?.focus();
+      return;
+    }
+
     const input = emailInputRef.current;
     if (!input?.validity.valid) {
       setEmailError('Escribe una dirección de correo válida de hasta 254 caracteres.');
@@ -171,10 +189,12 @@ export function PersonalAccountRegistrationPage() {
     const fingerprint = consentFingerprint(consentCatalog.notices);
     const pendingOperation = pendingOperationRef.current;
     const operation =
-      pendingOperation?.email === submittedEmail &&
+      pendingOperation?.username === normalizedUsername &&
+      pendingOperation.email === submittedEmail &&
       pendingOperation.consentFingerprint === fingerprint
         ? pendingOperation
         : {
+            username: normalizedUsername,
             email: submittedEmail,
             consentFingerprint: fingerprint,
             idempotencyKey: crypto.randomUUID(),
@@ -185,6 +205,7 @@ export function PersonalAccountRegistrationPage() {
 
     const controller = new AbortController();
     activeRequestRef.current = controller;
+    setUsernameError(undefined);
     setEmailError(undefined);
     setPasswordError(undefined);
     setConsentError(undefined);
@@ -193,6 +214,7 @@ export function PersonalAccountRegistrationPage() {
     const result = await httpClient.post<RegistrationRequest, RegistrationResponse>(
       '/auth/register',
       {
+        username: normalizedUsername,
         email: submittedEmail,
         password: normalizedPassword,
         consents: consentCatalog.notices.map((notice) => ({
@@ -214,11 +236,17 @@ export function PersonalAccountRegistrationPage() {
 
     if (result.ok) {
       pendingOperationRef.current = null;
+      setUsername('');
       setEmail('');
       setPassword('');
       setConsentSelections(emptyConsentSelections(consentCatalog.notices));
       setSubmission({ phase: 'accepted', message: result.data.message });
       return;
+    }
+
+    if (result.problem.fieldErrors.some((fieldError) => fieldError.field === 'username')) {
+      setUsernameError(result.problem.cause || 'Elige otro nombre de usuario.');
+      requestAnimationFrame(() => usernameInputRef.current?.focus());
     }
 
     if (result.problem.fieldErrors.some((fieldError) => fieldError.field === 'email')) {
@@ -257,8 +285,8 @@ export function PersonalAccountRegistrationPage() {
           Crea tu cuenta personal
         </h1>
         <p>
-          Comienza con tu correo, una contraseña larga y las condiciones vigentes. La respuesta será
-          la misma aunque ya exista una solicitud, para proteger la privacidad de cada cuenta.
+          Elige un nombre de usuario visible, añade tu correo, una contraseña larga y las
+          condiciones vigentes. El correo seguirá protegido y no se usa como identificador público.
         </p>
       </div>
 
@@ -268,6 +296,29 @@ export function PersonalAccountRegistrationPage() {
         noValidate
         onSubmit={submit}
       >
+        <Field
+          autoComplete="username"
+          helpText="3–32 caracteres. Se guarda en minúsculas y será el identificador que verán administradores y revisores."
+          id="registration-username"
+          label="Nombre de usuario"
+          maxLength={32}
+          minLength={3}
+          name="username"
+          onChange={(event) => {
+            const nextUsername = event.currentTarget.value;
+            if (pendingOperationRef.current?.username !== normalizeUsername(nextUsername)) {
+              pendingOperationRef.current = null;
+            }
+            setUsername(nextUsername);
+            setUsernameError(undefined);
+          }}
+          ref={usernameInputRef}
+          required
+          spellCheck={false}
+          value={username}
+          {...(usernameError ? { error: usernameError } : {})}
+        />
+
         <Field
           autoComplete="email"
           helpText="Usaremos este correo solo para el acceso y la verificación de la cuenta."

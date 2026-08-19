@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
 import type { ClientProblem } from '../../data/http/types';
+import { UsernameProfilePanel } from './UsernameProfilePanel';
 
 const httpClient = createHttpClient();
 
@@ -265,6 +266,8 @@ export function PersonalPreferencesPage() {
           </div>
         </dl>
       </div>
+
+      <UsernameProfilePanel />
 
       <form aria-busy={state.phase === 'saving'} className="preferences__form" onSubmit={save}>
         <fieldset>

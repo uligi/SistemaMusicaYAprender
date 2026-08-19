@@ -15,6 +15,13 @@ public sealed record RoleAssignmentCatalog(
     IReadOnlyList<string> Roles,
     IReadOnlyList<RoleAssignmentScopeView> Scopes);
 
+public sealed record RoleAssignmentAccountDirectoryItem(
+    Guid AccountId,
+    string Username,
+    string? DisplayName,
+    string StatusCode,
+    IReadOnlyList<string> RoleCodes);
+
 public sealed record RoleAssignmentView(
     Guid AssignmentId,
     Guid AccountId,
@@ -110,6 +117,106 @@ public sealed class RoleAssignmentAdministrationService(
                 return new RoleAssignmentCatalog(roles, scopes);
             },
             cancellationToken);
+
+    public Task<IReadOnlyList<RoleAssignmentAccountDirectoryItem>> SearchAccountsAsync(
+        Guid actorAccountId,
+        string? query,
+        string correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = NormalizeDirectoryQuery(query);
+
+        return executor.ExecuteAsync<IReadOnlyList<RoleAssignmentAccountDirectoryItem>>(
+            actorAccountId,
+            correlationId,
+            async (connection, transaction, token) =>
+            {
+                _ = await RequireManagingRoleAsync(
+                    connection,
+                    transaction,
+                    actorAccountId,
+                    token);
+
+                const string sql = """
+                    SELECT
+                        account.account_id,
+                        profile.username,
+                        profile.display_name,
+                        account.status_code,
+                        COALESCE(
+                            array_agg(
+                                DISTINCT role.role_code::text
+                                ORDER BY role.role_code::text
+                            ) FILTER (WHERE role.role_code IS NOT NULL),
+                            ARRAY[]::text[]
+                        ) AS role_codes
+                    FROM security.account AS account
+                    INNER JOIN identity.user_profile AS profile
+                      ON profile.account_id = account.account_id
+                    LEFT JOIN security.role_assignment AS assignment
+                      ON assignment.account_id = account.account_id
+                     AND assignment.valid_from <= CURRENT_TIMESTAMP
+                     AND (
+                         assignment.valid_to IS NULL
+                         OR assignment.valid_to > CURRENT_TIMESTAMP
+                     )
+                    LEFT JOIN security.role AS role
+                      ON role.role_id = assignment.role_id
+                     AND role.status_code = 'ACTIVE'
+                    WHERE account.status_code = 'ACTIVE'
+                      AND account.verified_at IS NOT NULL
+                      AND profile.username IS NOT NULL
+                      AND account.account_id <> @actor_id
+                      AND left(
+                          profile.username,
+                          length(@query)
+                      ) = @query
+                    GROUP BY
+                        account.account_id,
+                        profile.username,
+                        profile.display_name,
+                        account.status_code
+                    ORDER BY
+                        CASE WHEN profile.username = @query THEN 0 ELSE 1 END,
+                        profile.username,
+                        account.account_id
+                    LIMIT 20;
+                    """;
+
+                await using var command =
+                    new NpgsqlCommand(sql, connection, transaction);
+                command.Parameters.AddWithValue(
+                    "actor_id",
+                    NpgsqlDbType.Uuid,
+                    actorAccountId);
+                command.Parameters.AddWithValue(
+                    "query",
+                    NpgsqlDbType.Varchar,
+                    normalized);
+
+                var result =
+                    new List<RoleAssignmentAccountDirectoryItem>();
+
+                await using var reader =
+                    await command.ExecuteReaderAsync(token);
+
+                while (await reader.ReadAsync(token))
+                {
+                    result.Add(
+                        new RoleAssignmentAccountDirectoryItem(
+                            reader.GetGuid(0),
+                            reader.GetString(1),
+                            reader.IsDBNull(2)
+                                ? null
+                                : reader.GetString(2),
+                            reader.GetString(3),
+                            reader.GetFieldValue<string[]>(4)));
+                }
+
+                return result;
+            },
+            cancellationToken);
+    }
 
     public Task<IReadOnlyList<RoleAssignmentView>> ListAsync(
         Guid actorAccountId,
@@ -986,9 +1093,31 @@ public sealed class RoleAssignmentAdministrationService(
         return normalized;
     }
 
+    private static string NormalizeDirectoryQuery(string? value)
+    {
+        var normalized =
+            value?.Trim().TrimStart('@').ToLowerInvariant();
+
+        if (string.IsNullOrWhiteSpace(normalized)
+            || normalized.Length is < 2 or > 32
+            || normalized.Any(character =>
+                !(
+                    character is >= 'a' and <= 'z'
+                    || character is >= '0' and <= '9'
+                    || character is '.' or '_' or '-'
+                )))
+        {
+            throw Invalid(
+                "security.account-directory.query.invalid",
+                "Busca con al menos dos caracteres válidos del nombre de usuario.");
+        }
+
+        return normalized;
+    }
+
     private static string NormalizeCode(
         string value,
-        string fieldName)
+        string field)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value);
         var normalized = value.Trim().ToUpperInvariant();
@@ -998,7 +1127,7 @@ public sealed class RoleAssignmentAdministrationService(
         {
             throw Invalid(
                 "security.role-assignment.role.invalid",
-                $"El {fieldName} no usa un código válido.");
+                $"El {field} no usa un código válido.");
         }
 
         return normalized;

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Button, Field, SelectField, StateMessage } from '../../components/ui';
 import { createHttpClient } from '../../data/http';
+import { AccountDirectoryPicker, type AccountDirectoryItem } from './AccountDirectoryPicker';
 import { PrivilegedAssurancePanel } from './PrivilegedAssurancePanel';
 import './role-management.css';
 
@@ -78,7 +79,7 @@ async function csrfHeaders(): Promise<Readonly<Record<string, string>> | null> {
 
 export function RoleManagementPage() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
-  const [targetAccount, setTargetAccount] = useState('');
+  const [targetAccount, setTargetAccount] = useState<AccountDirectoryItem | null>(null);
   const [roleCode, setRoleCode] = useState('');
   const [scopeId, setScopeId] = useState('');
   const [validUntil, setValidUntil] = useState('');
@@ -120,26 +121,18 @@ export function RoleManagementPage() {
     };
   }, [privilegedReady]);
 
-  const targetValid = useMemo(
-    () =>
-      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
-        targetAccount.trim(),
-      ),
-    [targetAccount],
-  );
-
   async function loadAssignments(): Promise<void> {
     setMessage('');
     setError('');
 
-    if (!targetValid) {
-      setError('Ingresa un UUID de cuenta válido.');
+    if (!targetAccount) {
+      setError('Selecciona una cuenta por nombre de usuario.');
       return;
     }
 
     setBusy(true);
     const result = await client.get<Assignment[]>(
-      `/security/role-assignments/${encodeURIComponent(targetAccount.trim())}`,
+      `/security/role-assignments/${encodeURIComponent(targetAccount.accountId)}`,
       {
         cacheMode: 'no-store',
         retry: 'never',
@@ -160,7 +153,7 @@ export function RoleManagementPage() {
     setMessage('');
     setError('');
 
-    if (!targetValid || !roleCode || !reason.trim()) {
+    if (!targetAccount || !roleCode || !reason.trim()) {
       setError('Cuenta, rol y motivo son obligatorios.');
       return;
     }
@@ -190,7 +183,7 @@ export function RoleManagementPage() {
     >(
       '/security/role-assignments',
       {
-        accountId: targetAccount.trim(),
+        accountId: targetAccount.accountId,
         roleCode,
         scopeId: scopeId || null,
         validUntil: parsedValidUntil?.toISOString() ?? null,
@@ -299,18 +292,15 @@ export function RoleManagementPage() {
           <form className="role-management__panel" onSubmit={grant}>
             <h2>Nueva asignación</h2>
 
-            <Field
-              id="role-target-account"
-              label="Cuenta objetivo"
-              helpText="Pega el UUID de la cuenta. Este flujo no busca ni expone correos; hace falta un directorio administrativo separado para reemplazar este identificador de forma segura."
-              value={targetAccount}
-              onChange={(event) =>
-                setTargetAccount(event.target.value.replace(/[^0-9a-fA-F-]/g, '').slice(0, 36))
-              }
-              pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-              maxLength={36}
-              spellCheck={false}
-              required
+            <AccountDirectoryPicker
+              disabled={busy}
+              selected={targetAccount}
+              onSelect={(account) => {
+                setTargetAccount(account);
+                setAssignments([]);
+                setMessage('');
+                setError('');
+              }}
             />
 
             <SelectField

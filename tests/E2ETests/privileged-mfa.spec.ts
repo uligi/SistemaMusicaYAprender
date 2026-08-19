@@ -136,7 +136,7 @@ test.describe('BL-MVP-032 · MFA y reautenticación privilegiada', () => {
     await page.goto('/administracion/roles');
 
     await expect(page.getByRole('heading', { name: 'Verificación reforzada' })).toBeVisible();
-    await expect(page.getByLabel('Cuenta objetivo')).toHaveCount(0);
+    await expect(page.getByLabel('Buscar cuenta por nombre de usuario')).toHaveCount(0);
 
     await page.getByLabel('Contraseña actual').fill('frase-de-paso-correcta');
     await page.getByRole('button', { name: 'Preparar segundo factor' }).click();
@@ -150,7 +150,7 @@ test.describe('BL-MVP-032 · MFA y reautenticación privilegiada', () => {
     await page.getByRole('button', { name: 'Confirmar verificación reforzada' }).click();
 
     await expect(page.getByText(/Verificación vigente/)).toBeVisible();
-    await expect(page.getByLabel('Cuenta objetivo')).toBeVisible();
+    await expect(page.getByLabel('Buscar cuenta por nombre de usuario')).toBeVisible();
 
     const accessibility = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
